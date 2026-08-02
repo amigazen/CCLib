@@ -19,7 +19,7 @@ extern "C" {
 #include <dos/dos.h>
 #endif
 
-/*"CClib.library"*/
+/*"cclib.library"*/
 
 /* Canonical LVO interface for CClib.library (V4.0 reimplementation of the*/
 /* historic V3.0 jump table). Register-args LVO calling convention*/

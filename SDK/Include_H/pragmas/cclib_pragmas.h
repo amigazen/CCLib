@@ -12,7 +12,7 @@
 #include <clib/cclib_protos.h>
 #endif /* CLIB_CCLIB_PROTOS_H */
 
-/*"CClib.library" */
+/*"cclib.library" */
 
 /* Canonical LVO interface for CClib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
