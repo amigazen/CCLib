@@ -1,51 +1,27 @@
 #
 # :ts=8
 #
-# CCTest — heir of archive Source/test.lmk for SAS/C 6 (Lattice lineage).
+# CCTest -- functional unit tests (happy path).
+# CCPanic -- validation / abort_func harness (forged handles, EBADF, ...).
 #
-# Historic Lattice (CClib.Doc §IX / test.lmk):
-#   blink lib:cc.o, lcmain.o, test.o to test lib lcclib.lib,lcmieee.lib,...
+# Flags: SCOPTIONS in this directory (keep Sc lines short).
+# Link: slink with *.lnk -- amiga.lib only, no sc.lib.
+# cc_start.o must be first on FROM (SLINK has no ENTRY; first hunk is PC).
 #
-# This port (NOSTARTUP — cc.o source was never redistributable):
-#   cc_entry.o  ≈ cc.o
-#   cc_crt.o    ≈ lcmain.o
-#   + stubs/math.o stubs/blocksize.o + cctest.o
-#   LIB lib:amiga.lib only — never sc:lib/c.o / sc.lib
-#
-# Requires CClib.library in LIBS: (parent smake install).
+# Requires cclib.library in LIBS: (parent smake install).
 # Run from Source/unittests.
 #
-
-NAME = CCTest
-
-###############################################################################
-
-OPTIMIZE = optimize opttime
-DEBUG = symbolflush noopt
-
-###############################################################################
-
-# CClib SDK headers first (historic Lattice note: ahead of compiler clib).
-# /include = Source/include; //SDK = CCLib/SDK
-CFLAGS = resopt idlen=64 comnest streq strmerge nostkchk \
-	includedir=/include includedir=//SDK/Include_H includedir=include: \
-	$(OPTIMIZE) debug=$(DEBUG) \
-	params=register strsect=code mccons \
-	unsignedchars nomultipleincludes structureequivalence \
-	optimizescheduler noversion noicons \
-	stringsconst CODE=FAR DATA=FAR nostartup
-
-LFLAGS = addsym noicons batch stripdebug NOSTARTUP 
 
 ###############################################################################
 
 CRT_OBJS = \
+	cc_start.o \
 	/crt/cc_entry.o \
 	/crt/cc_crt.o \
 	/stubs/math.o \
 	/stubs/blocksize.o
 
-OBJS = \
+CCTEST_OBJS = \
 	cctest_util.o \
 	cctest_crt.o \
 	cctest_string.o \
@@ -63,83 +39,112 @@ OBJS = \
 	cctest_dir.o \
 	cctest.o
 
-LIBS = lib:amiga.lib
+CCPANIC_OBJS = \
+	cctest_util.o \
+	ccpanic_heap.o \
+	ccpanic_stdio.o \
+	ccpanic_io.o \
+	ccpanic.o
 
 ###############################################################################
 
-all: $(NAME)
+all: CCTest CCPanic
 
-$(NAME): $(CRT_OBJS) $(OBJS)
-	Sc $(LFLAGS) LINK TO $@ $(CRT_OBJS) $(OBJS) LIB $(LIBS)
+CCTest: $(CRT_OBJS) $(CCTEST_OBJS) CCTest.lnk
+	slink with CCTest.lnk
+
+CCPanic: $(CRT_OBJS) $(CCPANIC_OBJS) CCPanic.lnk
+	slink with CCPanic.lnk
 
 clean:
-	delete quiet $(NAME) $(NAME).map $(OBJS) \
+	delete quiet CCTest CCPanic CCTest.map CCPanic.map \
+		$(CCTEST_OBJS) $(CCPANIC_OBJS) cc_start.o \
 		/crt/cc_entry.o /crt/cc_crt.o \
 		/stubs/math.o /stubs/blocksize.o
 
-test: $(NAME)
-	$(NAME)
+test: CCTest CCPanic
+	CCTest
+	CCPanic
 
 ###############################################################################
 
-/crt/cc_entry.o: /crt/cc_entry.c
-	Sc $(CFLAGS) OBJNAME $@ $<
+# Copy asm into cwd so SAS/C writes cc_start.o here for *.lnk.
+cc_start.o: /crt/cc_start.asm
+	copy /crt/cc_start.asm cc_start.asm
+	asm -u cc_start.asm
+	delete quiet cc_start.asm
 
+/crt/cc_entry.o: /crt/cc_entry.c
+	Sc OBJNAME $@ $<
+
+# Extra idir=/ so private/ headers resolve from Source/
 /crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h
-	Sc $(CFLAGS) includedir=/ OBJNAME $@ $<
+	Sc idir=/ OBJNAME $@ $<
 
 /stubs/math.o: /stubs/math.c
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 /stubs/blocksize.o: /stubs/blocksize.c
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_util.o: cctest_util.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_crt.o: cctest_crt.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_string.o: cctest_string.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_mem.o: cctest_mem.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_conv.o: cctest_conv.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_ctype.o: cctest_ctype.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_heap.o: cctest_heap.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_list.o: cctest_list.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_fmt.o: cctest_fmt.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_stdio.o: cctest_stdio.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_io.o: cctest_io.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_time.o: cctest_time.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_env.o: cctest_env.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_sort.o: cctest_sort.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest_dir.o: cctest_dir.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cctest.o: cctest.c cctest_util.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
+
+ccpanic.o: ccpanic.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+ccpanic_heap.o: ccpanic_heap.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+ccpanic_stdio.o: ccpanic_stdio.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+ccpanic_io.o: ccpanic_io.c cctest_util.h
+	Sc OBJNAME $@ $<
 
 .PHONY: all clean test

@@ -1,17 +1,8 @@
 /*
- * crt/cc_entry.c - SAS/C / Lattice startup (historic cc.o role)
+ * crt/cc_entry.c - SAS/C __main (sc_crt/_main.c role) for CClib clients
  *
- * SAS/C is Lattice C 6.x.  Historic CClib linked:
- *   cc.o + lcmain.o + app ... lcclib.lib, lcmieee.lib, lc.lib, amiga.lib
- * where cc.o was a patched Lattice c.o (WB reply and argv[0] prepend removed).
- *
- * This module is the NOSTARTUP replacement for that cc.o: install SysBase /
- * DOSBase, collect the CLI arg string (without prepending argv[0] — CClib
- * cli_parse does that), do NOT reply to the Workbench message (lcmain /
- * SetupSTDIO own that), then call _main(aptr) as Lattice did.
- *
- * Must be first on the SLINK line, or use ENTRY=_start.  Do not also link
- * sc:lib/c.o — stock c.o double-replies WB and duplicates argv[0].
+ * Called from crt/cc_start.asm after A4/BSS setup.  Opens dos + utility,
+ * then Lattice _main(aptr).  __stdargs matches sc_crt and asm -u xref __main.
  */
 
 #include <exec/types.h>
@@ -24,19 +15,42 @@
 
 struct ExecBase *SysBase;
 struct DosLibrary *DOSBase;
+struct Library *UtilityBase;
 
-/* Lattice / SAS/C: _main receives a NUL-terminated argument string. */
-extern void _main(STRPTR aptr);
+/* Stack size for sc_crt/c.a-compatible tooling; our minimal start ignores it. */
+unsigned long __stack = 8192;
 
-void
-_start(void)
+extern void __stdargs _main(STRPTR aptr);
+
+static void
+cc_dos_msg(STRPTR s)
+{
+	BPTR out;
+	LONG n;
+
+	if (DOSBase == (struct DosLibrary *)NULL || s == (STRPTR)NULL)
+		return;
+	n = 0;
+	while (s[n] != '\0')
+		n++;
+	out = Output();
+	if (out != (BPTR)NULL)
+		Write(out, s, n);
+}
+
+void __stdargs
+__main(char *line)
 {
 	struct Process *pr;
 	STRPTR aptr;
 	struct Library *dos;
+	struct Library *util;
+
+	(void)line;
 
 	SysBase = *((struct ExecBase **)4);
 	DOSBase = (struct DosLibrary *)NULL;
+	UtilityBase = (struct Library *)NULL;
 	aptr = (STRPTR)NULL;
 
 	dos = OpenLibrary((STRPTR)"dos.library", 37);
@@ -46,20 +60,22 @@ _start(void)
 		return;
 	DOSBase = (struct DosLibrary *)dos;
 
+	util = OpenLibrary((STRPTR)"utility.library", 37);
+	if (util == (struct Library *)NULL)
+		util = OpenLibrary((STRPTR)"utility.library", 0);
+	if (util == (struct Library *)NULL)
+	{
+		cc_dos_msg((STRPTR)"CCTest: cannot open utility.library\n");
+		CloseLibrary(dos);
+		DOSBase = (struct DosLibrary *)NULL;
+		return;
+	}
+	UtilityBase = util;
+
 	pr = (struct Process *)FindTask(NULL);
-	/*
-	 * GetArgStr() is the AmigaDOS 2+ form of the Lattice c.o argument
-	 * string: arguments only, no command name (CClib adds argv[0]).
-	 */
 	if (pr->pr_CLI != (BPTR)NULL
 	    && ((struct Library *)DOSBase)->lib_Version >= 37)
 		aptr = GetArgStr();
 
 	_main(aptr);
-}
-
-void
-__main(void)
-{
-	_start();
 }

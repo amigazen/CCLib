@@ -27,7 +27,7 @@
 #include <workbench/startup.h>
 #endif
 
-#define CCLIBNAME "CClib.library"
+#define CCLIBNAME "cclib.library"
 
 #ifndef CCLIB_STDLIST_TYPES
 #define CCLIB_STDLIST_TYPES 1
@@ -122,7 +122,11 @@ struct stat
 };
 #endif
 
+#if defined(__SASC)
+typedef void __stdargs (*ABORT_FUNC)(long);
+#else
 typedef void (*ABORT_FUNC)(long);
+#endif
 
 typedef struct
 {

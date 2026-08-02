@@ -15,7 +15,13 @@ LONG ct_total;
 
 LONG ct_panic_hits;
 
-void
+/*
+ * __saveds: library LVOs run with the library A4; without this, writes to
+ * ct_panic_hits would hit the wrong near-data section and forged-handle
+ * tests would see hits stuck at 0.  __stdargs matches abort_func calls
+ * (same convention as CRT exit).
+ */
+void __stdargs __saveds
 ct_panic_hook(LONG code)
 {
 	(void)code;
@@ -33,7 +39,7 @@ ct_install_panic_hook(void)
 void
 ct_restore_panic_hook(void)
 {
-	extern void exit(LONG code);
+	extern void __stdargs __saveds exit(LONG code);
 
 	/* Restore the CRT terminate path used by SetupSTDIO. */
 	SetAbortFunc((APTR)exit);
@@ -116,9 +122,10 @@ ct_check(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 }
 
 void
-ct_init(void)
+ct_init_named(STRPTR harness_name)
 {
 	LONG av[1];
+	STRPTR name;
 
 	ct_pass = 0;
 	ct_fail = 0;
@@ -126,13 +133,23 @@ ct_init(void)
 
 	if (stdout == (FILE *)NULL)
 		return;
-	ct_out((STRPTR)"# CCTest - CClib.library unit tests\n", (APTR)NULL);
+	name = harness_name;
+	if (name == (STRPTR)NULL)
+		name = (STRPTR)"CCTest";
+	av[0] = (LONG)name;
+	ct_out((STRPTR)"# %s - cclib.library unit tests\n", (APTR)av);
 	ct_out((STRPTR)"# All harness output is on stdout (never stderr).\n",
 		(APTR)NULL);
 	ct_out((STRPTR)"# Each test block lists CALL, DESC, EXPECTED, ACTUAL, STATUS.\n",
 		(APTR)NULL);
 	av[0] = (LONG)CCLibBase;
 	ct_out((STRPTR)"# CCLibBase=%ld\n", (APTR)av);
+}
+
+void
+ct_init(void)
+{
+	ct_init_named((STRPTR)"CCTest");
 }
 
 void

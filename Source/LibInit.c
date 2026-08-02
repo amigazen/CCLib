@@ -10,8 +10,8 @@
 #include "private/cc_build.h"
 #include "Rev.h"
 
-const char AS_LibName[] = "CClib.library";
-const char AS_LibId[] = "CClib.library " VERSION " (" DATE ")\r\n";
+const char AS_LibName[] = "cclib.library";
+const char AS_LibId[] = "cclib.library " VERSION " (" DATE ")\r\n";
 
 struct InitTable;
 extern struct InitTable InitTab;

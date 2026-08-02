@@ -10,7 +10,8 @@
  *   - Open CClib + IEEE math; SetupSTDIO; main(argc,argv)
  *   - Tear down via atexit handlers, ClearSTDIO; dos Exit
  *
- * With NOSTARTUP, cc_entry.c replaces cc.o and this file replaces lcmain.o.
+ * With NOSTARTUP, crt/cc_start.asm replaces sc_crt/c.a (__startup, A4,
+ * BSS clear) and this file replaces lcmain / sc_crt/_main.c.
  *
  * Termination policy (stronger than ISO _exit): every CRT path that leaves
  * the process — exit, _exit, abort, Ctrl-C — runs atexit handlers once and
@@ -38,23 +39,24 @@ extern long blocksize;
 
 extern struct ExecBase *SysBase;
 extern struct DosLibrary *DOSBase;
+extern struct Library *UtilityBase;
 
-struct Library *CCLibBase;
-struct Library *MathIeeeDoubBasBase;
-struct WBStartup *WBenchMsg;
-void (*exit_fcn)(void);
+struct Library *CCLibBase = NULL;
+struct Library *MathIeeeDoubBasBase = NULL;
+struct WBStartup *WBenchMsg = NULL;
+void (*exit_fcn)(void) = NULL;
 
-FILE *stdin;
-FILE *stdout;
-FILE *stderr;
-LONG errno;
-char *type;
+FILE *stdin = NULL;
+FILE *stdout = NULL;
+FILE *stderr = NULL;
+LONG errno = 0;
+char *type = NULL;
 
 /* Aztec C stack / trap globals (archive _main.c) */
-LONG _savsp;
-LONG _stkbase;
-void *_oldtrap;
-void **_trapaddr;
+LONG _savsp = 0;
+LONG _stkbase = 0;
+void *_oldtrap = NULL;
+void **_trapaddr = NULL;
 
 static LONG cc_exiting;
 static short cc_math_opened; /* Lattice _mathopen: we opened IEEE, must Close */
@@ -66,9 +68,9 @@ static LONG cc_atexit_n;
 static LONG cc_atexit_ran;
 
 extern int main(int argc, char **argv);
-void _exit(LONG code);
-void exit(LONG code);
-void abort(void);
+void __stdargs __saveds _exit(LONG code);
+void __stdargs __saveds exit(LONG code);
+void __stdargs __saveds abort(void);
 int atexit(void (*func)(void));
 
 static void cc_run_atexit(void)
@@ -157,9 +159,10 @@ void __stdargs XCEXIT(long code)
 
 /*------------------------------------------------------------------------*/
 /* _main — Lattice signature: NUL-terminated arg string only              */
+/* __stdargs: stack args, no parm=r '@' name (matches historic lcmain).   */
 /*------------------------------------------------------------------------*/
 
-void
+void __stdargs
 _main(STRPTR aptr)
 {
 	cc_task_UserData *ud;
@@ -173,6 +176,7 @@ _main(STRPTR aptr)
 	cc_atexit_ran = 0;
 	MathIeeeDoubBasBase = (struct Library *)NULL;
 	CCLibBase = (struct Library *)NULL;
+	WBenchMsg = (struct WBStartup *)NULL;
 	exit_fcn = (void (*)(void))NULL;
 	stdin = (FILE *)NULL;
 	stdout = (FILE *)NULL;
@@ -217,10 +221,29 @@ _main(STRPTR aptr)
 
 	CCLibBase = OpenLibrary((STRPTR)CCLIBNAME, 4);
 	if (CCLibBase == (struct Library *)NULL)
+	{
+		if (DOSBase != (struct DosLibrary *)NULL)
+		{
+			BPTR out;
+			STRPTR msg;
+
+			msg = (STRPTR)"CCTest: cannot open cclib.library v4\n";
+			out = Output();
+			if (out != (BPTR)NULL)
+			{
+				alen = 0;
+				while (msg[alen] != '\0')
+					alen++;
+				Write(out, msg, alen);
+			}
+		}
 		goto fail;
+	}
 
 	if (aptr != (STRPTR)NULL)
 		alen = strlen(aptr);
+	else
+		alen = 0;
 
 	if (_math)
 	{
@@ -229,7 +252,24 @@ _main(STRPTR aptr)
 			MathIeeeDoubBasBase = OpenLibrary(
 				(STRPTR)"mathieeedoubbas.library", 0);
 			if (MathIeeeDoubBasBase == (struct Library *)NULL)
+			{
+				if (DOSBase != (struct DosLibrary *)NULL)
+				{
+					BPTR out;
+					STRPTR msg;
+
+					msg = (STRPTR)"CCTest: cannot open mathieeedoubbas.library\n";
+					out = Output();
+					if (out != (BPTR)NULL)
+					{
+						alen = 0;
+						while (msg[alen] != '\0')
+							alen++;
+						Write(out, msg, alen);
+					}
+				}
 				goto fail;
+			}
 			cc_math_opened = 1;
 		}
 	}
@@ -244,6 +284,21 @@ _main(STRPTR aptr)
 		(APTR)MathIeeeDoubBasBase,
 		alen, aptr, (APTR)WBenchMsg, (APTR)exit))
 	{
+		if (DOSBase != (struct DosLibrary *)NULL)
+		{
+			BPTR out;
+			STRPTR msg;
+
+			msg = (STRPTR)"CCTest: SetupSTDIO failed\n";
+			out = Output();
+			if (out != (BPTR)NULL)
+			{
+				alen = 0;
+				while (msg[alen] != '\0')
+					alen++;
+				Write(out, msg, alen);
+			}
+		}
 		goto fail;
 	}
 
@@ -298,6 +353,12 @@ cc_terminate(LONG code)
 		cc_math_opened = 0;
 	}
 
+	if (UtilityBase != (struct Library *)NULL)
+	{
+		CloseLibrary(UtilityBase);
+		UtilityBase = (struct Library *)NULL;
+	}
+
 	if (WBenchMsg != (struct WBStartup *)NULL)
 	{
 		Forbid();
@@ -314,19 +375,19 @@ cc_terminate(LONG code)
 		Exit(rv);
 }
 
-void
+void __stdargs __saveds
 _exit(LONG code)
 {
 	cc_terminate(code);
 }
 
-void
+void __stdargs __saveds
 exit(LONG code)
 {
 	cc_terminate(code);
 }
 
-void
+void __stdargs __saveds
 abort(void)
 {
 	cc_terminate(20L); /* EXIT_FAILURE */

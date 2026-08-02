@@ -207,6 +207,8 @@ APTR FuncTab[] = {
 	(APTR)stpncpy,
 	/* V4: environment */
 	(APTR)unsetenv,
+	/* V4: format — vsnprintf LVO; snprintf is ==varargs at same bias */
+	(APTR)cc_vsnprintf,
 	(APTR)((LONG)-1)
 };
 
@@ -224,9 +226,16 @@ __ASM__ __SAVE_DS__ LibInit(
 {
 	SysBase = sysbase;
 
-	/* AmigaOS 3.2 / NDK 3.2R4 baseline (utility V47; dos matches Kick 3.2). */
-	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 47);
-	UtilityBase = OpenLibrary("utility.library", 47);
+	/* dos V37+ / utility V37+ (SMult32 family).  Do not demand V47 here —
+	 * a failed Open in LibInit means the resident never registers and every
+	 * client OpenLibrary(CClib) returns NULL.
+	 */
+	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 37);
+	if (DOSBase == NULL)
+		DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 0);
+	UtilityBase = OpenLibrary("utility.library", 37);
+	if (UtilityBase == NULL)
+		UtilityBase = OpenLibrary("utility.library", 0);
 
 	if (DOSBase != NULL && UtilityBase != NULL)
 	{

@@ -24,7 +24,12 @@ ct_cmp_long(APTR a, APTR b)
 	return 0L;
 }
 
-static LONG
+/*
+ * __saveds: vquicksort callbacks use the near global ct_sort_arr; the
+ * library enters with its own A4, so without saveds the sort would not
+ * touch the test array (quicksort passes an absolute arg pointer instead).
+ */
+static LONG __saveds
 ct_vq_cmp(ULONG a, ULONG b)
 {
 	if (ct_sort_arr[a] < ct_sort_arr[b])
@@ -34,7 +39,7 @@ ct_vq_cmp(ULONG a, ULONG b)
 	return 0L;
 }
 
-static void
+static void __saveds
 ct_vq_swap(ULONG a, ULONG b)
 {
 	LONG t;

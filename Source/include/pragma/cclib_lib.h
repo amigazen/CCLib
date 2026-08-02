@@ -12,9 +12,9 @@
 #include <clib/cclib_protos.h>
 #endif /* CLIB_CCLIB_PROTOS_H */
 
-/*"CClib.library" */
+/*"cclib.library" */
 
-/* Canonical LVO interface for CClib.library (V4.0 reimplementation of the */
+/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
 /* Do not reorder or insert mid-table. Append new LVOs only at the end. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
@@ -234,5 +234,7 @@
 #pragma amicall(CCLibBase, 0x3BA, stpcpy(a0,a1))
 #pragma amicall(CCLibBase, 0x3C0, stpncpy(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x3C6, unsetenv(a0))
+#pragma amicall(CCLibBase, 0x3CC, vsnprintf(a0,d0,a1,a2))
+/* snprintf is ==varargs of vsnprintf (same bias); use stubs or SAS tagcall */
 
 #endif /* PRAGMA_CCLIB_LIB_H */

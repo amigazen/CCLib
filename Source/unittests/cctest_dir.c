@@ -23,7 +23,7 @@ ct_suite_dir(void)
 
 	/*
 	 * Scan LIBS: with a wildcard — do not depend on the exact installed
-	 * spelling of CClib.library, and never use a fake volume name (that
+	 * spelling of cclib.library, and never use a fake volume name (that
 	 * puts up an AmigaDOS "Please insert volume" requester).
 	 */
 	scdir_clean();

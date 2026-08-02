@@ -6,6 +6,6 @@
 #define CC_LIB_VERSION   VERNUM
 #define CC_LIB_REVISION  REVNUM
 
-#define CCLIBNAME "CClib.library"
+#define CCLIBNAME "cclib.library"
 
 #endif /* CCLIB_PRIVATE_CC_BUILD_H */

@@ -21,7 +21,7 @@ extern "C" {
 
 /*"cclib.library"*/
 
-/* Canonical LVO interface for CClib.library (V4.0 reimplementation of the*/
+/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the*/
 /* historic V3.0 jump table). Register-args LVO calling convention*/
 /* Do not reorder or insert mid-table. Append new LVOs only at the end.*/
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR.*/
@@ -248,6 +248,12 @@ STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n);
 
 /* Environment*/
 LONG unsetenv(STRPTR name);
+
+/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias*/
+/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf).*/
+
+LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args);
+LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...);
 
 #ifdef __cplusplus
 }

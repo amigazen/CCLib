@@ -10,7 +10,7 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for CClib.library (V4.0 reimplementation of the */
+/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
 /* Do not reorder or insert mid-table. Append new LVOs only at the end. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
@@ -554,6 +554,18 @@ STRPTR __stpncpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR 
 /* Environment */
 LONG __unsetenv(__reg("a6") void *, __reg("a0") STRPTR name)="\tjsr\t-966(a6)";
 #define unsetenv(name) __unsetenv(CCLibBase, (name))
+
+
+/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
+/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
+
+LONG __vsnprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-972(a6)";
+#define vsnprintf(s, n, format, args) __vsnprintf(CCLibBase, (s), (n), (format), (args))
+
+#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)
+LONG __snprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, ...)="\tmove.l\ta2,-(a7)\n\tlea\t4(a7),a2\n\tjsr\t-972(a6)\n\tmovea.l\t(a7)+,a2";
+#define snprintf(...) __snprintf(CCLibBase, __VA_ARGS__)
+#endif
 
 
 #endif /* INLINE_CCLIB_PROTOS_H */

@@ -1,160 +1,163 @@
 TABLE OF CONTENTS
 
-CClib.library/--background--
-CClib.library/--notes-sasc--
-CClib.library/SetSTDIO
-CClib.library/GetSTDIO
-CClib.library/ClearSTDIO
-CClib.library/closeall
-CClib.library/SetAbortFunc
-CClib.library/ClearAbortFunc
-CClib.library/SetupSTDIO
-CClib.library/strerror
-CClib.library/open
-CClib.library/close
-CClib.library/unlink
-CClib.library/stat
-CClib.library/rename
-CClib.library/read
-CClib.library/write
-CClib.library/creat
-CClib.library/lseek
-CClib.library/isatty
-CClib.library/access
-CClib.library/fopen
-CClib.library/freopen
-CClib.library/fclose
-CClib.library/fdopen
-CClib.library/getbuff
-CClib.library/setvbuf
-CClib.library/mktemp
-CClib.library/tmpnam
-CClib.library/tmpfile
-CClib.library/putc
-CClib.library/aputc
-CClib.library/getc
-CClib.library/agetc
-CClib.library/getchar
-CClib.library/ungetc
-CClib.library/putw
-CClib.library/puts
-CClib.library/puterr
-CClib.library/fwrite
-CClib.library/perror
-CClib.library/fseek
-CClib.library/ftell
-CClib.library/fflush
-CClib.library/getw
-CClib.library/fread
-CClib.library/gets
-CClib.library/fgets
-CClib.library/fputs
-CClib.library/scanf
-CClib.library/printf
-CClib.library/fscanf
-CClib.library/fprintf
-CClib.library/sscanf
-CClib.library/sprintf
-CClib.library/_alloc
-CClib.library/_fre
-CClib.library/_freall
-CClib.library/sbrk
-CClib.library/heap_alloc
-CClib.library/heap_free
-CClib.library/malloc
-CClib.library/calloc
-CClib.library/realloc
-CClib.library/free
-CClib.library/be_free
-CClib.library/malloc_size
-CClib.library/freeall
-CClib.library/inst_node
-CClib.library/put_head
-CClib.library/add_head
-CClib.library/put_tail
-CClib.library/add_tail
-CClib.library/remv_head
-CClib.library/remv_tail
-CClib.library/remv_list
-CClib.library/r_node
-CClib.library/remv_node
-CClib.library/atoi
-CClib.library/atol
-CClib.library/atof
-CClib.library/ltoa
-CClib.library/stoa
-CClib.library/bcmp
-CClib.library/bcopy
-CClib.library/bzero
-CClib.library/memccpy
-CClib.library/memchr
-CClib.library/memcmp
-CClib.library/memcpy
-CClib.library/memset
-CClib.library/memswap
-CClib.library/index
-CClib.library/rindex
-CClib.library/strupr
-CClib.library/stpcrlf
-CClib.library/strcat
-CClib.library/strchr
-CClib.library/strcmp
-CClib.library/strcpy
-CClib.library/strcspn
-CClib.library/strlen
-CClib.library/strncat
-CClib.library/strcmpa
-CClib.library/strncmp
-CClib.library/strncpy
-CClib.library/strpbrk
-CClib.library/strrchr
-CClib.library/strspn
-CClib.library/strstr
-CClib.library/strtok
-CClib.library/strrv
-CClib.library/strnrv
-CClib.library/bcpl_strcpy
-CClib.library/vquicksort
-CClib.library/toupper
-CClib.library/quicksort
-CClib.library/qsort
-CClib.library/cli_parse
-CClib.library/wb_parse
-CClib.library/vprintf
-CClib.library/vfprintf
-CClib.library/vsprintf
-CClib.library/fgetpos
-CClib.library/fsetpos
-CClib.library/time
-CClib.library/clock
-CClib.library/gmtime
-CClib.library/asctime
-CClib.library/ctime
-CClib.library/localtime
-CClib.library/mktime
-CClib.library/difftime
-CClib.library/strftime
-CClib.library/scdir
-CClib.library/scdir_clean
-CClib.library/tolower
-CClib.library/setenv
-CClib.library/getenv
-CClib.library/stat_
-CClib.library/wb_exec
-CClib.library/wbexec
-CClib.library/wbAexec
-CClib.library/wait_child
-CClib.library/wait_children
-CClib.library/signal_child
-CClib.library/kill
-CClib.library/kill_children
-CClib.library/cliexec
-CClib.library/exec
+cclib.library/--background--
+cclib.library/--notes-sasc--
+cclib.library/SetSTDIO
+cclib.library/GetSTDIO
+cclib.library/ClearSTDIO
+cclib.library/closeall
+cclib.library/SetAbortFunc
+cclib.library/ClearAbortFunc
+cclib.library/SetupSTDIO
+cclib.library/strerror
+cclib.library/open
+cclib.library/close
+cclib.library/unlink
+cclib.library/stat
+cclib.library/rename
+cclib.library/read
+cclib.library/write
+cclib.library/creat
+cclib.library/lseek
+cclib.library/isatty
+cclib.library/access
+cclib.library/fopen
+cclib.library/freopen
+cclib.library/fclose
+cclib.library/fdopen
+cclib.library/getbuff
+cclib.library/setvbuf
+cclib.library/mktemp
+cclib.library/tmpnam
+cclib.library/tmpfile
+cclib.library/putc
+cclib.library/aputc
+cclib.library/getc
+cclib.library/agetc
+cclib.library/getchar
+cclib.library/ungetc
+cclib.library/putw
+cclib.library/puts
+cclib.library/puterr
+cclib.library/fwrite
+cclib.library/perror
+cclib.library/fseek
+cclib.library/ftell
+cclib.library/fflush
+cclib.library/getw
+cclib.library/fread
+cclib.library/gets
+cclib.library/fgets
+cclib.library/fputs
+cclib.library/scanf
+cclib.library/printf
+cclib.library/fscanf
+cclib.library/fprintf
+cclib.library/sscanf
+cclib.library/sprintf
+cclib.library/_alloc
+cclib.library/_fre
+cclib.library/_freall
+cclib.library/sbrk
+cclib.library/heap_alloc
+cclib.library/heap_free
+cclib.library/malloc
+cclib.library/calloc
+cclib.library/realloc
+cclib.library/free
+cclib.library/be_free
+cclib.library/malloc_size
+cclib.library/freeall
+cclib.library/inst_node
+cclib.library/put_head
+cclib.library/add_head
+cclib.library/put_tail
+cclib.library/add_tail
+cclib.library/remv_head
+cclib.library/remv_tail
+cclib.library/remv_list
+cclib.library/r_node
+cclib.library/remv_node
+cclib.library/atoi
+cclib.library/atol
+cclib.library/atof
+cclib.library/ltoa
+cclib.library/stoa
+cclib.library/bcmp
+cclib.library/bcopy
+cclib.library/bzero
+cclib.library/memccpy
+cclib.library/memchr
+cclib.library/memcmp
+cclib.library/memcpy
+cclib.library/memset
+cclib.library/memswap
+cclib.library/index
+cclib.library/rindex
+cclib.library/strupr
+cclib.library/stpcrlf
+cclib.library/strcat
+cclib.library/strchr
+cclib.library/strcmp
+cclib.library/strcpy
+cclib.library/strcspn
+cclib.library/strlen
+cclib.library/strncat
+cclib.library/strcmpa
+cclib.library/strncmp
+cclib.library/strncpy
+cclib.library/strpbrk
+cclib.library/strrchr
+cclib.library/strspn
+cclib.library/strstr
+cclib.library/strtok
+cclib.library/strrv
+cclib.library/strnrv
+cclib.library/bcpl_strcpy
+cclib.library/vquicksort
+cclib.library/toupper
+cclib.library/quicksort
+cclib.library/qsort
+cclib.library/cli_parse
+cclib.library/wb_parse
+cclib.library/vprintf
+cclib.library/vfprintf
+cclib.library/vsprintf
+cclib.library/vsnprintf
+cclib.library/snprintf
+cclib.library/fgetpos
+cclib.library/fsetpos
+cclib.library/time
+cclib.library/clock
+cclib.library/gmtime
+cclib.library/asctime
+cclib.library/ctime
+cclib.library/localtime
+cclib.library/mktime
+cclib.library/difftime
+cclib.library/strftime
+cclib.library/scdir
+cclib.library/scdir_clean
+cclib.library/tolower
+cclib.library/setenv
+cclib.library/getenv
+cclib.library/unsetenv
+cclib.library/stat_
+cclib.library/wb_exec
+cclib.library/wbexec
+cclib.library/wbAexec
+cclib.library/wait_child
+cclib.library/wait_children
+cclib.library/signal_child
+cclib.library/kill
+cclib.library/kill_children
+cclib.library/cliexec
+cclib.library/exec
 
-CClib.library/--background--                      CClib.library/--background--
+cclib.library/--background--                      cclib.library/--background--
 
-    CClib.library is a shared AmigaOS implementation of the standard C
-    library (plus Amiga helpers). Applications OpenLibrary("CClib.library",
+    cclib.library is a shared AmigaOS implementation of the standard C
+    library (plus Amiga helpers). Applications OpenLibrary("cclib.library",
     4), include the CClib SDK headers (<stdio.h>, <string.h>, ...) instead
     of the SAS/C clib, and either include <proto/cclib.h> (register LVOs)
     or link the auto/stub library for a normal C calling face.
@@ -192,9 +195,9 @@ CClib.library/--background--                      CClib.library/--background--
 
     SEE ALSO
 	libraries/cclib.h, proto/cclib.h, SDK/SFD/cclib_lib.sfd,
-	CClib.library/--notes-sasc--
+	cclib.library/--notes-sasc--
 
-CClib.library/--notes-sasc--                      CClib.library/--notes-sasc--
+cclib.library/--notes-sasc--                      cclib.library/--notes-sasc--
    NAME
 	Notes on SAS/C (Lattice C 6.x)
 
@@ -209,7 +212,7 @@ CClib.library/--notes-sasc--                      CClib.library/--notes-sasc--
 	    cc.o was a patched Lattice c.o (source not redistributable).
 	    Lines that prepended the program name to the CLI string and that
 	    replied to the Workbench startup message were removed, because
-	    CClib.library already does both.  Symptoms of using stock c.o:
+	    cclib.library already does both.  Symptoms of using stock c.o:
 		CLI - argv[0] and argv[1] both set to the program name
 		Workbench - double ReplyMsg, system crash
 
@@ -223,7 +226,12 @@ CClib.library/--notes-sasc--                      CClib.library/--notes-sasc--
 	    your app .o
 	    LIB lib:amiga.lib only - do not link sc:lib/c.o or sc.lib
 
-	    SLINK: NOSTARTUP ENTRY=_start
+	    Link with slink (not "sc ... link").  The sc driver still appends
+	    SAS/C libraries after any Library=/LIB= list.  Use
+	    Source/unittests/CCTest.lnk / Source/CClib.lnk.
+	    Compile with parameters=register so #pragma libcall LVOs match.
+	    Shared library objects: libcode + __saveds / saveds (SAS/C LibCode).
+
 	    See Source/unittests/smakefile (heir of archive test.lmk).
 
 	If WBenchMsg is already non-NULL when _main runs, stock c.o was
@@ -246,7 +254,7 @@ CClib.library/--notes-sasc--                      CClib.library/--notes-sasc--
 	archive CClib.Doc (intro reentrancy/IEEE, section IX), Source/crt/,
 	Source/cc_ieee.c, Source/unittests/, proto/cclib.h
 
-CClib.library/SetSTDIO                                  CClib.library/SetSTDIO
+cclib.library/SetSTDIO                                  cclib.library/SetSTDIO
    NAME
 	SetSTDIO -- allocate per-task C library userdata
 
@@ -274,7 +282,7 @@ CClib.library/SetSTDIO                                  CClib.library/SetSTDIO
 
    (LVO bias -30)
 
-CClib.library/GetSTDIO                                  CClib.library/GetSTDIO
+cclib.library/GetSTDIO                                  cclib.library/GetSTDIO
    NAME
 	GetSTDIO -- return the current task's userdata pointer
 
@@ -300,7 +308,7 @@ CClib.library/GetSTDIO                                  CClib.library/GetSTDIO
 
    (LVO bias -36)
 
-CClib.library/ClearSTDIO                              CClib.library/ClearSTDIO
+cclib.library/ClearSTDIO                              cclib.library/ClearSTDIO
    NAME
 	ClearSTDIO -- tear down CClib per-task state
 
@@ -333,7 +341,7 @@ CClib.library/ClearSTDIO                              CClib.library/ClearSTDIO
 
    (LVO bias -42)
 
-CClib.library/closeall                                  CClib.library/closeall
+cclib.library/closeall                                  cclib.library/closeall
    NAME
 	closeall -- close every open stream and file descriptor
 
@@ -361,7 +369,7 @@ CClib.library/closeall                                  CClib.library/closeall
 
    (LVO bias -48)
 
-CClib.library/SetAbortFunc                          CClib.library/SetAbortFunc
+cclib.library/SetAbortFunc                          cclib.library/SetAbortFunc
    NAME
 	SetAbortFunc -- install a Ctrl-C / break handler
 
@@ -391,7 +399,7 @@ CClib.library/SetAbortFunc                          CClib.library/SetAbortFunc
 
    (LVO bias -54)
 
-CClib.library/ClearAbortFunc                      CClib.library/ClearAbortFunc
+cclib.library/ClearAbortFunc                      cclib.library/ClearAbortFunc
    NAME
 	ClearAbortFunc -- remove the break signal handler
 
@@ -417,7 +425,7 @@ CClib.library/ClearAbortFunc                      CClib.library/ClearAbortFunc
 
    (LVO bias -60)
 
-CClib.library/SetupSTDIO                              CClib.library/SetupSTDIO
+cclib.library/SetupSTDIO                              cclib.library/SetupSTDIO
    NAME
 	SetupSTDIO -- wire globals, parse args, open standard streams
 
@@ -461,7 +469,7 @@ CClib.library/SetupSTDIO                              CClib.library/SetupSTDIO
 
    (LVO bias -66)
 
-CClib.library/strerror                                  CClib.library/strerror
+cclib.library/strerror                                  cclib.library/strerror
    NAME
 	strerror -- map an errno code to a text message
 
@@ -489,7 +497,7 @@ CClib.library/strerror                                  CClib.library/strerror
 
    (LVO bias -72)
 
-CClib.library/open                                          CClib.library/open
+cclib.library/open                                          cclib.library/open
    NAME
 	open -- open a file and return a file descriptor
 
@@ -521,7 +529,7 @@ CClib.library/open                                          CClib.library/open
 
    (LVO bias -78)
 
-CClib.library/close                                        CClib.library/close
+cclib.library/close                                        cclib.library/close
    NAME
 	close -- close a file descriptor
 
@@ -549,7 +557,7 @@ CClib.library/close                                        CClib.library/close
 
    (LVO bias -84)
 
-CClib.library/unlink                                      CClib.library/unlink
+cclib.library/unlink                                      cclib.library/unlink
    NAME
 	unlink -- delete a file by name
 
@@ -575,7 +583,7 @@ CClib.library/unlink                                      CClib.library/unlink
 
    (LVO bias -90)
 
-CClib.library/stat                                          CClib.library/stat
+cclib.library/stat                                          cclib.library/stat
    NAME
 	stat -- read file metadata into a stat buffer
 
@@ -604,7 +612,7 @@ CClib.library/stat                                          CClib.library/stat
 
    (LVO bias -96)
 
-CClib.library/rename                                      CClib.library/rename
+cclib.library/rename                                      cclib.library/rename
    NAME
 	rename -- rename a file or directory
 
@@ -631,7 +639,7 @@ CClib.library/rename                                      CClib.library/rename
 
    (LVO bias -102)
 
-CClib.library/read                                          CClib.library/read
+cclib.library/read                                          cclib.library/read
    NAME
 	read -- read bytes from a file descriptor
 
@@ -661,7 +669,7 @@ CClib.library/read                                          CClib.library/read
 
    (LVO bias -108)
 
-CClib.library/write                                        CClib.library/write
+cclib.library/write                                        cclib.library/write
    NAME
 	write -- write bytes to a file descriptor
 
@@ -691,7 +699,7 @@ CClib.library/write                                        CClib.library/write
 
    (LVO bias -114)
 
-CClib.library/creat                                        CClib.library/creat
+cclib.library/creat                                        cclib.library/creat
    NAME
 	creat -- create or truncate a file for writing
 
@@ -718,7 +726,7 @@ CClib.library/creat                                        CClib.library/creat
 
    (LVO bias -120)
 
-CClib.library/lseek                                        CClib.library/lseek
+cclib.library/lseek                                        cclib.library/lseek
    NAME
 	lseek -- set or query file position
 
@@ -748,7 +756,7 @@ CClib.library/lseek                                        CClib.library/lseek
 
    (LVO bias -126)
 
-CClib.library/isatty                                      CClib.library/isatty
+cclib.library/isatty                                      cclib.library/isatty
    NAME
 	isatty -- test whether a descriptor is interactive
 
@@ -776,7 +784,7 @@ CClib.library/isatty                                      CClib.library/isatty
 
    (LVO bias -132)
 
-CClib.library/access                                      CClib.library/access
+cclib.library/access                                      cclib.library/access
    NAME
 	access -- check file existence or protection
 
@@ -805,7 +813,7 @@ CClib.library/access                                      CClib.library/access
 
    (LVO bias -138)
 
-CClib.library/fopen                                        CClib.library/fopen
+cclib.library/fopen                                        cclib.library/fopen
    NAME
 	fopen -- open a buffered FILE stream by path
 
@@ -834,7 +842,7 @@ CClib.library/fopen                                        CClib.library/fopen
 
    (LVO bias -144)
 
-CClib.library/freopen                                    CClib.library/freopen
+cclib.library/freopen                                    cclib.library/freopen
    NAME
 	freopen -- reuse a FILE stream on a new file
 
@@ -864,7 +872,7 @@ CClib.library/freopen                                    CClib.library/freopen
 
    (LVO bias -150)
 
-CClib.library/fclose                                      CClib.library/fclose
+cclib.library/fclose                                      cclib.library/fclose
    NAME
 	fclose -- flush and close a FILE stream
 
@@ -892,7 +900,7 @@ CClib.library/fclose                                      CClib.library/fclose
 
    (LVO bias -156)
 
-CClib.library/fdopen                                      CClib.library/fdopen
+cclib.library/fdopen                                      cclib.library/fdopen
    NAME
 	fdopen -- wrap an existing file descriptor in a FILE stream
 
@@ -921,7 +929,7 @@ CClib.library/fdopen                                      CClib.library/fdopen
 
    (LVO bias -162)
 
-CClib.library/getbuff                                    CClib.library/getbuff
+cclib.library/getbuff                                    cclib.library/getbuff
    NAME
 	getbuff -- allocate the default stream buffer
 
@@ -949,7 +957,7 @@ CClib.library/getbuff                                    CClib.library/getbuff
 
    (LVO bias -168)
 
-CClib.library/setvbuf                                    CClib.library/setvbuf
+cclib.library/setvbuf                                    cclib.library/setvbuf
    NAME
 	setvbuf -- configure stream buffering
 
@@ -980,7 +988,7 @@ CClib.library/setvbuf                                    CClib.library/setvbuf
 
    (LVO bias -174)
 
-CClib.library/mktemp                                      CClib.library/mktemp
+cclib.library/mktemp                                      cclib.library/mktemp
    NAME
 	mktemp -- fill a template path with a unique name
 
@@ -1008,7 +1016,7 @@ CClib.library/mktemp                                      CClib.library/mktemp
 
    (LVO bias -180)
 
-CClib.library/tmpnam                                      CClib.library/tmpnam
+cclib.library/tmpnam                                      cclib.library/tmpnam
    NAME
 	tmpnam -- generate a temporary file pathname
 
@@ -1036,7 +1044,7 @@ CClib.library/tmpnam                                      CClib.library/tmpnam
 
    (LVO bias -186)
 
-CClib.library/tmpfile                                    CClib.library/tmpfile
+cclib.library/tmpfile                                    cclib.library/tmpfile
    NAME
 	tmpfile -- create a temporary read/write stream
 
@@ -1062,7 +1070,7 @@ CClib.library/tmpfile                                    CClib.library/tmpfile
 
    (LVO bias -192)
 
-CClib.library/putc                                          CClib.library/putc
+cclib.library/putc                                          cclib.library/putc
    NAME
 	putc -- write a byte to a stream (macro entry)
 
@@ -1091,7 +1099,7 @@ CClib.library/putc                                          CClib.library/putc
 
    (LVO bias -198)
 
-CClib.library/aputc                                        CClib.library/aputc
+cclib.library/aputc                                        cclib.library/aputc
    NAME
 	aputc -- buffered put byte on a FILE stream
 
@@ -1120,7 +1128,7 @@ CClib.library/aputc                                        CClib.library/aputc
 
    (LVO bias -204)
 
-CClib.library/getc                                          CClib.library/getc
+cclib.library/getc                                          cclib.library/getc
    NAME
 	getc -- read a byte from a stream (macro entry)
 
@@ -1148,7 +1156,7 @@ CClib.library/getc                                          CClib.library/getc
 
    (LVO bias -210)
 
-CClib.library/agetc                                        CClib.library/agetc
+cclib.library/agetc                                        cclib.library/agetc
    NAME
 	agetc -- buffered get byte from a FILE stream
 
@@ -1176,7 +1184,7 @@ CClib.library/agetc                                        CClib.library/agetc
 
    (LVO bias -216)
 
-CClib.library/getchar                                    CClib.library/getchar
+cclib.library/getchar                                    cclib.library/getchar
    NAME
 	getchar -- read a byte from standard input
 
@@ -1202,7 +1210,7 @@ CClib.library/getchar                                    CClib.library/getchar
 
    (LVO bias -222)
 
-CClib.library/ungetc                                      CClib.library/ungetc
+cclib.library/ungetc                                      cclib.library/ungetc
    NAME
 	ungetc -- push one character back into a stream
 
@@ -1231,7 +1239,7 @@ CClib.library/ungetc                                      CClib.library/ungetc
 
    (LVO bias -228)
 
-CClib.library/putw                                          CClib.library/putw
+cclib.library/putw                                          cclib.library/putw
    NAME
 	putw -- write a 16-bit word to a stream
 
@@ -1260,7 +1268,7 @@ CClib.library/putw                                          CClib.library/putw
 
    (LVO bias -234)
 
-CClib.library/puts                                          CClib.library/puts
+cclib.library/puts                                          cclib.library/puts
    NAME
 	puts -- write a string and newline to stdout
 
@@ -1288,7 +1296,7 @@ CClib.library/puts                                          CClib.library/puts
 
    (LVO bias -240)
 
-CClib.library/puterr                                      CClib.library/puterr
+cclib.library/puterr                                      cclib.library/puterr
    NAME
 	puterr -- write a byte to standard error
 
@@ -1316,7 +1324,7 @@ CClib.library/puterr                                      CClib.library/puterr
 
    (LVO bias -246)
 
-CClib.library/fwrite                                      CClib.library/fwrite
+cclib.library/fwrite                                      cclib.library/fwrite
    NAME
 	fwrite -- write formatted blocks to a stream
 
@@ -1347,7 +1355,7 @@ CClib.library/fwrite                                      CClib.library/fwrite
 
    (LVO bias -252)
 
-CClib.library/perror                                      CClib.library/perror
+cclib.library/perror                                      cclib.library/perror
    NAME
 	perror -- print a system error message to stderr
 
@@ -1375,7 +1383,7 @@ CClib.library/perror                                      CClib.library/perror
 
    (LVO bias -258)
 
-CClib.library/fseek                                        CClib.library/fseek
+cclib.library/fseek                                        cclib.library/fseek
    NAME
 	fseek -- reposition a FILE stream
 
@@ -1405,7 +1413,7 @@ CClib.library/fseek                                        CClib.library/fseek
 
    (LVO bias -264)
 
-CClib.library/ftell                                        CClib.library/ftell
+cclib.library/ftell                                        cclib.library/ftell
    NAME
 	ftell -- report the current stream position
 
@@ -1433,7 +1441,7 @@ CClib.library/ftell                                        CClib.library/ftell
 
    (LVO bias -270)
 
-CClib.library/fflush                                      CClib.library/fflush
+cclib.library/fflush                                      cclib.library/fflush
    NAME
 	fflush -- flush stream buffers to the file
 
@@ -1461,7 +1469,7 @@ CClib.library/fflush                                      CClib.library/fflush
 
    (LVO bias -276)
 
-CClib.library/getw                                          CClib.library/getw
+cclib.library/getw                                          cclib.library/getw
    NAME
 	getw -- read a 16-bit word from a stream
 
@@ -1489,7 +1497,7 @@ CClib.library/getw                                          CClib.library/getw
 
    (LVO bias -282)
 
-CClib.library/fread                                        CClib.library/fread
+cclib.library/fread                                        cclib.library/fread
    NAME
 	fread -- read blocks from a stream
 
@@ -1520,7 +1528,7 @@ CClib.library/fread                                        CClib.library/fread
 
    (LVO bias -288)
 
-CClib.library/gets                                          CClib.library/gets
+cclib.library/gets                                          cclib.library/gets
    NAME
 	gets -- read a line from stdin without a length limit
 
@@ -1548,7 +1556,7 @@ CClib.library/gets                                          CClib.library/gets
 
    (LVO bias -294)
 
-CClib.library/fgets                                        CClib.library/fgets
+cclib.library/fgets                                        cclib.library/fgets
    NAME
 	fgets -- read a line from a stream with a size limit
 
@@ -1578,7 +1586,7 @@ CClib.library/fgets                                        CClib.library/fgets
 
    (LVO bias -300)
 
-CClib.library/fputs                                        CClib.library/fputs
+cclib.library/fputs                                        cclib.library/fputs
    NAME
 	fputs -- write a string to a stream
 
@@ -1607,7 +1615,7 @@ CClib.library/fputs                                        CClib.library/fputs
 
    (LVO bias -306)
 
-CClib.library/scanf                                        CClib.library/scanf
+cclib.library/scanf                                        cclib.library/scanf
    NAME
 	scanf -- read formatted input from stdin
 
@@ -1634,7 +1642,7 @@ CClib.library/scanf                                        CClib.library/scanf
 
    (LVO bias -312)
 
-CClib.library/printf                                      CClib.library/printf
+cclib.library/printf                                      cclib.library/printf
    NAME
 	printf -- write formatted output to stdout
 
@@ -1658,7 +1666,7 @@ CClib.library/printf                                      CClib.library/printf
 
    (LVO bias -318)
 
-CClib.library/fscanf                                      CClib.library/fscanf
+cclib.library/fscanf                                      cclib.library/fscanf
    NAME
 	fscanf -- read formatted input from a stream
 
@@ -1683,7 +1691,7 @@ CClib.library/fscanf                                      CClib.library/fscanf
 
    (LVO bias -324)
 
-CClib.library/fprintf                                    CClib.library/fprintf
+cclib.library/fprintf                                    cclib.library/fprintf
    NAME
 	fprintf -- write formatted output to a stream
 
@@ -1708,7 +1716,7 @@ CClib.library/fprintf                                    CClib.library/fprintf
 
    (LVO bias -330)
 
-CClib.library/sscanf                                      CClib.library/sscanf
+cclib.library/sscanf                                      cclib.library/sscanf
    NAME
 	sscanf -- read formatted input from a string
 
@@ -1733,7 +1741,7 @@ CClib.library/sscanf                                      CClib.library/sscanf
 
    (LVO bias -336)
 
-CClib.library/sprintf                                    CClib.library/sprintf
+cclib.library/sprintf                                    cclib.library/sprintf
    NAME
 	sprintf -- write formatted output to a string
 
@@ -1761,7 +1769,7 @@ CClib.library/sprintf                                    CClib.library/sprintf
 
    (LVO bias -342)
 
-CClib.library/_alloc                                      CClib.library/_alloc
+cclib.library/_alloc                                      cclib.library/_alloc
    NAME
 	_alloc -- lowest-level per-task AllocMem
 
@@ -1786,7 +1794,7 @@ CClib.library/_alloc                                      CClib.library/_alloc
 
    (LVO bias -348)
 
-CClib.library/_fre                                          CClib.library/_fre
+cclib.library/_fre                                          cclib.library/_fre
    NAME
 	_fre -- free an _alloc or sbrk block
 
@@ -1813,7 +1821,7 @@ CClib.library/_fre                                          CClib.library/_fre
 
    (LVO bias -354)
 
-CClib.library/_freall                                    CClib.library/_freall
+cclib.library/_freall                                    cclib.library/_freall
    NAME
 	_freall -- free every block on the RAM list
 
@@ -1836,7 +1844,7 @@ CClib.library/_freall                                    CClib.library/_freall
 
    (LVO bias -360)
 
-CClib.library/sbrk                                          CClib.library/sbrk
+cclib.library/sbrk                                          cclib.library/sbrk
    NAME
 	sbrk -- grow the task RAM arena
 
@@ -1862,7 +1870,7 @@ CClib.library/sbrk                                          CClib.library/sbrk
 
    (LVO bias -366)
 
-CClib.library/heap_alloc                              CClib.library/heap_alloc
+cclib.library/heap_alloc                              cclib.library/heap_alloc
    NAME
 	heap_alloc -- allocate from the K&R heap free list
 
@@ -1885,7 +1893,7 @@ CClib.library/heap_alloc                              CClib.library/heap_alloc
 
    (LVO bias -372)
 
-CClib.library/heap_free                                CClib.library/heap_free
+cclib.library/heap_free                                cclib.library/heap_free
    NAME
 	heap_free -- return a block to the heap manager
 
@@ -1908,7 +1916,7 @@ CClib.library/heap_free                                CClib.library/heap_free
 
    (LVO bias -378)
 
-CClib.library/malloc                                      CClib.library/malloc
+cclib.library/malloc                                      cclib.library/malloc
    NAME
 	malloc -- allocate bytes from the task heap
 
@@ -1934,7 +1942,7 @@ CClib.library/malloc                                      CClib.library/malloc
 
    (LVO bias -384)
 
-CClib.library/calloc                                      CClib.library/calloc
+cclib.library/calloc                                      cclib.library/calloc
    NAME
 	calloc -- allocate and zero an array
 
@@ -1958,7 +1966,7 @@ CClib.library/calloc                                      CClib.library/calloc
 
    (LVO bias -390)
 
-CClib.library/realloc                                    CClib.library/realloc
+cclib.library/realloc                                    cclib.library/realloc
    NAME
 	realloc -- resize a heap block
 
@@ -1982,7 +1990,7 @@ CClib.library/realloc                                    CClib.library/realloc
 
    (LVO bias -396)
 
-CClib.library/free                                          CClib.library/free
+cclib.library/free                                          cclib.library/free
    NAME
 	free -- release a heap allocation
 
@@ -2008,7 +2016,7 @@ CClib.library/free                                          CClib.library/free
 
    (LVO bias -402)
 
-CClib.library/be_free                                    CClib.library/be_free
+cclib.library/be_free                                    cclib.library/be_free
    NAME
 	be_free -- donate static RAM to the heap
 
@@ -2035,7 +2043,7 @@ CClib.library/be_free                                    CClib.library/be_free
 
    (LVO bias -408)
 
-CClib.library/malloc_size                            CClib.library/malloc_size
+cclib.library/malloc_size                            cclib.library/malloc_size
    NAME
 	malloc_size -- query an allocated block size
 
@@ -2058,7 +2066,7 @@ CClib.library/malloc_size                            CClib.library/malloc_size
 
    (LVO bias -414)
 
-CClib.library/freeall                                    CClib.library/freeall
+cclib.library/freeall                                    cclib.library/freeall
    NAME
 	freeall -- release all task heap and buffers
 
@@ -2082,7 +2090,7 @@ CClib.library/freeall                                    CClib.library/freeall
 
    (LVO bias -420)
 
-CClib.library/inst_node                                CClib.library/inst_node
+cclib.library/inst_node                                cclib.library/inst_node
    NAME
 	inst_node -- allocate a cleared list node
 
@@ -2108,7 +2116,7 @@ CClib.library/inst_node                                CClib.library/inst_node
 
    (LVO bias -426)
 
-CClib.library/put_head                                  CClib.library/put_head
+cclib.library/put_head                                  cclib.library/put_head
    NAME
 	put_head -- link a node at list head
 
@@ -2132,7 +2140,7 @@ CClib.library/put_head                                  CClib.library/put_head
 
    (LVO bias -432)
 
-CClib.library/add_head                                  CClib.library/add_head
+cclib.library/add_head                                  cclib.library/add_head
    NAME
 	add_head -- allocate a node at list head
 
@@ -2156,7 +2164,7 @@ CClib.library/add_head                                  CClib.library/add_head
 
    (LVO bias -438)
 
-CClib.library/put_tail                                  CClib.library/put_tail
+cclib.library/put_tail                                  cclib.library/put_tail
    NAME
 	put_tail -- link a node at list tail
 
@@ -2180,7 +2188,7 @@ CClib.library/put_tail                                  CClib.library/put_tail
 
    (LVO bias -444)
 
-CClib.library/add_tail                                  CClib.library/add_tail
+cclib.library/add_tail                                  cclib.library/add_tail
    NAME
 	add_tail -- allocate a node at list tail
 
@@ -2204,7 +2212,7 @@ CClib.library/add_tail                                  CClib.library/add_tail
 
    (LVO bias -450)
 
-CClib.library/remv_head                                CClib.library/remv_head
+cclib.library/remv_head                                cclib.library/remv_head
    NAME
 	remv_head -- detach the first list node
 
@@ -2228,7 +2236,7 @@ CClib.library/remv_head                                CClib.library/remv_head
 
    (LVO bias -456)
 
-CClib.library/remv_tail                                CClib.library/remv_tail
+cclib.library/remv_tail                                cclib.library/remv_tail
    NAME
 	remv_tail -- detach the last list node
 
@@ -2252,7 +2260,7 @@ CClib.library/remv_tail                                CClib.library/remv_tail
 
    (LVO bias -462)
 
-CClib.library/remv_list                                CClib.library/remv_list
+cclib.library/remv_list                                cclib.library/remv_list
    NAME
 	remv_list -- free an entire list and its header
 
@@ -2278,7 +2286,7 @@ CClib.library/remv_list                                CClib.library/remv_list
 
    (LVO bias -468)
 
-CClib.library/r_node                                      CClib.library/r_node
+cclib.library/r_node                                      cclib.library/r_node
    NAME
 	r_node -- detach a known node from a list
 
@@ -2303,7 +2311,7 @@ CClib.library/r_node                                      CClib.library/r_node
 
    (LVO bias -474)
 
-CClib.library/remv_node                                CClib.library/remv_node
+cclib.library/remv_node                                cclib.library/remv_node
    NAME
 	remv_node -- detach a node by its data pointer
 
@@ -2327,7 +2335,7 @@ CClib.library/remv_node                                CClib.library/remv_node
 
    (LVO bias -480)
 
-CClib.library/atoi                                          CClib.library/atoi
+cclib.library/atoi                                          cclib.library/atoi
    NAME
 	atoi -- convert string to integer
 
@@ -2350,7 +2358,7 @@ CClib.library/atoi                                          CClib.library/atoi
 
    (LVO bias -486)
 
-CClib.library/atol                                          CClib.library/atol
+cclib.library/atol                                          cclib.library/atol
    NAME
 	atol -- convert string to long integer
 
@@ -2373,7 +2381,7 @@ CClib.library/atol                                          CClib.library/atol
 
    (LVO bias -492)
 
-CClib.library/atof                                          CClib.library/atof
+cclib.library/atof                                          cclib.library/atof
    NAME
 	atof -- convert string to IEEE double
 
@@ -2399,7 +2407,7 @@ CClib.library/atof                                          CClib.library/atof
 
    (LVO bias -498)
 
-CClib.library/ltoa                                          CClib.library/ltoa
+cclib.library/ltoa                                          cclib.library/ltoa
    NAME
 	ltoa -- convert long integer to decimal string
 
@@ -2423,7 +2431,7 @@ CClib.library/ltoa                                          CClib.library/ltoa
 
    (LVO bias -504)
 
-CClib.library/stoa                                          CClib.library/stoa
+cclib.library/stoa                                          cclib.library/stoa
    NAME
 	stoa -- convert short integer to decimal string
 
@@ -2447,7 +2455,7 @@ CClib.library/stoa                                          CClib.library/stoa
 
    (LVO bias -510)
 
-CClib.library/bcmp                                          CClib.library/bcmp
+cclib.library/bcmp                                          cclib.library/bcmp
    NAME
 	bcmp -- compare two memory blocks (BSD)
 
@@ -2472,7 +2480,7 @@ CClib.library/bcmp                                          CClib.library/bcmp
 
    (LVO bias -516)
 
-CClib.library/bcopy                                        CClib.library/bcopy
+cclib.library/bcopy                                        cclib.library/bcopy
    NAME
 	bcopy -- copy memory with overlap safety
 
@@ -2497,7 +2505,7 @@ CClib.library/bcopy                                        CClib.library/bcopy
 
    (LVO bias -522)
 
-CClib.library/bzero                                        CClib.library/bzero
+cclib.library/bzero                                        cclib.library/bzero
    NAME
 	bzero -- zero a memory region
 
@@ -2521,7 +2529,7 @@ CClib.library/bzero                                        CClib.library/bzero
 
    (LVO bias -528)
 
-CClib.library/memccpy                                    CClib.library/memccpy
+cclib.library/memccpy                                    cclib.library/memccpy
    NAME
 	memccpy -- copy bytes until a stop character
 
@@ -2547,7 +2555,7 @@ CClib.library/memccpy                                    CClib.library/memccpy
 
    (LVO bias -534)
 
-CClib.library/memchr                                      CClib.library/memchr
+cclib.library/memchr                                      cclib.library/memchr
    NAME
 	memchr -- search a buffer for a byte
 
@@ -2572,7 +2580,7 @@ CClib.library/memchr                                      CClib.library/memchr
 
    (LVO bias -540)
 
-CClib.library/memcmp                                      CClib.library/memcmp
+cclib.library/memcmp                                      cclib.library/memcmp
    NAME
 	memcmp -- compare two memory regions
 
@@ -2597,7 +2605,7 @@ CClib.library/memcmp                                      CClib.library/memcmp
 
    (LVO bias -546)
 
-CClib.library/memcpy                                      CClib.library/memcpy
+cclib.library/memcpy                                      cclib.library/memcpy
    NAME
 	memcpy -- copy a memory block
 
@@ -2625,7 +2633,7 @@ CClib.library/memcpy                                      CClib.library/memcpy
 
    (LVO bias -552)
 
-CClib.library/memset                                      CClib.library/memset
+cclib.library/memset                                      cclib.library/memset
    NAME
 	memset -- fill a memory region with a byte
 
@@ -2650,7 +2658,7 @@ CClib.library/memset                                      CClib.library/memset
 
    (LVO bias -558)
 
-CClib.library/memswap                                    CClib.library/memswap
+cclib.library/memswap                                    cclib.library/memswap
    NAME
 	memswap -- exchange two memory regions
 
@@ -2675,7 +2683,7 @@ CClib.library/memswap                                    CClib.library/memswap
 
    (LVO bias -564)
 
-CClib.library/index                                        CClib.library/index
+cclib.library/index                                        cclib.library/index
    NAME
 	index -- find first byte in string (BSD alias)
 
@@ -2701,7 +2709,7 @@ CClib.library/index                                        CClib.library/index
 
    (LVO bias -570)
 
-CClib.library/rindex                                      CClib.library/rindex
+cclib.library/rindex                                      cclib.library/rindex
    NAME
 	rindex -- find last byte in string (BSD alias)
 
@@ -2727,7 +2735,7 @@ CClib.library/rindex                                      CClib.library/rindex
 
    (LVO bias -576)
 
-CClib.library/strupr                                      CClib.library/strupr
+cclib.library/strupr                                      cclib.library/strupr
    NAME
 	strupr -- convert string to uppercase in place
 
@@ -2752,7 +2760,7 @@ CClib.library/strupr                                      CClib.library/strupr
 
    (LVO bias -582)
 
-CClib.library/stpcrlf                                    CClib.library/stpcrlf
+cclib.library/stpcrlf                                    cclib.library/stpcrlf
    NAME
 	stpcrlf -- truncate string at first CR or LF
 
@@ -2777,7 +2785,7 @@ CClib.library/stpcrlf                                    CClib.library/stpcrlf
 
    (LVO bias -588)
 
-CClib.library/strcat                                      CClib.library/strcat
+cclib.library/strcat                                      cclib.library/strcat
    NAME
 	strcat -- append one string to another
 
@@ -2804,7 +2812,7 @@ CClib.library/strcat                                      CClib.library/strcat
 
    (LVO bias -594)
 
-CClib.library/strchr                                      CClib.library/strchr
+cclib.library/strchr                                      cclib.library/strchr
    NAME
 	strchr -- find first byte in string
 
@@ -2828,7 +2836,7 @@ CClib.library/strchr                                      CClib.library/strchr
 
    (LVO bias -600)
 
-CClib.library/strcmp                                      CClib.library/strcmp
+cclib.library/strcmp                                      cclib.library/strcmp
    NAME
 	strcmp -- compare two strings
 
@@ -2854,7 +2862,7 @@ CClib.library/strcmp                                      CClib.library/strcmp
 
    (LVO bias -606)
 
-CClib.library/strcpy                                      CClib.library/strcpy
+cclib.library/strcpy                                      cclib.library/strcpy
    NAME
 	strcpy -- copy a string
 
@@ -2881,7 +2889,7 @@ CClib.library/strcpy                                      CClib.library/strcpy
 
    (LVO bias -612)
 
-CClib.library/strcspn                                    CClib.library/strcspn
+cclib.library/strcspn                                    cclib.library/strcspn
    NAME
 	strcspn -- length of initial segment not in reject set
 
@@ -2905,7 +2913,7 @@ CClib.library/strcspn                                    CClib.library/strcspn
 
    (LVO bias -618)
 
-CClib.library/strlen                                      CClib.library/strlen
+cclib.library/strlen                                      cclib.library/strlen
    NAME
 	strlen -- length of a string
 
@@ -2928,7 +2936,7 @@ CClib.library/strlen                                      CClib.library/strlen
 
    (LVO bias -624)
 
-CClib.library/strncat                                    CClib.library/strncat
+cclib.library/strncat                                    cclib.library/strncat
    NAME
 	strncat -- append up to n bytes from a string
 
@@ -2956,7 +2964,7 @@ CClib.library/strncat                                    CClib.library/strncat
 
    (LVO bias -630)
 
-CClib.library/strcmpa                                    CClib.library/strcmpa
+cclib.library/strcmpa                                    cclib.library/strcmpa
    NAME
 	strcmpa -- case-insensitive string compare (Amiga)
 
@@ -2982,7 +2990,7 @@ CClib.library/strcmpa                                    CClib.library/strcmpa
 
    (LVO bias -636)
 
-CClib.library/strncmp                                    CClib.library/strncmp
+cclib.library/strncmp                                    cclib.library/strncmp
    NAME
 	strncmp -- compare at most n bytes of two strings
 
@@ -3007,7 +3015,7 @@ CClib.library/strncmp                                    CClib.library/strncmp
 
    (LVO bias -642)
 
-CClib.library/strncpy                                    CClib.library/strncpy
+cclib.library/strncpy                                    cclib.library/strncpy
    NAME
 	strncpy -- copy at most n bytes (ANSI padding)
 
@@ -3037,7 +3045,7 @@ CClib.library/strncpy                                    CClib.library/strncpy
 
    (LVO bias -648)
 
-CClib.library/strpbrk                                    CClib.library/strpbrk
+cclib.library/strpbrk                                    cclib.library/strpbrk
    NAME
 	strpbrk -- find first byte from a set in a string
 
@@ -3061,7 +3069,7 @@ CClib.library/strpbrk                                    CClib.library/strpbrk
 
    (LVO bias -654)
 
-CClib.library/strrchr                                    CClib.library/strrchr
+cclib.library/strrchr                                    cclib.library/strrchr
    NAME
 	strrchr -- find last byte in string
 
@@ -3085,7 +3093,7 @@ CClib.library/strrchr                                    CClib.library/strrchr
 
    (LVO bias -660)
 
-CClib.library/strspn                                      CClib.library/strspn
+cclib.library/strspn                                      cclib.library/strspn
    NAME
 	strspn -- length of initial segment in accept set
 
@@ -3109,7 +3117,7 @@ CClib.library/strspn                                      CClib.library/strspn
 
    (LVO bias -666)
 
-CClib.library/strstr                                      CClib.library/strstr
+cclib.library/strstr                                      cclib.library/strstr
    NAME
 	strstr -- find substring in string
 
@@ -3133,7 +3141,7 @@ CClib.library/strstr                                      CClib.library/strstr
 
    (LVO bias -672)
 
-CClib.library/strtok                                      CClib.library/strtok
+cclib.library/strtok                                      cclib.library/strtok
    NAME
 	strtok -- tokenize a string
 
@@ -3162,7 +3170,7 @@ CClib.library/strtok                                      CClib.library/strtok
 
    (LVO bias -678)
 
-CClib.library/strrv                                        CClib.library/strrv
+cclib.library/strrv                                        cclib.library/strrv
    NAME
 	strrv -- reverse a string in place
 
@@ -3185,7 +3193,7 @@ CClib.library/strrv                                        CClib.library/strrv
 
    (LVO bias -684)
 
-CClib.library/strnrv                                      CClib.library/strnrv
+cclib.library/strnrv                                      cclib.library/strnrv
    NAME
 	strnrv -- reverse first n bytes of a string
 
@@ -3209,7 +3217,7 @@ CClib.library/strnrv                                      CClib.library/strnrv
 
    (LVO bias -690)
 
-CClib.library/bcpl_strcpy                            CClib.library/bcpl_strcpy
+cclib.library/bcpl_strcpy                            cclib.library/bcpl_strcpy
    NAME
 	bcpl_strcpy -- copy BPTR BCPL string to C string
 
@@ -3238,7 +3246,7 @@ CClib.library/bcpl_strcpy                            CClib.library/bcpl_strcpy
 
    (LVO bias -696)
 
-CClib.library/vquicksort                              CClib.library/vquicksort
+cclib.library/vquicksort                              cclib.library/vquicksort
    NAME
 	vquicksort -- quicksort by index with compare/swap hooks
 
@@ -3265,7 +3273,7 @@ CClib.library/vquicksort                              CClib.library/vquicksort
 
    (LVO bias -702)
 
-CClib.library/toupper                                    CClib.library/toupper
+cclib.library/toupper                                    cclib.library/toupper
    NAME
 	toupper -- convert character to uppercase
 
@@ -3288,7 +3296,7 @@ CClib.library/toupper                                    CClib.library/toupper
 
    (LVO bias -708)
 
-CClib.library/quicksort                                CClib.library/quicksort
+cclib.library/quicksort                                cclib.library/quicksort
    NAME
 	quicksort -- quicksort by index with user argument
 
@@ -3314,7 +3322,7 @@ CClib.library/quicksort                                CClib.library/quicksort
 
    (LVO bias -714)
 
-CClib.library/qsort                                        CClib.library/qsort
+cclib.library/qsort                                        cclib.library/qsort
    NAME
 	qsort -- sort an array of fixed-size elements
 
@@ -3344,7 +3352,7 @@ CClib.library/qsort                                        CClib.library/qsort
 
    (LVO bias -720)
 
-CClib.library/cli_parse                                CClib.library/cli_parse
+cclib.library/cli_parse                                cclib.library/cli_parse
    NAME
 	cli_parse -- parse CLI argument vector for SetupSTDIO
 
@@ -3374,7 +3382,7 @@ CClib.library/cli_parse                                CClib.library/cli_parse
 
    (LVO bias -726)
 
-CClib.library/wb_parse                                  CClib.library/wb_parse
+cclib.library/wb_parse                                  cclib.library/wb_parse
    NAME
 	wb_parse -- parse Workbench startup for SetupSTDIO
 
@@ -3403,7 +3411,7 @@ CClib.library/wb_parse                                  CClib.library/wb_parse
 
    (LVO bias -732)
 
-CClib.library/vprintf                                    CClib.library/vprintf
+cclib.library/vprintf                                    cclib.library/vprintf
    NAME
 	vprintf -- formatted output to stdout via arg array
 
@@ -3432,7 +3440,7 @@ CClib.library/vprintf                                    CClib.library/vprintf
 
    (LVO bias -738)
 
-CClib.library/vfprintf                                  CClib.library/vfprintf
+cclib.library/vfprintf                                  cclib.library/vfprintf
    NAME
 	vfprintf -- formatted output to a stream via arg array
 
@@ -3457,7 +3465,7 @@ CClib.library/vfprintf                                  CClib.library/vfprintf
 
    (LVO bias -744)
 
-CClib.library/vsprintf                                  CClib.library/vsprintf
+cclib.library/vsprintf                                  cclib.library/vsprintf
    NAME
 	vsprintf -- formatted output to a string via arg array
 
@@ -3478,11 +3486,68 @@ CClib.library/vsprintf                                  CClib.library/vsprintf
 	Number of characters written (excluding NUL), or -1 on error.
 
    SEE ALSO
-	sprintf, vprintf, vfprintf
+	sprintf, vprintf, vfprintf, snprintf, vsnprintf
 
    (LVO bias -750)
 
-CClib.library/fgetpos                                    CClib.library/fgetpos
+cclib.library/vsnprintf                                cclib.library/vsnprintf
+   NAME
+	vsnprintf -- bounded formatted output to a string via arg array
+
+   SYNOPSIS
+	LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args);
+
+	Registers: a0=s, d0=n, a1=format, a2=args
+
+   FUNCTION
+	Like vsprintf, but writes at most n-1 payload characters into s
+	and always NUL-terminates when n > 0. Uses the CClib formatter
+	(same %e/%f/%g and APTR-arg rules as sprintf). Returns the
+	would-be length excluding NUL even if truncated (C99).
+
+	snprintf is the SFD ==varargs alias of this LVO (same bias): a
+	SAS tagcall / stub packs the C varargs stack into a2 the same
+	way dos.library FPrintf relates to VFPrintf.
+
+   INPUTS
+	s - destination buffer (may be NULL when n is 0)
+	n - buffer size in bytes including room for NUL
+	format - printf-style format string
+	args - APTR array of format arguments (or tagcall stack pointer)
+
+   RESULT
+	Would-be character count (excluding NUL), or -1 on error
+	(errno EINVAL if format is NULL, or n > 0 with s NULL).
+
+   NOTES
+	Does not call utility.library VSNPrintf.
+
+   SEE ALSO
+	snprintf, vsprintf, sprintf
+
+   (LVO bias -972)
+
+cclib.library/snprintf                                  cclib.library/snprintf
+   NAME
+	snprintf -- bounded formatted output to a string (varargs)
+
+   SYNOPSIS
+	LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...);
+
+	Same LVO bias as vsnprintf (−972). Registers match vsnprintf;
+	a2 receives a pointer to the first stack vararg.
+
+   FUNCTION
+	Varargs form of vsnprintf (SFD ==varargs). Prefer this from C
+	when calling with ordinary printf-style trailing arguments.
+	Use vsnprintf when you already have an APTR arg array.
+
+   SEE ALSO
+	vsnprintf, sprintf
+
+   (LVO bias -972, ==varargs alias)
+
+cclib.library/fgetpos                                    cclib.library/fgetpos
    NAME
 	fgetpos -- read current stream position
 
@@ -3506,7 +3571,7 @@ CClib.library/fgetpos                                    CClib.library/fgetpos
 
    (LVO bias -756)
 
-CClib.library/fsetpos                                    CClib.library/fsetpos
+cclib.library/fsetpos                                    cclib.library/fsetpos
    NAME
 	fsetpos -- restore stream position
 
@@ -3530,7 +3595,7 @@ CClib.library/fsetpos                                    CClib.library/fsetpos
 
    (LVO bias -762)
 
-CClib.library/time                                          CClib.library/time
+cclib.library/time                                          cclib.library/time
    NAME
 	time -- seconds since Amiga epoch
 
@@ -3556,7 +3621,7 @@ CClib.library/time                                          CClib.library/time
 
    (LVO bias -768)
 
-CClib.library/clock                                        CClib.library/clock
+cclib.library/clock                                        cclib.library/clock
    NAME
 	clock -- elapsed processor time for this task
 
@@ -3577,7 +3642,7 @@ CClib.library/clock                                        CClib.library/clock
 
    (LVO bias -774)
 
-CClib.library/gmtime                                      CClib.library/gmtime
+cclib.library/gmtime                                      cclib.library/gmtime
    NAME
 	gmtime -- break seconds into struct tm
 
@@ -3603,7 +3668,7 @@ CClib.library/gmtime                                      CClib.library/gmtime
 
    (LVO bias -780)
 
-CClib.library/asctime                                    CClib.library/asctime
+cclib.library/asctime                                    cclib.library/asctime
    NAME
 	asctime -- format struct tm as text
 
@@ -3633,7 +3698,7 @@ CClib.library/asctime                                    CClib.library/asctime
 
    (LVO bias -786)
 
-CClib.library/ctime                                        CClib.library/ctime
+cclib.library/ctime                                        cclib.library/ctime
    NAME
 	ctime -- convert time value to ASCII string
 
@@ -3656,7 +3721,7 @@ CClib.library/ctime                                        CClib.library/ctime
 
    (LVO bias -792)
 
-CClib.library/localtime                                CClib.library/localtime
+cclib.library/localtime                                cclib.library/localtime
    NAME
 	localtime -- convert seconds to struct tm (no timezone)
 
@@ -3682,7 +3747,7 @@ CClib.library/localtime                                CClib.library/localtime
 
    (LVO bias -798)
 
-CClib.library/mktime                                      CClib.library/mktime
+cclib.library/mktime                                      cclib.library/mktime
    NAME
 	mktime -- convert struct tm to seconds
 
@@ -3705,7 +3770,7 @@ CClib.library/mktime                                      CClib.library/mktime
 
    (LVO bias -804)
 
-CClib.library/difftime                                  CClib.library/difftime
+cclib.library/difftime                                  cclib.library/difftime
    NAME
 	difftime -- difference between two time values
 
@@ -3729,7 +3794,7 @@ CClib.library/difftime                                  CClib.library/difftime
 
    (LVO bias -810)
 
-CClib.library/strftime                                  CClib.library/strftime
+cclib.library/strftime                                  cclib.library/strftime
    NAME
 	strftime -- format struct tm into a string
 
@@ -3755,7 +3820,7 @@ CClib.library/strftime                                  CClib.library/strftime
 
    (LVO bias -816)
 
-CClib.library/scdir                                        CClib.library/scdir
+cclib.library/scdir                                        cclib.library/scdir
    NAME
 	scdir -- enumerate files matching a pattern
 
@@ -3785,7 +3850,7 @@ CClib.library/scdir                                        CClib.library/scdir
 
    (LVO bias -822)
 
-CClib.library/scdir_clean                            CClib.library/scdir_clean
+cclib.library/scdir_clean                            cclib.library/scdir_clean
    NAME
 	scdir_clean -- abort an scdir scan
 
@@ -3809,7 +3874,7 @@ CClib.library/scdir_clean                            CClib.library/scdir_clean
 
    (LVO bias -828)
 
-CClib.library/tolower                                    CClib.library/tolower
+cclib.library/tolower                                    cclib.library/tolower
    NAME
 	tolower -- convert character to lowercase
 
@@ -3832,7 +3897,7 @@ CClib.library/tolower                                    CClib.library/tolower
 
    (LVO bias -834)
 
-CClib.library/setenv                                      CClib.library/setenv
+cclib.library/setenv                                      cclib.library/setenv
    NAME
 	setenv -- set or delete an environment variable
 
@@ -3862,7 +3927,7 @@ CClib.library/setenv                                      CClib.library/setenv
 
    (LVO bias -840)
 
-CClib.library/getenv                                      CClib.library/getenv
+cclib.library/getenv                                      cclib.library/getenv
    NAME
 	getenv -- read an environment variable
 
@@ -3891,7 +3956,7 @@ CClib.library/getenv                                      CClib.library/getenv
 
    (LVO bias -846)
 
-CClib.library/unsetenv                                  CClib.library/unsetenv
+cclib.library/unsetenv                                  cclib.library/unsetenv
    NAME
 	unsetenv -- delete an environment variable
 
@@ -3913,7 +3978,7 @@ CClib.library/unsetenv                                  CClib.library/unsetenv
 
    (LVO bias -966)
 
-CClib.library/stat_                                        CClib.library/stat_
+cclib.library/stat_                                        cclib.library/stat_
    NAME
 	stat_ -- extended file status
 
@@ -3940,7 +4005,7 @@ CClib.library/stat_                                        CClib.library/stat_
 
    (LVO bias -852)
 
-CClib.library/wb_exec                                    CClib.library/wb_exec
+cclib.library/wb_exec                                    cclib.library/wb_exec
    NAME
 	wb_exec -- launch a Workbench child process
 
@@ -3976,7 +4041,7 @@ CClib.library/wb_exec                                    CClib.library/wb_exec
 
    (LVO bias -858)
 
-CClib.library/wbexec                                      CClib.library/wbexec
+cclib.library/wbexec                                      cclib.library/wbexec
    NAME
 	wbexec -- run a program from Workbench and wait
 
@@ -4001,7 +4066,7 @@ CClib.library/wbexec                                      CClib.library/wbexec
 
    (LVO bias -864)
 
-CClib.library/wbAexec                                    CClib.library/wbAexec
+cclib.library/wbAexec                                    cclib.library/wbAexec
    NAME
 	wbAexec -- launch Workbench child asynchronously
 
@@ -4029,7 +4094,7 @@ CClib.library/wbAexec                                    CClib.library/wbAexec
 
    (LVO bias -870)
 
-CClib.library/wait_child                              CClib.library/wait_child
+cclib.library/wait_child                              cclib.library/wait_child
    NAME
 	wait_child -- wait for one child to exit
 
@@ -4057,7 +4122,7 @@ CClib.library/wait_child                              CClib.library/wait_child
 
    (LVO bias -876)
 
-CClib.library/wait_children                        CClib.library/wait_children
+cclib.library/wait_children                        cclib.library/wait_children
    NAME
 	wait_children -- wait for all async children
 
@@ -4078,7 +4143,7 @@ CClib.library/wait_children                        CClib.library/wait_children
 
    (LVO bias -882)
 
-CClib.library/signal_child                          CClib.library/signal_child
+cclib.library/signal_child                          cclib.library/signal_child
    NAME
 	signal_child -- send an Exec signal to a child task
 
@@ -4102,7 +4167,7 @@ CClib.library/signal_child                          CClib.library/signal_child
 
    (LVO bias -888)
 
-CClib.library/kill                                          CClib.library/kill
+cclib.library/kill                                          cclib.library/kill
    NAME
 	kill -- break signal and wait for one child
 
@@ -4128,7 +4193,7 @@ CClib.library/kill                                          CClib.library/kill
 
    (LVO bias -894)
 
-CClib.library/kill_children                        CClib.library/kill_children
+cclib.library/kill_children                        cclib.library/kill_children
    NAME
 	kill_children -- break signal and wait for all children
 
@@ -4149,7 +4214,7 @@ CClib.library/kill_children                        CClib.library/kill_children
 
    (LVO bias -900)
 
-CClib.library/cliexec                                    CClib.library/cliexec
+cclib.library/cliexec                                    cclib.library/cliexec
    NAME
 	cliexec -- run a CLI command via Execute
 
@@ -4175,7 +4240,7 @@ CClib.library/cliexec                                    CClib.library/cliexec
 
    (LVO bias -906)
 
-CClib.library/exec                                          CClib.library/exec
+cclib.library/exec                                          cclib.library/exec
    NAME
 	exec -- run a command and wait for completion
 

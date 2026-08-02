@@ -179,7 +179,7 @@ typedef struct
 	struct Process *pid;
 } cc_Child;
 
-typedef void (*cc_ABORT_FUNC)(LONG);
+typedef void __stdargs (*cc_ABORT_FUNC)(LONG);
 
 #define CC_GETENV_BUFLEN 256L
 #define CC_SCDIR_PATHLEN 256L

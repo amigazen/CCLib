@@ -27,7 +27,7 @@ ct_suite_crt(void)
 
 	ct_check_ptr_nonnull((STRPTR)"crt", (STRPTR)"CCLibBase_open",
 		(STRPTR)"CCLibBase",
-		(STRPTR)"CRT must OpenLibrary(CClib.library) and leave CCLibBase set",
+		(STRPTR)"CRT must OpenLibrary(cclib.library) and leave CCLibBase set",
 		(APTR)CCLibBase);
 
 	ct_check_ptr_nonnull((STRPTR)"crt", (STRPTR)"stdin_attached",

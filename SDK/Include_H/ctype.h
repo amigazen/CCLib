@@ -2,14 +2,14 @@
 #define CTYPE_H 1
 
 /*
- * ctype — character classification via CClib.library type[] table.
+ * ctype — character classification via cclib.library type[] table.
  */
 
 #ifndef ANSIC
 #define ANSIC 1
 #endif
 
-/* this baby lives in CClib.library so don't mess with it */
+/* this baby lives in cclib.library so don't mess with it */
 extern char *type;
 
 /* C type macros a-la K&R (For the ASCII character set) */

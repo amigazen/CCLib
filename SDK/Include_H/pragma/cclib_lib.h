@@ -14,7 +14,7 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for CClib.library (V4.0 reimplementation of the */
+/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
 /* Do not reorder or insert mid-table. Append new LVOs only at the end. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
@@ -241,5 +241,13 @@
 
 /* Environment */
 #pragma amicall(CCLibBase, 0x3C6, unsetenv(a0))
+
+/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
+/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
+
+#pragma amicall(CCLibBase, 0x3CC, vsnprintf(a0,d0,a1,a2))
+#if defined(__STORM__)
+#pragma tagcall(CCLibBase, 0x3CC, snprintf(a0,d0,a1,a2))
+#endif /* __STORM__ */
 
 #endif /* PRAGMA_CCLIB_LIB_H */

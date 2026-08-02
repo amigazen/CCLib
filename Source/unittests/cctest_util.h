@@ -32,7 +32,7 @@ extern LONG ct_total;
 
 /* Panic-hook bookkeeping for forged-handle tests (abort_func returns). */
 extern LONG ct_panic_hits;
-void ct_panic_hook(LONG code);
+void __stdargs __saveds ct_panic_hook(LONG code);
 void ct_install_panic_hook(void);
 void ct_restore_panic_hook(void);
 

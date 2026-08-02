@@ -10,7 +10,7 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for CClib.library (V4.0 reimplementation of the */
+/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
 /* Do not reorder or insert mid-table. Append new LVOs only at the end. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
@@ -1608,6 +1608,31 @@
 	__asm volatile ("jsr a6@(-966:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
+
+
+/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
+/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
+
+#define vsnprintf(s, n, format, args)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register ULONG p1 __asm("d0") = (n);   \
+	register STRPTR p2 __asm("a1") = (format);   \
+	register APTR p3 __asm("a2") = (args);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-972:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#ifndef NO_INLINE_STDARG
+#define snprintf(s, n, format, vargs...)    \
+({  \
+	ULONG _argarray[] = {vargs};   \
+	vsnprintf((s), (n), (format), _argarray);   \
+	r;   \
+})
+#endif
 
 
 #endif /* INLINE_CCLIB_H */

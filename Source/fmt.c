@@ -22,6 +22,15 @@ typedef struct
 	LONG count;
 } fmt_str_ctx;
 
+/* Bounded string sink for snprintf / vsnprintf (C99 truncation). */
+typedef struct
+{
+	STRPTR buf;
+	ULONG size;   /* caller n; 0 means do not store */
+	ULONG stored; /* payload chars written (excludes NUL) */
+	LONG count;   /* would-be length excluding NUL */
+} fmt_strn_ctx;
+
 typedef struct
 {
 	cc_FILE *fp;
@@ -41,6 +50,30 @@ static void fmt_put_str(UBYTE ch, APTR data)
 	}
 	if (ch != 0)
 		ctx->count++;
+}
+
+/*
+ * Store at most size-1 payload bytes, always NUL-terminate when size > 0.
+ * count still tracks the full untruncated length (C99 snprintf return).
+ */
+static void fmt_put_strn(UBYTE ch, APTR data)
+{
+	fmt_strn_ctx *ctx;
+
+	ctx = (fmt_strn_ctx *)data;
+	if (ch == 0)
+	{
+		if (ctx->size > 0UL && ctx->buf != (STRPTR)NULL)
+			ctx->buf[ctx->stored] = '\0';
+		return;
+	}
+	ctx->count++;
+	if (ctx->size > 0UL && ctx->buf != (STRPTR)NULL
+	    && ctx->stored + 1UL < ctx->size)
+	{
+		ctx->buf[ctx->stored] = (char)ch;
+		ctx->stored++;
+	}
 }
 
 static void fmt_put_file(UBYTE ch, APTR data)
@@ -405,6 +438,43 @@ LONG __ASM__ __SAVE_DS__ sprintf(
 	__REG__(a2, APTR args))
 {
 	return vsprintf(s, format, args);
+}
+
+/*
+ * C99 vsnprintf via the CClib formatter (not utility VSNPrintf — keep
+ * %e/%f/%g and APTR-arg semantics identical to sprintf).
+ * FuncTab uses the cc_* symbol names; client pragmas still call snprintf.
+ */
+/*
+ * C99 vsnprintf LVO (CClib formatter, not utility VSNPrintf).
+ * SFD ==varargs alias snprintf shares this bias: client tagcall/stub
+ * passes a pointer to the first stack vararg in a2 (FPrintf pattern).
+ */
+LONG __ASM__ __SAVE_DS__ cc_vsnprintf(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, ULONG n),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args))
+{
+	fmt_strn_ctx ctx;
+
+	if (format == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+	if (n > 0UL && s == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	ctx.buf = s;
+	ctx.size = n;
+	ctx.stored = 0UL;
+	ctx.count = 0L;
+	cc_dofmt(fmt_put_strn, (APTR)&ctx, format, args);
+	return ctx.count;
 }
 
 LONG __ASM__ __SAVE_DS__ vfprintf(

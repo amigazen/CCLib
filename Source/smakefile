@@ -2,38 +2,27 @@
 # :ts=8
 #
 ###############################################################################
-# CClib.library — shared libc via LVOs.  No sc.lib: OS APIs only (exec/dos/utility).
+# cclib.library — shared libc via LVOs.
+#
+# Compiler flags live in SCOPTIONS (sc merges that file automatically).
+# Keep Sc command lines short — long CFLAGS hit "option exceeds buffer size".
+#
+# Link with slink + CClib.lnk (not "sc ... link") so SAS/C libs are not
+# appended after Library=/LIB=.  Integer mul/div helpers live in cc_cxutil.o
+# (utility.library); SCOPTIONS has utillib for inline codegen.
+# Do NOT use libcode — LibInit is called with A6=ExecBase; libcode would
+# make near data A6-relative and LibInit would fail (OpenLibrary returns NULL).
 ###############################################################################
 
 NAME = cclib.library
 
 ###############################################################################
 
-OPTIMIZE = optimize opttime
-DEBUG = symbolflush noopt
-
-###############################################################################
-
-# nostartup, no sc.lib.  Include generated SDK headers + NDK.
-CFLAGS = resopt idlen=64 comnest streq strmerge nostkchk \
-	includedir=include includedir=/SDK/Include_H includedir=include: $(OPTIMIZE) debug=$(DEBUG) \
-	params=register strsect=code mccons smallcode smalldata \
-	unsignedchars nomultipleincludes structureequivalence \
-	optimizescheduler noversion noicons memorysize=huge \
-	stringsconst nostartup
-
-# NOSTARTUP shared library: provide __XCEXIT in LibInit.c so SLINK does
-# not auto-pull LIB:sc.lib for CRT exit.  FP goes through mathieeedoubbas
-# (cc_ieee.c + SetupSTDIO mathbase) — no C `double` ops / softfloat.
-
-LFLAGS = addsym smallcode smalldata noicons batch stripdebug
-
-###############################################################################
-
 OBJS = \
-	StartUp.o \
 	LibInit.o \
+	StartUp.o \
 	cc_util.o \
+	cc_cxutil.o \
 	cc_ieee_lvo.o \
 	cc_ieee.o \
 	support.o \
@@ -54,11 +43,12 @@ OBJS = \
 
 all: $(NAME) unittests
 
-$(NAME): $(OBJS)
-	Sc $(LFLAGS) NOSTARTUP LINK TO $@ $(OBJS)
+$(NAME): $(OBJS) CClib.lnk
+	slink with CClib.lnk
 
 install: $(NAME)
 	copy $(NAME) LIBS:
+	avail flush >nil:
 
 clean:
 	delete $(NAME) $(NAME).debug $(NAME).map $(OBJS) all
@@ -74,56 +64,60 @@ unittests:
 
 ###############################################################################
 
+# SCOPTIONS in this directory supplies all Sc flags.
 LibInit.o: LibInit.c private/cc_build.h Rev.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 StartUp.o: StartUp.c private/cc_build.h private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 cc_util.o: cc_util.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
+
+cc_cxutil.o: cc_cxutil.c private/cc_internal.h
+	Sc OBJNAME $@ $<
 
 cc_ieee_lvo.o: cc_ieee_lvo.asm
 	asm -u $<
 
 cc_ieee.o: cc_ieee.c private/cc_internal.h private/cc_ieee.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 support.o: support.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 mem.o: mem.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 string.o: string.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 list.o: list.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 heap.o: heap.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 conv.o: conv.c private/cc_internal.h private/cc_ieee.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 sort.o: sort.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 io.o: io.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 stdio.o: stdio.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 fmt.o: fmt.c private/cc_internal.h private/cc_ieee.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 time.o: time.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 env.o: env.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<
 
 process.o: process.c private/cc_internal.h cclib_funcs.h
-	Sc $(CFLAGS) OBJNAME $@ $<
+	Sc OBJNAME $@ $<

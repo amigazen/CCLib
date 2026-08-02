@@ -1,5 +1,5 @@
 /*
- * cctest_fmt.c - sprintf / vsprintf / sscanf formatting
+ * cctest_fmt.c - sprintf / snprintf / sscanf formatting
  */
 
 #include <exec/types.h>
@@ -27,7 +27,7 @@ ct_suite_fmt(void)
 		ULONG w[2];
 	} fu;
 
-	ct_suite_begin((STRPTR)"fmt", (STRPTR)"sprintf / vsprintf / sscanf");
+	ct_suite_begin((STRPTR)"fmt", (STRPTR)"sprintf / snprintf / sscanf");
 
 	buf[0] = '\0';
 	n = sprintf(buf, (STRPTR)"", (APTR)av);
@@ -268,6 +268,51 @@ ct_suite_fmt(void)
 		(STRPTR)"vsprintf \"ok:5\"",
 		(STRPTR)"vsprintf \"ok:5\" must return length 4",
 		4, n);
+
+	/* --- snprintf (varargs tagcall) / vsnprintf (APTR args LVO) --- */
+	memset(buf, (ULONG)'X', 16);
+	n = snprintf(buf, 16UL, (STRPTR)"n=%ld", 42L);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_fit_len",
+		(STRPTR)"snprintf(buf,16,\"n=%%ld\",42)",
+		(STRPTR)"snprintf must return the untruncated length",
+		4, n);
+	ct_check_string((STRPTR)"fmt",
+		(STRPTR)"snprintf_fit",
+		(STRPTR)"snprintf fitting in buffer",
+		(STRPTR)"snprintf with room must write the full string",
+		(STRPTR)"n=42",
+		buf);
+
+	memset(buf, (ULONG)'X', 16);
+	n = snprintf(buf, 5UL, (STRPTR)"n=%ld", 12345L);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_trunc_len",
+		(STRPTR)"snprintf(buf,5,\"n=%%ld\",12345)",
+		(STRPTR)"snprintf must return full length even when truncated",
+		7, n);
+	ct_check_true((STRPTR)"fmt", (STRPTR)"snprintf_trunc_nul",
+		(STRPTR)"snprintf truncated buffer",
+		(STRPTR)"truncated snprintf must NUL-terminate within size",
+		buf[0] == 'n' && buf[1] == '=' && buf[2] == '1' && buf[3] == '2'
+		&& buf[4] == '\0');
+
+	n = snprintf((STRPTR)NULL, 0UL, (STRPTR)"ab%ld", 12345L);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_size0",
+		(STRPTR)"snprintf(NULL,0,\"ab%%ld\",12345)",
+		(STRPTR)"snprintf with size 0 must return would-be length without writing",
+		7, n);
+
+	av[0] = 7;
+	n = vsnprintf(buf, 8UL, (STRPTR)"v=%ld", (APTR)av);
+	ct_check_string((STRPTR)"fmt",
+		(STRPTR)"vsnprintf_ok",
+		(STRPTR)"vsnprintf",
+		(STRPTR)"vsnprintf must format like snprintf",
+		(STRPTR)"v=7",
+		buf);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"vsnprintf_len",
+		(STRPTR)"vsnprintf \"v=7\"",
+		(STRPTR)"vsnprintf must return length 3",
+		3, n);
 
 	v = 0;
 	args[0] = (APTR)&v;

@@ -2,7 +2,7 @@
 #define STDIO_H 1
 
 /*
- * stdio — stream I/O for CClib.library clients.
+ * stdio — stream I/O for cclib.library clients.
  *
  * C-friendly prototypes (printf with ..., fopen returning FILE*).
  * LVOs are register-based via <proto/cclib.h>; C varargs/stack UX is via
@@ -81,7 +81,7 @@ long putchar();
 #define fputc(CH,STREAM) ((int)putc((int)(CH),STREAM))
 
 #ifndef CCLIBNAME
-#define CCLIBNAME "CClib.library"
+#define CCLIBNAME "cclib.library"
 #endif
 
 /* The only practical limit to the number of
@@ -127,9 +127,11 @@ long setvbuf(FILE *,char *,long,size_t);
 long fprintf(FILE *, char *, ...);
 long printf(char *, ...);
 long sprintf(char *, char *,...);
+long snprintf(char *, unsigned long, char *, ...);
 long vprintf(char *,va_list);
 long vfprintf(FILE *,char *,va_list);
 long vsprintf(char *,char *,va_list);
+long vsnprintf(char *, unsigned long, char *, va_list);
 long fscanf(FILE *, char *, ...);
 long scanf(char *, ...);
 long sscanf(char *, char *, ...);
@@ -165,9 +167,11 @@ long setvbuf();
 long fprintf();
 long printf();
 long sprintf();
+long snprintf();
 long vprintf();
 long vfprintf();
 long vsprintf();
+long vsnprintf();
 long fscanf();
 long scanf();
 long sscanf();

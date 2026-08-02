@@ -48,7 +48,7 @@
 
 /*
  * NOTE: st_mode / st_nlink / st_atime / st_ctime are only filled by stat_(),
- * for compatibility with older CClib.library versions.
+ * for compatibility with older cclib.library versions.
  */
 
 #ifdef ANSIC

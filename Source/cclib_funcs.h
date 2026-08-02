@@ -1,5 +1,5 @@
 /*
- * cclib_funcs.h - LVO declarations for CClib.library sources
+ * cclib_funcs.h - LVO declarations for cclib.library sources
  *
  * Register layout matches SDK/SFD/cclib_lib.sfd and FuncTab[] in StartUp.c.
  */
@@ -501,6 +501,13 @@ LONG __ASM__ __SAVE_DS__ vfprintf(
 
 LONG __ASM__ __SAVE_DS__ vsprintf(
 	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args));
+
+/* vsnprintf LVO; snprintf is SFD ==varargs at the same bias. */
+LONG __ASM__ __SAVE_DS__ cc_vsnprintf(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, ULONG n),
 	__REG__(a1, STRPTR format),
 	__REG__(a2, APTR args));
 

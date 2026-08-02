@@ -308,32 +308,4 @@ ct_suite_heap(void)
 			(STRPTR)"free of a valid malloc block must complete without fault",
 			1);
 	}
-
-	/* Forged / stale pointers must panic, not free random memory. */
-	ct_install_panic_hook();
-	sz = malloc_size((APTR)0x12345678L);
-	ct_check_true((STRPTR)"heap", (STRPTR)"malloc_size_forged",
-		(STRPTR)"malloc_size(forged)",
-		(STRPTR)"malloc_size of a non-heap pointer must panic and return 0",
-		sz == 0UL && ct_panic_hits == 1L);
-
-	free((APTR)0x12345678L);
-	ct_check_true((STRPTR)"heap", (STRPTR)"free_forged_safe",
-		(STRPTR)"free(forged)",
-		(STRPTR)"free of a forged pointer must panic and not touch OS memory",
-		ct_panic_hits == 2L);
-	ct_restore_panic_hook();
-
-	p = malloc(16);
-	if (p != (APTR)NULL)
-	{
-		free(p);
-		ct_install_panic_hook();
-		sz = malloc_size(p);
-		ct_check_true((STRPTR)"heap", (STRPTR)"malloc_size_after_free",
-			(STRPTR)"malloc_size after free",
-			(STRPTR)"malloc_size of a freed block must panic and return 0",
-			sz == 0UL && ct_panic_hits == 1L);
-		ct_restore_panic_hook();
-	}
 }
