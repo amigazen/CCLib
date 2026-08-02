@@ -37,6 +37,7 @@ void ct_install_panic_hook(void);
 void ct_restore_panic_hook(void);
 
 void ct_init(void);
+void ct_init_named(STRPTR harness_name);
 void ct_summary(void);
 void ct_suite_begin(STRPTR group, STRPTR title);
 
@@ -65,7 +66,7 @@ void ct_check_ptr_null(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 void ct_check_ptr_eq(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	APTR expected, APTR actual);
 
-/* Suite entry points */
+/* Suite entry points — CCTest (functional) */
 void ct_suite_crt(void);
 void ct_suite_string(void);
 void ct_suite_mem(void);
@@ -80,5 +81,10 @@ void ct_suite_time(void);
 void ct_suite_env(void);
 void ct_suite_sort(void);
 void ct_suite_dir(void);
+
+/* Suite entry points — CCPanic (validation / abort_func) */
+void ct_suite_panic_heap(void);
+void ct_suite_panic_stdio(void);
+void ct_suite_panic_io(void);
 
 #endif /* CCTEST_UTIL_H */

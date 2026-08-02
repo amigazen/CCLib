@@ -25,6 +25,7 @@ OBJS = \
 	cc_cxutil.o \
 	cc_ieee_lvo.o \
 	cc_ieee.o \
+	cc_locale.o \
 	support.o \
 	mem.o \
 	string.o \
@@ -81,6 +82,9 @@ cc_ieee_lvo.o: cc_ieee_lvo.asm
 	asm -u $<
 
 cc_ieee.o: cc_ieee.c private/cc_internal.h private/cc_ieee.h
+	Sc OBJNAME $@ $<
+
+cc_locale.o: cc_locale.c private/cc_internal.h
 	Sc OBJNAME $@ $<
 
 support.o: support.c private/cc_internal.h cclib_funcs.h

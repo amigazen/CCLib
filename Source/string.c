@@ -103,28 +103,17 @@ STRPTR __ASM__ __SAVE_DS__ strupr(
 	__REG__(a0, STRPTR s))
 {
 	UBYTE *p;
-	ULONG u;
+	cc_task_UserData *ud;
 
 	p = (UBYTE *)s;
 	if (p == (UBYTE *)NULL)
 		return s;
 
-	/* LIBC_TO_AMIGA: strupr -> ToUpper loop when utility is open. */
-	if (UtilityBase != (struct Library *)NULL)
-	{
-		while (*p)
-		{
-			u = (ULONG)*p;
-			*p = (UBYTE)ToUpper(u);
-			p++;
-		}
-		return s;
-	}
-
+	/* Case fold via cc_toupper_ch (utility today; locale.library later). */
+	ud = cc_get_ud();
 	while (*p)
 	{
-		if (*p >= (UBYTE)'a' && *p <= (UBYTE)'z')
-			*p = (UBYTE)(*p - (UBYTE)'a' + (UBYTE)'A');
+		*p = (UBYTE)cc_toupper_ch(ud, (LONG)*p);
 		p++;
 	}
 	return s;
@@ -296,38 +285,8 @@ LONG __ASM__ __SAVE_DS__ strcasecmp(
 	__REG__(a0, STRPTR s1),
 	__REG__(a1, STRPTR s2))
 {
-	UBYTE *p1;
-	UBYTE *p2;
-	LONG c1;
-	LONG c2;
-
-	/* LIBC_TO_AMIGA: strcasecmp / strcasecmp -> utility Stricmp (Direct). */
-	if (UtilityBase != (struct Library *)NULL)
-		return (LONG)Stricmp(s1, s2);
-
-	p1 = (UBYTE *)s1;
-	p2 = (UBYTE *)s2;
-	if (p1 == p2)
-		return 0;
-	if (p1 == (UBYTE *)NULL)
-		return -1;
-	if (p2 == (UBYTE *)NULL)
-		return 1;
-	for (;;)
-	{
-		c1 = (LONG)*p1;
-		c2 = (LONG)*p2;
-		if (c1 >= (LONG)'A' && c1 <= (LONG)'Z')
-			c1 = c1 - (LONG)'A' + (LONG)'a';
-		if (c2 >= (LONG)'A' && c2 <= (LONG)'Z')
-			c2 = c2 - (LONG)'A' + (LONG)'a';
-		if (c1 != c2)
-			return c1 - c2;
-		if (c1 == 0)
-			return 0;
-		p1++;
-		p2++;
-	}
+	/* Case-insensitive compare via helper (Stricmp / locale ctype later). */
+	return cc_str_casecmp(cc_get_ud(), s1, s2);
 }
 
 LONG __ASM__ __SAVE_DS__ strncasecmp(
@@ -335,42 +294,7 @@ LONG __ASM__ __SAVE_DS__ strncasecmp(
 	__REG__(a1, STRPTR s2),
 	__REG__(d0, LONG n))
 {
-	UBYTE *p1;
-	UBYTE *p2;
-	LONG c1;
-	LONG c2;
-	LONG i;
-
-	/* LIBC_TO_AMIGA: strncasecmp -> utility Strnicmp (Direct). */
-	if (UtilityBase != (struct Library *)NULL)
-		return (LONG)Strnicmp(s1, s2, n);
-
-	if (n <= 0L)
-		return 0L;
-	p1 = (UBYTE *)s1;
-	p2 = (UBYTE *)s2;
-	if (p1 == p2)
-		return 0L;
-	if (p1 == (UBYTE *)NULL)
-		return -1L;
-	if (p2 == (UBYTE *)NULL)
-		return 1L;
-	i = 0L;
-	while (i < n)
-	{
-		c1 = (LONG)p1[i];
-		c2 = (LONG)p2[i];
-		if (c1 >= (LONG)'A' && c1 <= (LONG)'Z')
-			c1 = c1 - (LONG)'A' + (LONG)'a';
-		if (c2 >= (LONG)'A' && c2 <= (LONG)'Z')
-			c2 = c2 - (LONG)'A' + (LONG)'a';
-		if (c1 != c2)
-			return c1 - c2;
-		if (c1 == 0)
-			return 0L;
-		i++;
-	}
-	return 0L;
+	return cc_str_ncasecmp(cc_get_ud(), s1, s2, n);
 }
 
 STRPTR __ASM__ __SAVE_DS__ strdup(

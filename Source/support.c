@@ -130,6 +130,7 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 		FreeMem(ud, sizeof(cc_task_UserData));
 		return 0;
 	}
+	cc_locale_init(ud);
 
 	old = task->tc_UserData;
 	ud->old_ud = old;
@@ -306,6 +307,9 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	}
 	closeall();
 	freeall();
+
+	/* Drop locale before FreeMem(ud); no-op while locale stays "C". */
+	cc_locale_clear(ud);
 
 	if (ud->heap_pool != (APTR)NULL)
 	{

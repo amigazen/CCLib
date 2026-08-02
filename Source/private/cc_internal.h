@@ -219,7 +219,24 @@ typedef struct
 	APTR mathbase;
 	/* NDK 3.2R4 session heap pool (CreatePool); past public task_UserData ABI. */
 	APTR heap_pool;
+	/*
+	 * POSIX locale session (Wave 0).  locale == NULL means "C".
+	 * Opaque APTR avoids forcing locale.library includes on every module;
+	 * cc_locale.c treats it as struct Locale *.
+	 */
+	APTR locale;
+	ULONG lc_mask;
+	char locale_name[32];
 } cc_task_UserData;
+
+/* LC_* bit masks for ud->lc_mask (match <locale.h> category values). */
+#define CC_LC_COLLATE  0x0001UL
+#define CC_LC_CTYPE    0x0002UL
+#define CC_LC_MONETARY 0x0004UL
+#define CC_LC_NUMERIC  0x0008UL
+#define CC_LC_TIME     0x0010UL
+#define CC_LC_MESSAGES 0x0020UL
+#define CC_LC_ALL      0x003FUL
 
 /* Default heap quantum: 256 * 8 = 2048 bytes when *blocksize == 0 */
 #define CC_DEFAULT_BLOCKSIZE 256L
@@ -234,7 +251,7 @@ extern struct DosLibrary *DOSBase;
 extern struct Library *UtilityBase;
 extern APTR SegList;
 
-/* Shared ctype table exported via SetupSTDIO's type pointer */
+/* Shared ctype table exported via SetupSTDIO's type pointer ("C" locale). */
 extern UBYTE cc_ctype_tab[257];
 
 cc_task_UserData *cc_get_ud(void);
@@ -252,5 +269,17 @@ void cc_panic(LONG code);
 cc_FileDesc *cc_fd_from_list(cc_task_UserData *ud, LONG fd);
 cc_FILE *cc_file_from_list(cc_task_UserData *ud, APTR stream);
 cc_MemBlk *cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr);
+
+/*
+ * Locale / character helpers (Wave 0).  Today behave as "C" + utility;
+ * when ud->locale is set (Wave 1+), case/collate route through locale.library.
+ */
+void cc_locale_init(cc_task_UserData *ud);
+void cc_locale_clear(cc_task_UserData *ud);
+LONG cc_toupper_ch(cc_task_UserData *ud, LONG c);
+LONG cc_tolower_ch(cc_task_UserData *ud, LONG c);
+LONG cc_str_casecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
+LONG cc_str_ncasecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2, LONG n);
+LONG cc_strcoll(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
 
 #endif /* CCLIB_PRIVATE_CC_INTERNAL_H */

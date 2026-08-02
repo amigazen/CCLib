@@ -3,6 +3,12 @@
 
 /*
  * ctype — character classification via cclib.library type[] table.
+ *
+ * Contract: the SetupSTDIO type pointer refers to the shared read-only
+ * "C" / "POSIX" table (cc_ctype_tab).  Macros below always use that table.
+ * When setlocale() installs a non-"C" LC_CTYPE (Wave 2), locale-aware
+ * classification will be via functions / locale.library Is* — not by
+ * mutating this shared table under apps that still use the macros.
  */
 
 #ifndef ANSIC

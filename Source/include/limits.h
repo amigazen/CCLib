@@ -21,6 +21,12 @@
 #define ULONG_MAX 4294976295UL
 #define USHRT_MAX 65535
 
+/*
+ * Multibyte: CClib is an 8-bit codeset libc.  MB_CUR_MAX stays 1 for "C"
+ * and for ISO-8859-* locales.  Only a future mbs/wcs wave may raise this.
+ */
+#define MB_CUR_MAX 1
+
 #define FLT_RADIX 2
 /* #define FLT_ROUNDS */
 #define FLT_DIG 6

@@ -1,4 +1,4 @@
-FROM "LibInit.o"+"StartUp.o"+"cc_util.o"+"cc_cxutil.o"+"cc_ieee_lvo.o"+"cc_ieee.o"+"support.o"+"mem.o"+"string.o"+"list.o"+"heap.o"+"conv.o"+"sort.o"+"io.o"+"stdio.o"+"fmt.o"+"time.o"+"env.o"+"process.o"
+FROM "LibInit.o"+"StartUp.o"+"cc_util.o"+"cc_cxutil.o"+"cc_ieee_lvo.o"+"cc_ieee.o"+"cc_locale.o"+"support.o"+"mem.o"+"string.o"+"list.o"+"heap.o"+"conv.o"+"sort.o"+"io.o"+"stdio.o"+"fmt.o"+"time.o"+"env.o"+"process.o"
 TO "cclib.library"
 LIB LIB:amiga.lib
 ADDSYM

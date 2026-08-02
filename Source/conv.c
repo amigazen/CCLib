@@ -8,7 +8,6 @@
 #include <exec/types.h>
 
 #include <proto/exec.h>
-#include <proto/utility.h>
 
 #include "private/cc_internal.h"
 #include "private/cc_ieee.h"
@@ -340,27 +339,11 @@ void __ASM__ __SAVE_DS__ stoa(
 LONG __ASM__ __SAVE_DS__ toupper(
 	__REG__(d0, LONG c))
 {
-	ULONG u;
-
-	u = (ULONG)c & 0xFFUL;
-	if (UtilityBase != (struct Library *)NULL)
-		return (LONG)ToUpper(u);
-
-	if (c >= 'a' && c <= 'z')
-		return c - ('a' - 'A');
-	return c;
+	return cc_toupper_ch(cc_get_ud(), c);
 }
 
 LONG __ASM__ __SAVE_DS__ tolower(
 	__REG__(d0, LONG c))
 {
-	ULONG u;
-
-	u = (ULONG)c & 0xFFUL;
-	if (UtilityBase != (struct Library *)NULL)
-		return (LONG)ToLower(u);
-
-	if (c >= 'A' && c <= 'Z')
-		return c + ('a' - 'A');
-	return c;
+	return cc_tolower_ch(cc_get_ud(), c);
 }
