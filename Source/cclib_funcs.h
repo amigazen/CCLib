@@ -612,40 +612,256 @@ LONG __ASM__ __SAVE_DS__ exec(
 APTR __ASM__ __SAVE_DS__ memmove(
 	__REG__(a0, APTR dst),
 	__REG__(a1, APTR src),
-	__REG__(d0, LONG n));
-
-LONG __ASM__ __SAVE_DS__ strncasecmp(
-	__REG__(a0, STRPTR s1),
-	__REG__(a1, STRPTR s2),
-	__REG__(d0, LONG n));
-
-STRPTR __ASM__ __SAVE_DS__ strdup(
-	__REG__(a0, STRPTR s));
-
-STRPTR __ASM__ __SAVE_DS__ strndup(
-	__REG__(a0, STRPTR s),
-	__REG__(d0, LONG n));
-
-LONG __ASM__ __SAVE_DS__ unsetenv(
-	__REG__(a0, STRPTR name));
-
-LONG __ASM__ __SAVE_DS__ strnlen(
-	__REG__(a0, STRPTR s),
-	__REG__(d0, LONG maxlen));
+	__REG__(d0, LONG n)
+);
 
 APTR __ASM__ __SAVE_DS__ memmem(
 	__REG__(a0, APTR haystack),
 	__REG__(d0, LONG hlen),
 	__REG__(a1, APTR needle),
-	__REG__(d1, LONG nlen));
+	__REG__(d1, LONG nlen)
+);
+
+LONG __ASM__ __SAVE_DS__ strncasecmp(
+	__REG__(a0, STRPTR s1),
+	__REG__(a1, STRPTR s2),
+	__REG__(d0, LONG n)
+);
+
+STRPTR __ASM__ __SAVE_DS__ strdup(
+	__REG__(a0, STRPTR s)
+);
+
+STRPTR __ASM__ __SAVE_DS__ strndup(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG n)
+);
+
+LONG __ASM__ __SAVE_DS__ strnlen(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG maxlen)
+);
 
 STRPTR __ASM__ __SAVE_DS__ stpcpy(
 	__REG__(a0, STRPTR dst),
-	__REG__(a1, STRPTR src));
+	__REG__(a1, STRPTR src)
+);
 
 STRPTR __ASM__ __SAVE_DS__ stpncpy(
 	__REG__(a0, STRPTR dst),
 	__REG__(a1, STRPTR src),
-	__REG__(d0, LONG n));
+	__REG__(d0, LONG n)
+);
+
+ULONG __ASM__ __SAVE_DS__ strlcpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, ULONG size)
+);
+
+ULONG __ASM__ __SAVE_DS__ strlcat(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, ULONG size)
+);
+
+STRPTR __ASM__ __SAVE_DS__ strtok_r(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR delim),
+	__REG__(a2, APTR saveptr)
+);
+
+STRPTR __ASM__ __SAVE_DS__ strlwr(
+	__REG__(a0, STRPTR s)
+);
+
+LONG __ASM__ __SAVE_DS__ unsetenv(
+	__REG__(a0, STRPTR name)
+);
+
+LONG __ASM__ __SAVE_DS__ cc_vsnprintf(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, ULONG n),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args)
+);
+
+LONG __ASM__ __SAVE_DS__ vscanf(
+	__REG__(a0, STRPTR format),
+	__REG__(a1, APTR args)
+);
+
+LONG __ASM__ __SAVE_DS__ vfscanf(
+	__REG__(a0, APTR stream),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args)
+);
+
+LONG __ASM__ __SAVE_DS__ vsscanf(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args)
+);
+
+LONG __ASM__ __SAVE_DS__ getline(
+	__REG__(a0, APTR lineptr),
+	__REG__(a1, APTR n),
+	__REG__(a2, APTR stream)
+);
+
+LONG __ASM__ __SAVE_DS__ getdelim(
+	__REG__(a0, APTR lineptr),
+	__REG__(a1, APTR n),
+	__REG__(d0, LONG delim),
+	__REG__(a2, APTR stream)
+);
+
+LONG __ASM__ __SAVE_DS__ strtol(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp),
+	__REG__(d0, LONG base)
+);
+
+ULONG __ASM__ __SAVE_DS__ strtoul(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp),
+	__REG__(d0, LONG base)
+);
+
+DOUBLE __ASM__ __SAVE_DS__ strtod(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp)
+);
+
+LONG __ASM__ __SAVE_DS__ atoll(
+	__REG__(a0, STRPTR s)
+);
+
+APTR __ASM__ __SAVE_DS__ bsearch(
+	__REG__(a0, APTR key),
+	__REG__(a1, APTR base),
+	__REG__(d0, ULONG nel),
+	__REG__(d1, ULONG width),
+	__REG__(a2, APTR compar)
+);
+
+void __ASM__ __SAVE_DS__ srand(
+	__REG__(d0, ULONG seed)
+);
+
+LONG __ASM__ __SAVE_DS__ rand(void);
+
+void __ASM__ __SAVE_DS__ div(
+	__REG__(a0, APTR result),
+	__REG__(d0, LONG numer),
+	__REG__(d1, LONG denom)
+);
+
+void __ASM__ __SAVE_DS__ ldiv(
+	__REG__(a0, APTR result),
+	__REG__(d0, LONG numer),
+	__REG__(d1, LONG denom)
+);
+
+LONG __ASM__ __SAVE_DS__ labs(
+	__REG__(d0, LONG n)
+);
+
+LONG __ASM__ __SAVE_DS__ mkstemp(
+	__REG__(a0, STRPTR template)
+);
+
+STRPTR __ASM__ __SAVE_DS__ getcwd(
+	__REG__(a0, STRPTR buf),
+	__REG__(d0, LONG size)
+);
+
+LONG __ASM__ __SAVE_DS__ chdir(
+	__REG__(a0, STRPTR path)
+);
+
+STRPTR __ASM__ __SAVE_DS__ realpath(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, STRPTR resolved)
+);
+
+LONG __ASM__ __SAVE_DS__ mkdir(
+	__REG__(a0, STRPTR path),
+	__REG__(d0, LONG mode)
+);
+
+LONG __ASM__ __SAVE_DS__ rmdir(
+	__REG__(a0, STRPTR path)
+);
+
+LONG __ASM__ __SAVE_DS__ chmod(
+	__REG__(a0, STRPTR path),
+	__REG__(d0, LONG mode)
+);
+
+LONG __ASM__ __SAVE_DS__ utime(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, APTR times)
+);
+
+LONG __ASM__ __SAVE_DS__ symlink(
+	__REG__(a0, STRPTR target),
+	__REG__(a1, STRPTR linkpath)
+);
+
+LONG __ASM__ __SAVE_DS__ readlink(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, STRPTR buf),
+	__REG__(d0, LONG bufsiz)
+);
+
+APTR __ASM__ __SAVE_DS__ opendir(
+	__REG__(a0, STRPTR name)
+);
+
+APTR __ASM__ __SAVE_DS__ readdir(
+	__REG__(a0, APTR dir)
+);
+
+LONG __ASM__ __SAVE_DS__ closedir(
+	__REG__(a0, APTR dir)
+);
+
+ULONG __ASM__ __SAVE_DS__ sleep(
+	__REG__(d0, ULONG seconds)
+);
+
+LONG __ASM__ __SAVE_DS__ usleep(
+	__REG__(d0, ULONG usec)
+);
+
+LONG __ASM__ __SAVE_DS__ nanosleep(
+	__REG__(a0, APTR req),
+	__REG__(a1, APTR rem)
+);
+
+STRPTR __ASM__ __SAVE_DS__ setlocale(
+	__REG__(d0, LONG category),
+	__REG__(a0, STRPTR name)
+);
+
+APTR __ASM__ __SAVE_DS__ localeconv(void);
+
+LONG __ASM__ __SAVE_DS__ strcoll(
+	__REG__(a0, STRPTR s1),
+	__REG__(a1, STRPTR s2)
+);
+
+ULONG __ASM__ __SAVE_DS__ strxfrm(
+	__REG__(a0, STRPTR dest),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, ULONG n)
+);
+
+STRPTR __ASM__ __SAVE_DS__ strptime(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR tm)
+);
 
 #endif /* CCLIB_FUNCS_H */

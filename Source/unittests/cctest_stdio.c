@@ -27,6 +27,7 @@ ct_suite_stdio(void)
 	LONG fav[4];
 	APTR fargs[4];
 	STRPTR t;
+	LONG fd;
 
 	ct_suite_begin((STRPTR)"stdio", (STRPTR)"tmpfile / fopen / fprintf / fscanf");
 
@@ -214,6 +215,22 @@ ct_suite_stdio(void)
 		(STRPTR)"mktemp must replace X characters in the template",
 		strcmp(template, (STRPTR)"T:CCXXXXXX") != 0);
 
+	strcpy(template, (STRPTR)"T:MSXXXXXX");
+	fd = mkstemp(template);
+	ct_check_true((STRPTR)"stdio", (STRPTR)"mkstemp_fd",
+		(STRPTR)"mkstemp",
+		(STRPTR)"mkstemp must return a valid file descriptor",
+		fd != -1L);
+	if (fd != -1L)
+	{
+		ct_check_true((STRPTR)"stdio", (STRPTR)"mkstemp_name",
+			(STRPTR)"mkstemp template",
+			(STRPTR)"mkstemp must rewrite X characters in the template",
+			strcmp(template, (STRPTR)"T:MSXXXXXX") != 0);
+		close(fd);
+		remove(template);
+	}
+
 	buf[0] = '\0';
 	t = tmpnam(buf);
 	ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"tmpnam_buf",
@@ -381,5 +398,40 @@ ct_suite_stdio(void)
 			(STRPTR)"ungetc in the middle of a stream must supply '!'",
 			(LONG)'!', c);
 		fclose(fp);
+	}
+
+	{
+		char *line;
+		ULONG linesz;
+		LONG glen;
+		APTR gfp;
+
+		line = (char *)NULL;
+		linesz = 0UL;
+		gfp = tmpfile();
+		ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"getline_tmp",
+			(STRPTR)"tmpfile for getline",
+			(STRPTR)"tmpfile must open for getline test",
+			gfp);
+		if (gfp != (APTR)NULL)
+		{
+			fputs((STRPTR)"hello line\nrest", gfp);
+			fflush(gfp);
+			fseek(gfp, 0, 0);
+			glen = getline((APTR)&line, (APTR)&linesz, gfp);
+			ct_check_true((STRPTR)"stdio", (STRPTR)"getline_len",
+				(STRPTR)"getline",
+				(STRPTR)"getline must return length including newline",
+				glen == 11);
+			ct_check_string((STRPTR)"stdio",
+				(STRPTR)"getline_text",
+				(STRPTR)"getline buffer",
+				(STRPTR)"getline must store the first line with newline",
+				(STRPTR)"hello line\n",
+				line);
+			fclose(gfp);
+			if (line != (char *)NULL)
+				free(line);
+		}
 	}
 }

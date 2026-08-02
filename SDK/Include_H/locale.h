@@ -2,13 +2,10 @@
 #define LOCALE_H 1
 
 /*
- * locale.h — POSIX locale surface for CClib (Wave 0 headers).
+ * locale.h — POSIX locale surface for CClib.
  *
- * setlocale / localeconv / strcoll / strxfrm LVOs land in later waves.
- * Until then: the process/session stays in "C" (see TODO.md).
- *
- * ctype.h macros still use the shared "C" type[] table from SetupSTDIO.
- * Locale-aware classification will not silently change those macros.
+ * Wave 1: setlocale / localeconv / strcoll / strxfrm are LVOs.
+ * Default session locale is "C" (no OpenLocale).
  */
 
 #ifndef ANSIC
@@ -24,10 +21,6 @@
 #define LC_TIME     5
 #define LC_MESSAGES 6
 
-/*
- * Numeric / monetary conventions (ISO C / POSIX).
- * Populated by localeconv() once Wave 1 is implemented.
- */
 struct lconv {
 	char *decimal_point;
 	char *thousands_sep;

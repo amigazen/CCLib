@@ -38,7 +38,9 @@ OBJS = \
 	fmt.o \
 	time.o \
 	env.o \
-	process.o
+	process.o \
+	dirent.o \
+	sleep.o
 
 ###############################################################################
 
@@ -124,4 +126,10 @@ env.o: env.c private/cc_internal.h cclib_funcs.h
 	Sc OBJNAME $@ $<
 
 process.o: process.c private/cc_internal.h cclib_funcs.h
+	Sc OBJNAME $@ $<
+
+dirent.o: dirent.c private/cc_internal.h cclib_funcs.h
+	Sc OBJNAME $@ $<
+
+sleep.o: sleep.c private/cc_internal.h cclib_funcs.h
 	Sc OBJNAME $@ $<

@@ -47,6 +47,7 @@ STRPTR __ASM__ __SAVE_DS__ scdir(
 	LONG err;
 	char amiga_pat[128];
 	ULONG apsize;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL)
@@ -101,6 +102,7 @@ void __ASM__ __SAVE_DS__ scdir_clean(void)
 	cc_task_UserData *ud;
 	struct AnchorPath *ap;
 	ULONG apsize;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->scdir_mem == NULL)
@@ -120,9 +122,11 @@ LONG __ASM__ __SAVE_DS__ setenv(
 	LONG ok;
 
 	/*
+
 	 * Wrap dos SetVar / DeleteVar (see dos.library autodocs).
 	 * Prefer GVF_LOCAL_ONLY — SetVar's default is local-to-process.
 	 */
+	cc_check_break();
 	if (name == NULL)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -156,9 +160,11 @@ LONG __ASM__ __SAVE_DS__ unsetenv(
 	__REG__(a0, STRPTR name))
 {
 	/*
+
 	 * POSIX unsetenv via DeleteVar.  Drop the local var first; also
 	 * clear a global ENV: copy so getenv's default lookup cannot see it.
 	 */
+	cc_check_break();
 	if (name == NULL || name[0] == '\0')
 	{
 		cc_set_errno(CC_EINVAL);
@@ -176,6 +182,7 @@ STRPTR __ASM__ __SAVE_DS__ getenv(
 	cc_task_UserData *ud;
 	STRPTR buf;
 	LONG len;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || name == NULL)

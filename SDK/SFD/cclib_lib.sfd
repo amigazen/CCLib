@@ -3,7 +3,7 @@
 *
 * Canonical LVO interface for cclib.library (V4.0 reimplementation of the
 * historic V3.0 jump table). Register-args LVO calling convention
-* Do not reorder or insert mid-table. Append new LVOs only at the end.
+* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.
 * Opaque C objects (FILE, task_UserData, tm, …) are APTR.
 *
 * V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
@@ -66,8 +66,12 @@ STRPTR tmpnam(STRPTR s) (a0)
 APTR tmpfile() ()
 LONG putc(LONG c, APTR stream) (d0,a0)
 LONG aputc(LONG c, APTR stream) (d0,a0)
+==alias
+LONG fputc(LONG c, APTR stream) (d0,a0)
 LONG getc(APTR stream) (a0)
 LONG agetc(APTR stream) (a0)
+==alias
+LONG fgetc(APTR stream) (a0)
 LONG getchar() ()
 LONG ungetc(LONG c, APTR stream) (d0,a0)
 LONG putw(ULONG w, APTR stream) (d0,a0)
@@ -158,6 +162,8 @@ STRPTR strncat(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
 LONG strcasecmp(STRPTR s1, STRPTR s2) (a0,a1)
 ==alias
 LONG strcmpa(STRPTR s1, STRPTR s2) (a0,a1)
+==alias
+LONG stricmp(STRPTR s1, STRPTR s2) (a0,a1)
 LONG strncmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
 STRPTR strncpy(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
 STRPTR strpbrk(STRPTR s, STRPTR accept) (a0,a1)
@@ -221,7 +227,8 @@ LONG cliexec(STRPTR cmd) (a0)
 LONG exec(STRPTR cmd) (a0)
 ==version 4
 *
-* V4 append-only (-918 ..). Group by category when extending.
+* V4 (-918 ..). Not frozen: grouped by category. timer.device (not
+* realtime.library) backs sleep/usleep/nanosleep.
 *
 * Memory
 APTR memmove(APTR dst, APTR src, LONG n) (a0,a1,d0)
@@ -229,19 +236,71 @@ APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen) (a0,d0,a1,d1)
 *
 * String
 LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
+==alias
+LONG strnicmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
 STRPTR strdup(STRPTR s) (a0)
 STRPTR strndup(STRPTR s, LONG n) (a0,d0)
 LONG strnlen(STRPTR s, LONG maxlen) (a0,d0)
 STRPTR stpcpy(STRPTR dst, STRPTR src) (a0,a1)
 STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
+ULONG strlcpy(STRPTR dst, STRPTR src, ULONG size) (a0,a1,d0)
+ULONG strlcat(STRPTR dst, STRPTR src, ULONG size) (a0,a1,d0)
+STRPTR strtok_r(STRPTR s, STRPTR delim, APTR saveptr) (a0,a1,a2)
+STRPTR strlwr(STRPTR s) (a0)
 *
 * Environment
 LONG unsetenv(STRPTR name) (a0)
 *
-* Format — vsnprintf is the LVO; snprintf is the ==varargs alias
-* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf).
-*
+* Format — vsnprintf LVO; snprintf is ==varargs at the same bias
 LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args) (a0,d0,a1,a2)
 ==varargs
 LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...) (a0,d0,a1,a2)
+LONG vscanf(STRPTR format, APTR args) (a0,a1)
+LONG vfscanf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
+LONG vsscanf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
+LONG getline(APTR lineptr, APTR n, APTR stream) (a0,a1,a2)
+LONG getdelim(APTR lineptr, APTR n, LONG delim, APTR stream) (a0,a1,d0,a2)
+*
+* Conversion
+LONG strtol(STRPTR s, APTR endp, LONG base) (a0,a1,d0)
+ULONG strtoul(STRPTR s, APTR endp, LONG base) (a0,a1,d0)
+DOUBLE strtod(STRPTR s, APTR endp) (a0,a1)
+LONG atoll(STRPTR s) (a0)
+*
+* Search / random / integer math
+APTR bsearch(APTR key, APTR base, ULONG nel, ULONG width, APTR compar) (a0,a1,d0,d1,a2)
+void srand(ULONG seed) (d0)
+LONG rand() ()
+void div(APTR result, LONG numer, LONG denom) (a0,d0,d1)
+void ldiv(APTR result, LONG numer, LONG denom) (a0,d0,d1)
+LONG labs(LONG n) (d0)
+*
+* Path / filesystem (dos.library)
+LONG mkstemp(STRPTR template) (a0)
+STRPTR getcwd(STRPTR buf, LONG size) (a0,d0)
+LONG chdir(STRPTR path) (a0)
+STRPTR realpath(STRPTR path, STRPTR resolved) (a0,a1)
+LONG mkdir(STRPTR path, LONG mode) (a0,d0)
+LONG rmdir(STRPTR path) (a0)
+LONG chmod(STRPTR path, LONG mode) (a0,d0)
+LONG utime(STRPTR path, APTR times) (a0,a1)
+LONG symlink(STRPTR target, STRPTR linkpath) (a0,a1)
+LONG readlink(STRPTR path, STRPTR buf, LONG bufsiz) (a0,a1,d0)
+*
+* Directory (POSIX dirent beside historic scdir)
+APTR opendir(STRPTR name) (a0)
+APTR readdir(APTR dir) (a0)
+LONG closedir(APTR dir) (a0)
+*
+* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay)
+ULONG sleep(ULONG seconds) (d0)
+LONG usleep(ULONG usec) (d0)
+LONG nanosleep(APTR req, APTR rem) (a0,a1)
+*
+* Locale
+STRPTR setlocale(LONG category, STRPTR name) (d0,a0)
+APTR localeconv() ()
+LONG strcoll(STRPTR s1, STRPTR s2) (a0,a1)
+ULONG strxfrm(STRPTR dest, STRPTR src, ULONG n) (a0,a1,d0)
+STRPTR strptime(STRPTR s, STRPTR format, APTR tm) (a0,a1,a2)
 ==end

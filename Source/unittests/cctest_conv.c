@@ -410,4 +410,79 @@ ct_suite_conv(void)
 		(STRPTR)"atof(\"0.5\") formatted with %.2f must be \"0.50\"",
 		(STRPTR)"0.50",
 		buf);
+
+	/* --- strtol / strtoul / atoll / labs / div / rand --- */
+	{
+		char *endp;
+		struct { LONG quot; LONG rem; } dr;
+		struct { LONG quot; LONG rem; } lr;
+		ULONG u;
+		LONG r1;
+		LONG r2;
+
+		ct_check_long((STRPTR)"conv", (STRPTR)"strtol_dec",
+			(STRPTR)"strtol(\"1234\", NULL, 10)",
+			(STRPTR)"strtol base 10 must parse decimal",
+			1234, strtol((STRPTR)"1234", (APTR)NULL, 10L));
+
+		n = strtol((STRPTR)"-42xyz", (APTR)&endp, 10L);
+		ct_check_long((STRPTR)"conv", (STRPTR)"strtol_neg_end",
+			(STRPTR)"strtol(\"-42xyz\", &end, 10)",
+			(STRPTR)"strtol must stop at first non-digit and set endptr",
+			-42, n);
+		ct_check_true((STRPTR)"conv", (STRPTR)"strtol_endptr",
+			(STRPTR)"*end == 'x' after strtol(\"-42xyz\")",
+			(STRPTR)"endptr must point at the first unconverted character",
+			endp != (char *)NULL && *endp == 'x');
+
+		ct_check_long((STRPTR)"conv", (STRPTR)"strtol_hex",
+			(STRPTR)"strtol(\"0xFF\", NULL, 0)",
+			(STRPTR)"strtol base 0 must accept 0x hex prefix",
+			255, strtol((STRPTR)"0xFF", (APTR)NULL, 0L));
+
+		u = strtoul((STRPTR)"4294967295", (APTR)NULL, 10L);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoul_max",
+			(STRPTR)"strtoul(\"4294967295\", NULL, 10)",
+			(STRPTR)"strtoul must parse ULONG_MAX decimal",
+			0xFFFFFFFFUL, u);
+
+		ct_check_long((STRPTR)"conv", (STRPTR)"atoll_pos",
+			(STRPTR)"atoll(\"99\")",
+			(STRPTR)"atoll must parse like strtol base 10",
+			99, atoll((STRPTR)"99"));
+
+		ct_check_long((STRPTR)"conv", (STRPTR)"labs_neg",
+			(STRPTR)"labs(-5)",
+			(STRPTR)"labs must return the absolute value of a negative long",
+			5, labs(-5L));
+
+		div((APTR)&dr, 10L, 3L);
+		ct_check_long((STRPTR)"conv", (STRPTR)"div_quot",
+			(STRPTR)"div(10,3).quot",
+			(STRPTR)"div must store toward-zero quotient",
+			3, dr.quot);
+		ct_check_long((STRPTR)"conv", (STRPTR)"div_rem",
+			(STRPTR)"div(10,3).rem",
+			(STRPTR)"div must store the corresponding remainder",
+			1, dr.rem);
+
+		ldiv((APTR)&lr, -10L, 3L);
+		ct_check_long((STRPTR)"conv", (STRPTR)"ldiv_quot",
+			(STRPTR)"ldiv(-10,3).quot",
+			(STRPTR)"ldiv toward-zero quotient for negative dividend",
+			-3, lr.quot);
+
+		srand(1UL);
+		r1 = rand();
+		srand(1UL);
+		r2 = rand();
+		ct_check_long((STRPTR)"conv", (STRPTR)"rand_repeatable",
+			(STRPTR)"rand after srand(1) twice",
+			(STRPTR)"same seed must yield the same first rand value",
+			r1, r2);
+		ct_check_true((STRPTR)"conv", (STRPTR)"rand_range",
+			(STRPTR)"rand() in 0..RAND_MAX",
+			(STRPTR)"rand must stay within 0..32767",
+			r1 >= 0 && r1 <= 32767);
+	}
 }

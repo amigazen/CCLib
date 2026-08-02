@@ -27,6 +27,7 @@
 #define CC_EACCES  8
 #define CC_ERANGE  9
 #define CC_EDOM    10
+#define CC_EINTR   11
 
 /* fcntl open flags */
 #define CC_O_RDONLY  0
@@ -227,7 +228,32 @@ typedef struct
 	APTR locale;
 	ULONG lc_mask;
 	char locale_name[32];
+	/* POSIX rand/srand seed (default 1). */
+	ULONG rand_seed;
+	/* Head of open DIR list (dirent.c); cleared in ClearSTDIO. */
+	APTR open_dirs;
 } cc_task_UserData;
+
+/* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */
+typedef struct
+{
+	LONG quot;
+	LONG rem;
+} cc_div_t;
+
+/* Opaque DIR payload (also exposed as DIR in <dirent.h>). */
+#define CC_DIR_MAGIC 0x43434449UL /* 'CCDI' */
+#define CC_PATH_MAX  1024L
+
+typedef struct cc_DIR
+{
+	struct cc_DIR *next;
+	ULONG magic;
+	BPTR lock;
+	struct FileInfoBlock *fib;
+	LONG at_entry; /* 0 = need Examine; 1 = ExNext loop */
+	char d_name[108];
+} cc_DIR;
 
 /* LC_* bit masks for ud->lc_mask (match <locale.h> category values). */
 #define CC_LC_COLLATE  0x0001UL
@@ -254,9 +280,25 @@ extern APTR SegList;
 /* Shared ctype table exported via SetupSTDIO's type pointer ("C" locale). */
 extern UBYTE cc_ctype_tab[257];
 
+/* Console Break / AmigaDOS Break command (Ctrl-C..F). */
+#define CC_BREAK_MASK \
+	(SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_D | SIGBREAKF_CTRL_E | SIGBREAKF_CTRL_F)
+
 cc_task_UserData *cc_get_ud(void);
 void cc_set_errno(LONG err);
 LONG cc_get_errno(void);
+
+/*
+ * Ctrl-C poll (SAS __chkabort model for shared LVOs).  Clears
+ * SIGBREAKF_CTRL_C and calls ud->abort_func(20) when armed.  No-op when
+ * abort_func is NULL (no session / ClearSTDIO disarmed).  Leaf LVOs that
+ * never call cc_get_ud() should call this at entry; cc_get_ud() polls too.
+ *
+ * After Wait(...|SIGBREAKF_CTRL_C), the bit is already cleared — call
+ * cc_raise_ctrl_c() instead of cc_check_break().
+ */
+void cc_check_break(void);
+void cc_raise_ctrl_c(void);
 
 /*
  * Panic: invalid capability / programming error.  Invokes ud->abort_func

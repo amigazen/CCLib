@@ -26,5 +26,6 @@ extern long errno;
 /* math errors (not used by library) */
 #define ERANGE 9
 #define EDOM 10
+#define EINTR 11
 
 #endif

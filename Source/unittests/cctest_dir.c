@@ -98,4 +98,43 @@ ct_suite_dir(void)
 		(STRPTR)"scdir_clean()",
 		(STRPTR)"Final scdir_clean must leave scanner idle without fault",
 		1);
+
+	/* --- opendir / readdir / closedir --- */
+	{
+		APTR dir;
+		STRPTR ent;
+		LONG nent;
+		LONG rc;
+
+		dir = opendir((STRPTR)"LIBS:");
+		ct_check_ptr_nonnull((STRPTR)"dir", (STRPTR)"opendir_libs",
+			(STRPTR)"opendir(\"LIBS:\")",
+			(STRPTR)"opendir of LIBS: must return a DIR",
+			dir);
+		if (dir != (APTR)NULL)
+		{
+			nent = 0;
+			ent = (STRPTR)readdir(dir);
+			ct_check_ptr_nonnull((STRPTR)"dir", (STRPTR)"readdir_first",
+				(STRPTR)"readdir after opendir(LIBS:)",
+				(STRPTR)"readdir must yield at least one name under LIBS:",
+				(APTR)ent);
+			while (ent != (STRPTR)NULL)
+			{
+				nent++;
+				if (nent > 500)
+					break;
+				ent = (STRPTR)readdir(dir);
+			}
+			ct_check_true((STRPTR)"dir", (STRPTR)"readdir_count",
+				(STRPTR)"readdir iteration",
+				(STRPTR)"readdir must return multiple entries or stop cleanly",
+				nent >= 1);
+			rc = closedir(dir);
+			ct_check_long((STRPTR)"dir", (STRPTR)"closedir_ok",
+				(STRPTR)"closedir",
+				(STRPTR)"closedir must return 0",
+				0, rc);
+		}
+	}
 }

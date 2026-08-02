@@ -3,7 +3,11 @@
  */
 
 #include <exec/types.h>
+#include <exec/libraries.h>
+#include <devices/timer.h>
+#include <proto/exec.h>
 #include <proto/cclib.h>
+#include <proto/lowlevel.h>
 #include <libraries/cclib.h>
 #include "cctest_util.h"
 
@@ -135,4 +139,92 @@ ct_suite_time(void)
 		(STRPTR)"strftime(buf,80,\"%%Y-%%m-%%d %%H:%%M:%%S\",tm)",
 		(STRPTR)"Combined strftime format must produce a non-empty timestamp",
 		n >= 19UL && buf[0] != '\0');
+
+	{
+		char tbuf[40];
+		STRPTR end;
+		struct tm parsed;
+
+		parsed.tm_sec = 0;
+		parsed.tm_min = 0;
+		parsed.tm_hour = 0;
+		parsed.tm_mday = 1;
+		parsed.tm_mon = 0;
+		parsed.tm_year = 0;
+		parsed.tm_wday = 0;
+		parsed.tm_yday = 0;
+		parsed.tm_isdst = 0;
+		parsed.tm_hsec = 0;
+
+		strcpy(tbuf, (STRPTR)"2001-02-03 04:05:06");
+		end = strptime(tbuf, (STRPTR)"%Y-%m-%d %H:%M:%S", (APTR)&parsed);
+		ct_check_ptr_nonnull((STRPTR)"time", (STRPTR)"strptime_ok",
+			(STRPTR)"strptime \"%Y-%m-%d %H:%M:%S\"",
+			(STRPTR)"strptime must parse a full timestamp",
+			(APTR)end);
+		ct_check_long((STRPTR)"time", (STRPTR)"strptime_year",
+			(STRPTR)"tm_year after strptime 2001",
+			(STRPTR)"strptime %%Y 2001 must set tm_year to 101",
+			101, (LONG)parsed.tm_year);
+		ct_check_long((STRPTR)"time", (STRPTR)"strptime_mon",
+			(STRPTR)"tm_mon after strptime",
+			(STRPTR)"strptime %%m 02 must set tm_mon to 1",
+			1, (LONG)parsed.tm_mon);
+		ct_check_long((STRPTR)"time", (STRPTR)"strptime_mday",
+			(STRPTR)"tm_mday after strptime",
+			(STRPTR)"strptime %%d 03 must set tm_mday to 3",
+			3, (LONG)parsed.tm_mday);
+
+		/*
+		 * Timed sleep: usleep(200000) ≈ 0.2s.  Wall budget well under 2s.
+		 * Measure with lowlevel.library/ElapsedTime (16.16 fixed seconds).
+		 */
+		{
+			struct Library *LowLevelBase;
+			struct EClockVal ectx;
+			ULONG elapsed;
+			ULONG sec16;
+			LONG urc;
+
+			LowLevelBase = OpenLibrary((STRPTR)"lowlevel.library", 40L);
+			if (LowLevelBase != (struct Library *)NULL)
+			{
+				ectx.ev_hi = 0UL;
+				ectx.ev_lo = 0UL;
+				(void)ElapsedTime(&ectx); /* prime; first result is junk */
+
+				urc = usleep(200000UL);
+				elapsed = ElapsedTime(&ectx);
+				CloseLibrary(LowLevelBase);
+
+				ct_check_long((STRPTR)"time", (STRPTR)"usleep_timed_rc",
+					(STRPTR)"usleep(200000)",
+					(STRPTR)"usleep of 0.2s must return 0",
+					0, urc);
+
+				sec16 = elapsed >> 16;
+				/* At least ~0.1s, under 2s. */
+				ct_check_true((STRPTR)"time", (STRPTR)"usleep_elapsed_min",
+					(STRPTR)"ElapsedTime after usleep(200000)",
+					(STRPTR)"elapsed must be at least ~0.1s (16.16)",
+					elapsed >= 0x1999UL);
+				ct_check_true((STRPTR)"time", (STRPTR)"usleep_elapsed_max",
+					(STRPTR)"ElapsedTime after usleep(200000)",
+					(STRPTR)"elapsed must stay under 2s (test budget)",
+					sec16 < 2UL);
+			}
+			else
+			{
+				urc = usleep(200000UL);
+				ct_check_long((STRPTR)"time", (STRPTR)"usleep_timed_rc",
+					(STRPTR)"usleep(200000)",
+					(STRPTR)"usleep of 0.2s must return 0 (no lowlevel)",
+					0, urc);
+				ct_check_true((STRPTR)"time", (STRPTR)"usleep_no_lowlevel",
+					(STRPTR)"OpenLibrary(lowlevel.library)",
+					(STRPTR)"lowlevel.library absent — skip ElapsedTime check",
+					1);
+			}
+		}
+	}
 }

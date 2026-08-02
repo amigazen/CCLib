@@ -114,6 +114,7 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	struct Task *task;
 	cc_task_UserData *ud;
 	APTR old;
+	cc_check_break();
 
 	task = FindTask((STRPTR)NULL);
 	if (task == (struct Task *)NULL)
@@ -167,6 +168,8 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud->stdout_p = (cc_FILE **)NULL;
 	ud->stderr_p = (cc_FILE **)NULL;
 	ud->scnfp = (APTR)NULL;
+	ud->rand_seed = 1UL;
+	ud->open_dirs = (APTR)NULL;
 
 	task->tc_UserData = (APTR)ud;
 	return 1;
@@ -174,6 +177,7 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 
 APTR __ASM__ __SAVE_DS__ GetSTDIO(void)
 {
+	cc_check_break();
 	return (APTR)cc_get_ud();
 }
 
@@ -181,6 +185,7 @@ void __ASM__ __SAVE_DS__ SetAbortFunc(
 	__REG__(a0, APTR abortfunc))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
@@ -191,6 +196,7 @@ void __ASM__ __SAVE_DS__ SetAbortFunc(
 void __ASM__ __SAVE_DS__ ClearAbortFunc(void)
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
@@ -211,6 +217,7 @@ void __ASM__ __SAVE_DS__ closeall(void)
 	cc_FILE *fp;
 	cc_FileDesc *fd;
 	BPTR fh;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
@@ -274,19 +281,25 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	APTR old;
 	static LONG clearing;
 
-	ud = cc_get_ud();
+	/*
+	 * Fetch ud without cc_get_ud() — that polls Ctrl-C.  Disarm
+	 * abort_func first so teardown cannot re-enter exit via break.
+	 */
+	task = FindTask((STRPTR)NULL);
+	if (task == (struct Task *)NULL)
+		return;
+	ud = (cc_task_UserData *)task->tc_UserData;
 	if (ud == (cc_task_UserData *)NULL)
 		return;
+
+	ud->abort_func = (cc_ABORT_FUNC)NULL;
+
 	if (clearing)
 		return;
 	clearing = 1;
 
-	/* Do not re-enter exit via Ctrl-C while we reap children. */
-	ud->abort_func = (cc_ABORT_FUNC)NULL;
-
-	task = ud->parent;
-	if (task == (struct Task *)NULL)
-		task = FindTask((STRPTR)NULL);
+	if (ud->parent != (struct Task *)NULL)
+		task = ud->parent;
 
 	/*
 	 * Tear down in a leak-safe order: stop directory scans, reap
@@ -294,6 +307,9 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	 * atexit handlers are CRT-owned and must already have run.
 	 */
 	scdir_clean();
+	/* Close any DIR left open by the app before streams/heap go away. */
+	while (ud->open_dirs != (APTR)NULL)
+		(void)closedir(ud->open_dirs);
 	(void)kill_children();
 	if (ud->getenv_mem != (APTR)NULL)
 	{
@@ -345,6 +361,7 @@ void __ASM__ __SAVE_DS__ cli_parse(
 	char *lim;
 	char *dst;
 	LONG argi;
+	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL)
@@ -458,6 +475,7 @@ LONG __ASM__ __SAVE_DS__ wb_parse(
 	BPTR olddir;
 	BPTR fh;
 	LONG ok;
+	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
 	wb = (struct WBStartup *)wbm;
@@ -586,6 +604,7 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	cc_FileDesc *fd_out;
 	short stdio_bit;
 	LONG have_io;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL) {
@@ -699,8 +718,8 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 STRPTR __ASM__ __SAVE_DS__ strerror(
 	__REG__(d0, LONG err))
 {
-	/* Index 0 = "No Error"; 1..10 match CC_E* in cc_internal.h. */
-	static char *msgs[11] = {
+	/* Index 0 = "No Error"; 1..11 match CC_E* in cc_internal.h. */
+	static char *msgs[12] = {
 		"No Error",
 		"File Not Found",
 		"Bad File Handle",
@@ -711,11 +730,14 @@ STRPTR __ASM__ __SAVE_DS__ strerror(
 		"Not A Console Device",
 		"Invalid Access Code",
 		"Result Too Large",
-		"Domain Error"
+		"Domain Error",
+		"Interrupted System Call"
 	};
 	static char unknown[] = "Unknown Error";
 
-	if (err < 0 || err > 10)
+	cc_check_break();
+
+	if (err < 0 || err > 11)
 		return (STRPTR)unknown;
 	return (STRPTR)msgs[err];
 }

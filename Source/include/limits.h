@@ -26,6 +26,7 @@
  * and for ISO-8859-* locales.  Only a future mbs/wcs wave may raise this.
  */
 #define MB_CUR_MAX 1
+#define PATH_MAX 1024
 
 #define FLT_RADIX 2
 /* #define FLT_ROUNDS */

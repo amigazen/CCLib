@@ -32,6 +32,8 @@ main(int argc, char **argv)
 	ct_suite_env();
 	ct_suite_sort();
 	ct_suite_dir();
+	ct_suite_path();
+	ct_suite_locale();
 
 	ct_summary();
 

@@ -85,6 +85,7 @@ APTR __ASM__ __SAVE_DS__ _alloc(
 	ULONG total;
 	UBYTE *b;
 	ULONG i;
+	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL || size <= 0)
@@ -124,6 +125,7 @@ void __ASM__ __SAVE_DS__ _fre(
 	cc_task_UserData *u;
 	cc_MemBlk *blk;
 	LONG total;
+	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL || ptr == (APTR)NULL)
@@ -146,6 +148,7 @@ void __ASM__ __SAVE_DS__ _freall(
 	cc_node *next;
 	cc_MemBlk *blk;
 	LONG total;
+	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL)
@@ -173,6 +176,7 @@ APTR __ASM__ __SAVE_DS__ sbrk(
 {
 	cc_task_UserData *ud;
 	APTR p;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL || incr <= 0)
@@ -195,6 +199,7 @@ APTR __ASM__ __SAVE_DS__ heap_alloc(
 	ULONG need;
 	APTR p;
 	ULONG *hdr;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	need = cc_round8(size);
@@ -216,6 +221,7 @@ APTR __ASM__ __SAVE_DS__ heap_alloc(
 void __ASM__ __SAVE_DS__ heap_free(
 	__REG__(a0, APTR ptr))
 {
+	cc_check_break();
 	free(ptr);
 }
 
@@ -226,6 +232,7 @@ APTR __ASM__ __SAVE_DS__ malloc(
 	APTR raw;
 	ULONG need;
 	ULONG *hdr;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
@@ -251,6 +258,7 @@ APTR __ASM__ __SAVE_DS__ calloc(
 	ULONG total;
 	UBYTE *b;
 	ULONG i;
+	cc_check_break();
 
 	total = nelem * elsize;
 	p = malloc(total);
@@ -274,6 +282,7 @@ APTR __ASM__ __SAVE_DS__ realloc(
 	APTR np;
 	ULONG oldsz;
 	ULONG ncopy;
+	cc_check_break();
 
 	if (ptr == (APTR)NULL)
 		return malloc(size);
@@ -305,6 +314,7 @@ void __ASM__ __SAVE_DS__ free(
 	cc_task_UserData *ud;
 	ULONG *hdr;
 	cc_MemBlk *blk;
+	cc_check_break();
 
 	if (ptr == (APTR)NULL)
 		return;
@@ -337,6 +347,7 @@ void __ASM__ __SAVE_DS__ be_free(
 	__REG__(d0, ULONG size))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL || ptr == (APTR)NULL || size == 0)
@@ -351,6 +362,7 @@ ULONG __ASM__ __SAVE_DS__ malloc_size(
 {
 	cc_task_UserData *ud;
 	ULONG *hdr;
+	cc_check_break();
 
 	if (ptr == (APTR)NULL)
 		return 0;
@@ -375,6 +387,7 @@ ULONG __ASM__ __SAVE_DS__ malloc_size(
 void __ASM__ __SAVE_DS__ freeall(void)
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)

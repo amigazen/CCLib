@@ -21,9 +21,6 @@
 #include "private/cc_internal.h"
 #include "cclib_funcs.h"
 
-#define CC_BREAK_MASK \
-	(SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_D | SIGBREAKF_CTRL_E | SIGBREAKF_CTRL_F)
-
 /* Ensure the shared reply port for child WBStartup messages exists */
 static struct MsgPort *cc_get_exeport(cc_task_UserData *ud)
 {
@@ -153,7 +150,10 @@ static LONG cc_wait_one(cc_task_UserData *ud, cc_Child *want)
 		sig = Wait((1UL << port->mp_SigBit) | CC_BREAK_MASK);
 		if (sig & CC_BREAK_MASK)
 		{
-			if (ud->abort_func != NULL)
+			/* Wait cleared the bits; raise hook explicitly. */
+			if (sig & SIGBREAKF_CTRL_C)
+				cc_raise_ctrl_c();
+			else if (ud->abort_func != NULL)
 				(*ud->abort_func)((LONG)(sig & CC_BREAK_MASK));
 		}
 	}
@@ -180,6 +180,7 @@ LONG __ASM__ __SAVE_DS__ wb_exec(
 	STRPTR pname;
 	LONG stack;
 	char pathbuf[128];
+	cc_check_break();
 
 	ud = cc_get_ud();
 	ch = (cc_Child *)child;
@@ -265,6 +266,7 @@ LONG __ASM__ __SAVE_DS__ wbexec(
 	cc_task_UserData *ud;
 	cc_Child child;
 	LONG ok;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || name == NULL)
@@ -293,6 +295,7 @@ APTR __ASM__ __SAVE_DS__ wbAexec(
 	LONG ok;
 	cc_node *node;
 	ULONG *hp;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || name == NULL)
@@ -328,6 +331,7 @@ LONG __ASM__ __SAVE_DS__ wait_child(
 	__REG__(a0, APTR child))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL)
@@ -342,6 +346,7 @@ LONG __ASM__ __SAVE_DS__ wait_child(
 LONG __ASM__ __SAVE_DS__ wait_children(void)
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL)
@@ -360,6 +365,7 @@ LONG __ASM__ __SAVE_DS__ signal_child(
 	__REG__(d0, ULONG sig))
 {
 	cc_Child *ch;
+	cc_check_break();
 
 	ch = (cc_Child *)child;
 	if (ch == NULL || ch->pid == NULL)
@@ -373,6 +379,7 @@ LONG __ASM__ __SAVE_DS__ kill(
 	__REG__(a0, APTR child))
 {
 	cc_Child *ch;
+	cc_check_break();
 
 	ch = (cc_Child *)child;
 	if (ch == NULL)
@@ -389,6 +396,7 @@ LONG __ASM__ __SAVE_DS__ kill_children(void)
 	cc_task_UserData *ud;
 	cc_node *n;
 	cc_Child *ch;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL)
@@ -410,6 +418,7 @@ LONG __ASM__ __SAVE_DS__ cliexec(
 {
 	struct Process *pr;
 	LONG ok;
+	cc_check_break();
 
 	if (cmd == NULL)
 		return 0L;
@@ -430,6 +439,7 @@ LONG __ASM__ __SAVE_DS__ exec(
 	char name[108];
 	LONG i;
 	LONG ok;
+	cc_check_break();
 
 	if (cmd == NULL)
 		return 0L;

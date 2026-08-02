@@ -96,6 +96,7 @@ void __ASM__ __SAVE_DS__ vquicksort(
 	__REG__(a0, APTR cmp),
 	__REG__(a1, APTR swap))
 {
+	cc_check_break();
 	if (n < 2UL || cmp == NULL || swap == NULL)
 		return;
 	cc_vq_sort(0UL, n - 1UL, (cc_vq_cmp)cmp, (cc_vq_swap)swap);
@@ -177,6 +178,7 @@ void __ASM__ __SAVE_DS__ quicksort(
 	__REG__(a1, APTR swap),
 	__REG__(a2, APTR arg))
 {
+	cc_check_break();
 	if (n < 2UL || cmp == NULL || swap == NULL)
 		return;
 	cc_qs_sort(0UL, n - 1UL, (cc_qs_cmp)cmp, (cc_qs_swap)swap, arg);
@@ -230,6 +232,7 @@ void __ASM__ __SAVE_DS__ qsort(
 	__REG__(a1, APTR compar))
 {
 	cc_qsort_ctx ctx;
+	cc_check_break();
 
 	if (base == NULL || compar == NULL || nel < 2UL || width == 0UL)
 		return;
@@ -239,4 +242,44 @@ void __ASM__ __SAVE_DS__ qsort(
 	ctx.compar = (cc_qsort_cmp)compar;
 	/* Call the abstract sorter directly (same register ABI as quicksort LVO) */
 	cc_qs_sort(0UL, nel - 1UL, cc_qsort_cmp_idx, cc_qsort_swap_idx, (APTR)&ctx);
+}
+
+APTR __ASM__ __SAVE_DS__ bsearch(
+	__REG__(a0, APTR key),
+	__REG__(a1, APTR base),
+	__REG__(d0, ULONG nel),
+	__REG__(d1, ULONG width),
+	__REG__(a2, APTR compar))
+{
+	UBYTE *b;
+
+	cc_qsort_cmp cmp;
+	ULONG lo;
+	ULONG hi;
+	ULONG mid;
+	LONG c;
+	UBYTE *elem;
+	cc_check_break();
+
+	if (key == (APTR)NULL || base == (APTR)NULL || compar == (APTR)NULL
+	    || width == 0UL || nel == 0UL)
+		return (APTR)NULL;
+
+	b = (UBYTE *)base;
+	cmp = (cc_qsort_cmp)compar;
+	lo = 0UL;
+	hi = nel;
+	while (lo < hi)
+	{
+		mid = lo + (hi - lo) / 2UL;
+		elem = b + mid * width;
+		c = (*cmp)(key, (APTR)elem);
+		if (c == 0L)
+			return (APTR)elem;
+		if (c < 0L)
+			hi = mid;
+		else
+			lo = mid + 1UL;
+	}
+	return (APTR)NULL;
 }

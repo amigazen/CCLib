@@ -23,7 +23,7 @@ extern "C" {
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the*/
 /* historic V3.0 jump table). Register-args LVO calling convention*/
-/* Do not reorder or insert mid-table. Append new LVOs only at the end.*/
+/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.*/
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR.*/
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias);*/
@@ -78,8 +78,10 @@ STRPTR tmpnam(STRPTR s);
 APTR tmpfile(void);
 LONG putc(LONG c, APTR stream);
 LONG aputc(LONG c, APTR stream);
+LONG fputc(LONG c, APTR stream);
 LONG getc(APTR stream);
 LONG agetc(APTR stream);
+LONG fgetc(APTR stream);
 LONG getchar(void);
 LONG ungetc(LONG c, APTR stream);
 LONG putw(ULONG w, APTR stream);
@@ -169,6 +171,7 @@ LONG strlen(STRPTR s);
 STRPTR strncat(STRPTR dst, STRPTR src, LONG n);
 LONG strcasecmp(STRPTR s1, STRPTR s2);
 LONG strcmpa(STRPTR s1, STRPTR s2);
+LONG stricmp(STRPTR s1, STRPTR s2);
 LONG strncmp(STRPTR s1, STRPTR s2, LONG n);
 STRPTR strncpy(STRPTR dst, STRPTR src, LONG n);
 STRPTR strpbrk(STRPTR s, STRPTR accept);
@@ -232,7 +235,8 @@ LONG cliexec(STRPTR cmd);
 LONG exec(STRPTR cmd);
 /*--- functions in V4 or higher ---*/
 
-/* V4 append-only (-918 ..). Group by category when extending.*/
+/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not*/
+/* realtime.library) backs sleep/usleep/nanosleep.*/
 
 /* Memory*/
 APTR memmove(APTR dst, APTR src, LONG n);
@@ -240,20 +244,71 @@ APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen);
 
 /* String*/
 LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n);
+LONG strnicmp(STRPTR s1, STRPTR s2, LONG n);
 STRPTR strdup(STRPTR s);
 STRPTR strndup(STRPTR s, LONG n);
 LONG strnlen(STRPTR s, LONG maxlen);
 STRPTR stpcpy(STRPTR dst, STRPTR src);
 STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n);
+ULONG strlcpy(STRPTR dst, STRPTR src, ULONG size);
+ULONG strlcat(STRPTR dst, STRPTR src, ULONG size);
+STRPTR strtok_r(STRPTR s, STRPTR delim, APTR saveptr);
+STRPTR strlwr(STRPTR s);
 
 /* Environment*/
 LONG unsetenv(STRPTR name);
 
-/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias*/
-/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf).*/
-
+/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias*/
 LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args);
 LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...);
+LONG vscanf(STRPTR format, APTR args);
+LONG vfscanf(APTR stream, STRPTR format, APTR args);
+LONG vsscanf(STRPTR s, STRPTR format, APTR args);
+LONG getline(APTR lineptr, APTR n, APTR stream);
+LONG getdelim(APTR lineptr, APTR n, LONG delim, APTR stream);
+
+/* Conversion*/
+LONG strtol(STRPTR s, APTR endp, LONG base);
+ULONG strtoul(STRPTR s, APTR endp, LONG base);
+DOUBLE strtod(STRPTR s, APTR endp);
+LONG atoll(STRPTR s);
+
+/* Search / random / integer math*/
+APTR bsearch(APTR key, APTR base, ULONG nel, ULONG width, APTR compar);
+void srand(ULONG seed);
+LONG rand(void);
+void div(APTR result, LONG numer, LONG denom);
+void ldiv(APTR result, LONG numer, LONG denom);
+LONG labs(LONG n);
+
+/* Path / filesystem (dos.library)*/
+LONG mkstemp(STRPTR template);
+STRPTR getcwd(STRPTR buf, LONG size);
+LONG chdir(STRPTR path);
+STRPTR realpath(STRPTR path, STRPTR resolved);
+LONG mkdir(STRPTR path, LONG mode);
+LONG rmdir(STRPTR path);
+LONG chmod(STRPTR path, LONG mode);
+LONG utime(STRPTR path, APTR times);
+LONG symlink(STRPTR target, STRPTR linkpath);
+LONG readlink(STRPTR path, STRPTR buf, LONG bufsiz);
+
+/* Directory (POSIX dirent beside historic scdir)*/
+APTR opendir(STRPTR name);
+APTR readdir(APTR dir);
+LONG closedir(APTR dir);
+
+/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay)*/
+ULONG sleep(ULONG seconds);
+LONG usleep(ULONG usec);
+LONG nanosleep(APTR req, APTR rem);
+
+/* Locale*/
+STRPTR setlocale(LONG category, STRPTR name);
+APTR localeconv(void);
+LONG strcoll(STRPTR s1, STRPTR s2);
+ULONG strxfrm(STRPTR dest, STRPTR src, ULONG n);
+STRPTR strptime(STRPTR s, STRPTR format, APTR tm);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,8 @@ LONG __ASM__ __SAVE_DS__ bcmp(
 	__REG__(d0, LONG len))
 {
 	/* BSD name; same ordered compare as memcmp. */
+	cc_check_break();
+
 	return memcmp(b1, b2, len);
 }
 
@@ -38,6 +40,8 @@ void __ASM__ __SAVE_DS__ bcopy(
 	__REG__(d0, LONG len))
 {
 	/* BSD arg order (src, dst); overlap-safe via memmove. */
+	cc_check_break();
+
 	(void)memmove(dst, src, len);
 }
 
@@ -45,6 +49,7 @@ void __ASM__ __SAVE_DS__ bzero(
 	__REG__(a0, APTR b),
 	__REG__(d0, LONG len))
 {
+	cc_check_break();
 	(void)memset(b, 0, len);
 }
 
@@ -58,6 +63,8 @@ APTR __ASM__ __SAVE_DS__ memmove(
 	LONG i;
 
 	/* C89 memmove: overlap-safe; CopyMem when regions do not overlap. */
+	cc_check_break();
+
 	s = (UBYTE *)src;
 	d = (UBYTE *)dst;
 	if (n <= 0 || s == d)
@@ -86,6 +93,7 @@ APTR __ASM__ __SAVE_DS__ memccpy(
 	UBYTE *s;
 	UBYTE stop;
 	LONG i;
+	cc_check_break();
 
 	d = (UBYTE *)dst;
 	s = (UBYTE *)src;
@@ -106,6 +114,7 @@ APTR __ASM__ __SAVE_DS__ memchr(
 	UBYTE *p;
 	UBYTE ch;
 	LONG i;
+	cc_check_break();
 
 	p = (UBYTE *)b;
 	ch = (UBYTE)c;
@@ -126,6 +135,7 @@ LONG __ASM__ __SAVE_DS__ memcmp(
 	LONG i;
 	LONG c1;
 	LONG c2;
+	cc_check_break();
 
 	p1 = (UBYTE *)b1;
 	p2 = (UBYTE *)b2;
@@ -145,6 +155,7 @@ APTR __ASM__ __SAVE_DS__ memcpy(
 	__REG__(a1, APTR src),
 	__REG__(d0, LONG n))
 {
+	cc_check_break();
 	if (n > 0 && dst != src)
 		CopyMem(src, dst, (ULONG)n);
 	return dst;
@@ -162,6 +173,8 @@ APTR __ASM__ __SAVE_DS__ memmem(
 	LONG j;
 
 	/* Pure C byte search (like strstr over a counted region). */
+	cc_check_break();
+
 	if (haystack == (APTR)NULL || needle == (APTR)NULL
 	    || hlen < 0L || nlen < 0L)
 	{
@@ -196,6 +209,7 @@ APTR __ASM__ __SAVE_DS__ memset(
 	UBYTE *p;
 	UBYTE ch;
 	LONG i;
+	cc_check_break();
 
 	p = (UBYTE *)b;
 	ch = (UBYTE)c;
@@ -213,6 +227,7 @@ void __ASM__ __SAVE_DS__ memswap(
 	UBYTE *p2;
 	UBYTE tmp;
 	LONG i;
+	cc_check_break();
 
 	p1 = (UBYTE *)b1;
 	p2 = (UBYTE *)b2;

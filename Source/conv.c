@@ -214,6 +214,7 @@ static DOUBLE cc_atof_bits(STRPTR s)
 LONG __ASM__ __SAVE_DS__ atoi(
 	__REG__(a0, STRPTR s))
 {
+	cc_check_break();
 	return atol(s);
 }
 
@@ -225,6 +226,7 @@ LONG __ASM__ __SAVE_DS__ atol(
 	LONG n;
 	LONG digit;
 	LONG any;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL)
 		return 0;
@@ -258,6 +260,7 @@ DOUBLE __ASM__ __SAVE_DS__ atof(
 	__REG__(a0, STRPTR s))
 {
 	APTR base;
+	cc_check_break();
 
 	base = cc_get_mathbase();
 	if (base != (APTR)NULL)
@@ -274,6 +277,7 @@ void __ASM__ __SAVE_DS__ ltoa(
 	LONG j;
 	LONG v;
 	LONG neg;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL)
 		return;
@@ -331,6 +335,7 @@ void __ASM__ __SAVE_DS__ stoa(
 	__REG__(a0, STRPTR s))
 {
 	SHORT sn;
+	cc_check_break();
 
 	sn = (SHORT)n;
 	ltoa((LONG)sn, s);
@@ -339,11 +344,358 @@ void __ASM__ __SAVE_DS__ stoa(
 LONG __ASM__ __SAVE_DS__ toupper(
 	__REG__(d0, LONG c))
 {
+	cc_check_break();
 	return cc_toupper_ch(cc_get_ud(), c);
 }
 
 LONG __ASM__ __SAVE_DS__ tolower(
 	__REG__(d0, LONG c))
 {
+	cc_check_break();
 	return cc_tolower_ch(cc_get_ud(), c);
+}
+
+/* Digit value for bases 2..36; -1 if not a digit in that base. */
+static LONG cc_digit_val(LONG ch, LONG base)
+{
+	LONG v;
+
+	if (ch >= '0' && ch <= '9')
+		v = ch - '0';
+	else if (ch >= 'a' && ch <= 'z')
+		v = ch - 'a' + 10;
+	else if (ch >= 'A' && ch <= 'Z')
+		v = ch - 'A' + 10;
+	else
+		return -1L;
+	if (v >= base)
+		return -1L;
+	return v;
+}
+
+/*
+ * Shared unsigned parser for strtol/strtoul.  Writes *out, *end_out,
+ * *overflow, *any.  Returns 0 always (status via outs).
+ */
+static void cc_parse_ulong(
+	STRPTR s,
+	LONG base,
+	ULONG *out,
+	STRPTR *end_out,
+	LONG *overflow,
+	LONG *any,
+	LONG *neg_out)
+{
+	STRPTR p;
+	STRPTR start;
+	LONG sign;
+	LONG b;
+	LONG digit;
+	ULONG lim;
+	ULONG acc;
+	LONG ov;
+
+	*out = 0UL;
+	*end_out = s;
+	*overflow = 0;
+	*any = 0;
+	*neg_out = 0;
+
+	if (s == (STRPTR)NULL)
+		return;
+
+	p = cc_skip_space(s);
+	sign = 0;
+	if (*p == '-') {
+		sign = 1;
+		p++;
+	} else if (*p == '+') {
+		p++;
+	}
+
+	b = base;
+	if (b == 0L) {
+		if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+			b = 16L;
+			p += 2;
+		} else if (p[0] == '0') {
+			b = 8L;
+			p++;
+			*any = 1;
+			*end_out = p;
+		} else {
+			b = 10L;
+		}
+	} else if (b == 16L && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+		p += 2;
+	}
+
+	if (b < 2L || b > 36L) {
+		cc_set_errno(CC_EINVAL);
+		*end_out = s;
+		return;
+	}
+
+	start = p;
+	acc = 0UL;
+	ov = 0;
+	lim = 0xFFFFFFFFUL / (ULONG)b;
+
+	for (;;) {
+		digit = cc_digit_val((LONG)(UBYTE)*p, b);
+		if (digit < 0L)
+			break;
+		*any = 1;
+		if (acc > lim ||
+		    (acc == lim && (ULONG)digit > (0xFFFFFFFFUL % (ULONG)b)))
+			ov = 1;
+		else
+			acc = acc * (ULONG)b + (ULONG)digit;
+		p++;
+	}
+
+	if (!*any) {
+		*end_out = s;
+		return;
+	}
+
+	*out = acc;
+	*end_out = p;
+	*overflow = ov;
+	*neg_out = sign;
+	(void)start;
+}
+
+LONG __ASM__ __SAVE_DS__ strtol(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp),
+	__REG__(d0, LONG base))
+{
+	ULONG acc;
+	STRPTR end;
+	LONG ov;
+	LONG any;
+	LONG neg;
+	LONG v;
+	STRPTR *ep;
+	cc_check_break();
+
+	ep = (STRPTR *)endp;
+	cc_parse_ulong(s, base, &acc, &end, &ov, &any, &neg);
+
+	if (ep != (STRPTR *)NULL)
+		*ep = any ? end : s;
+
+	if (!any)
+		return 0L;
+
+	if (ov) {
+		cc_set_errno(CC_ERANGE);
+		return neg ? (LONG)0x80000000L : (LONG)0x7FFFFFFFL;
+	}
+
+	if (neg) {
+		if (acc > 0x80000000UL) {
+			cc_set_errno(CC_ERANGE);
+			return (LONG)0x80000000L;
+		}
+		if (acc == 0x80000000UL)
+			return (LONG)0x80000000L;
+		v = -(LONG)acc;
+		return v;
+	}
+
+	if (acc > 0x7FFFFFFFUL) {
+		cc_set_errno(CC_ERANGE);
+		return (LONG)0x7FFFFFFFL;
+	}
+	return (LONG)acc;
+}
+
+ULONG __ASM__ __SAVE_DS__ strtoul(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp),
+	__REG__(d0, LONG base))
+{
+	ULONG acc;
+	STRPTR end;
+	LONG ov;
+	LONG any;
+	LONG neg;
+	STRPTR *ep;
+	cc_check_break();
+
+	ep = (STRPTR *)endp;
+	cc_parse_ulong(s, base, &acc, &end, &ov, &any, &neg);
+
+	if (ep != (STRPTR *)NULL)
+		*ep = any ? end : s;
+
+	if (!any)
+		return 0UL;
+
+	if (ov) {
+		cc_set_errno(CC_ERANGE);
+		return 0xFFFFFFFFUL;
+	}
+
+	/* POSIX: negative subject sequence wraps through unsigned. */
+	if (neg)
+		return (ULONG)(-(LONG)acc);
+	return acc;
+}
+
+DOUBLE __ASM__ __SAVE_DS__ strtod(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR endp))
+{
+	STRPTR p;
+	STRPTR start;
+	LONG any;
+	DOUBLE v;
+	APTR base;
+	STRPTR *ep;
+	cc_check_break();
+
+	ep = (STRPTR *)endp;
+	if (s == (STRPTR)NULL) {
+		if (ep != (STRPTR *)NULL)
+			*ep = s;
+		return cc_dp_zero();
+	}
+
+	/*
+	 * Walk the same shape as atof to place endptr, then convert via
+	 * the existing IEEE/bit parsers on the original string.
+	 */
+	p = cc_skip_space(s);
+	start = p;
+	any = 0;
+	if (*p == '-' || *p == '+')
+		p++;
+	while (*p >= '0' && *p <= '9') {
+		any = 1;
+		p++;
+	}
+	if (*p == '.') {
+		p++;
+		while (*p >= '0' && *p <= '9') {
+			any = 1;
+			p++;
+		}
+	}
+	if ((*p == 'e' || *p == 'E') && any) {
+		p++;
+		if (*p == '-' || *p == '+')
+			p++;
+		while (*p >= '0' && *p <= '9') {
+			any = 1;
+			p++;
+		}
+	}
+
+	if (ep != (STRPTR *)NULL)
+		*ep = any ? p : s;
+
+	if (!any)
+		return cc_dp_zero();
+
+	(void)start;
+	base = cc_get_mathbase();
+	if (base != (APTR)NULL)
+		v = cc_atof_ieee(base, s);
+	else
+		v = cc_atof_bits(s);
+	return v;
+}
+
+LONG __ASM__ __SAVE_DS__ atoll(
+	__REG__(a0, STRPTR s))
+{
+	/* 32-bit Amiga: atoll is an alias of strtol(..., 10). */
+	cc_check_break();
+
+	return strtol(s, (APTR)NULL, 10L);
+}
+
+void __ASM__ __SAVE_DS__ srand(
+	__REG__(d0, ULONG seed))
+{
+	cc_task_UserData *ud;
+	cc_check_break();
+
+	ud = cc_get_ud();
+	if (ud == (cc_task_UserData *)NULL)
+		return;
+	ud->rand_seed = seed;
+}
+
+LONG __ASM__ __SAVE_DS__ rand(void)
+{
+	cc_task_UserData *ud;
+	ULONG s;
+	cc_check_break();
+
+	ud = cc_get_ud();
+	if (ud == (cc_task_UserData *)NULL)
+		return 0L;
+
+	/* Historic ANSI LCG (RAND_MAX 32767). */
+	s = ud->rand_seed;
+	s = s * 1103515245UL + 12345UL;
+	ud->rand_seed = s;
+	return (LONG)((s >> 16) & 0x7FFFUL);
+}
+
+void __ASM__ __SAVE_DS__ div(
+	__REG__(a0, APTR result),
+	__REG__(d0, LONG numer),
+	__REG__(d1, LONG denom))
+{
+	cc_div_t *r;
+	LONG q;
+	LONG rem;
+	cc_check_break();
+
+	r = (cc_div_t *)result;
+	if (r == (cc_div_t *)NULL)
+		return;
+	if (denom == 0L) {
+		cc_set_errno(CC_EDOM);
+		r->quot = 0L;
+		r->rem = 0L;
+		return;
+	}
+
+	/*
+	 * ISO C toward-zero division.  SAS/C emits utility SDivMod32 for
+	 * the / and % operators (see cc_cxutil / SCOPTIONS utillib).
+	 */
+	q = numer / denom;
+	rem = numer % denom;
+	r->quot = q;
+	r->rem = rem;
+}
+
+void __ASM__ __SAVE_DS__ ldiv(
+	__REG__(a0, APTR result),
+	__REG__(d0, LONG numer),
+	__REG__(d1, LONG denom))
+{
+	/* On Amiga, int and long are both 32-bit — same as div. */
+	cc_check_break();
+
+	div(result, numer, denom);
+}
+
+LONG __ASM__ __SAVE_DS__ labs(
+	__REG__(d0, LONG n))
+{
+	cc_check_break();
+	if (n < 0L) {
+		if (n == (LONG)0x80000000L)
+			return n;
+		return -n;
+	}
+	return n;
 }

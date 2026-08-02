@@ -74,9 +74,60 @@ UBYTE cc_ctype_tab[257] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  /* 248..255 */
 };
 
+/*
+ * Invoke the session abort hook for Ctrl-C (CRT exit).  Used after Wait()
+ * has already cleared SIGBREAKF_CTRL_C from the task's received mask.
+ * No-op when abort_func is NULL (ClearAbortFunc / teardown).
+ */
+void
+cc_raise_ctrl_c(void)
+{
+	struct Task *t;
+	cc_task_UserData *ud;
+
+	t = FindTask(NULL);
+	if (t == (struct Task *)NULL)
+		return;
+	ud = (cc_task_UserData *)t->tc_UserData;
+	if (ud == (cc_task_UserData *)NULL
+	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
+		return;
+	(*ud->abort_func)(20L);
+}
+
+/*
+ * Poll SIGBREAKF_CTRL_C and jump to the session abort hook (CRT exit).
+ * If abort_func is NULL, leave the signal set so a later SetAbortFunc
+ * still sees the break (do not silently eat Ctrl-C after ClearAbortFunc).
+ * ClearSTDIO nulls abort_func before teardown so this cannot re-enter.
+ */
+void
+cc_check_break(void)
+{
+	struct Task *t;
+	cc_task_UserData *ud;
+
+	if ((SetSignal(0L, 0L) & SIGBREAKF_CTRL_C) == 0UL)
+		return;
+
+	t = FindTask(NULL);
+	if (t == (struct Task *)NULL)
+		return;
+	ud = (cc_task_UserData *)t->tc_UserData;
+	if (ud == (cc_task_UserData *)NULL
+	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
+		return;
+
+	SetSignal(0L, SIGBREAKF_CTRL_C);
+	(*ud->abort_func)(20L);
+}
+
 cc_task_UserData *cc_get_ud(void)
 {
 	struct Task *t;
+
+	/* Most LVOs fetch ud on entry — that is the Ctrl-C checkpoint. */
+	cc_check_break();
 
 	t = FindTask(NULL);
 	if (!t)

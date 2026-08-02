@@ -54,10 +54,16 @@ char *strrchr(char *, long);
 long strspn(char *, char *);
 char *strstr(char *, char *);
 char *strtok(char *, char *);
+char *strtok_r(char *, char *, char **);
+unsigned long strlcpy(char *, char *, unsigned long);
+unsigned long strlcat(char *, char *, unsigned long);
+char *strlwr(char *);
 char *strrv(char *);
 char *strnrv(char *, long);
 char *bcpl_strcpy(char *, BPTR);
 char *strerror(long);
+long strcoll(char *, char *);
+unsigned long strxfrm(char *, char *, unsigned long);
 
 #else
 
@@ -98,10 +104,16 @@ char *strrchr();
 long strspn();
 char *strstr();
 char *strtok();
+char *strtok_r();
+unsigned long strlcpy();
+unsigned long strlcat();
+char *strlwr();
 char *strrv();
 char *strnrv();
 char *bcpl_strcpy();
 char *strerror();
+long strcoll();
+unsigned long strxfrm();
 
 #endif
 

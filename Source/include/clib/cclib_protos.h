@@ -76,8 +76,10 @@ STRPTR tmpnam(STRPTR s);
 APTR tmpfile(void);
 LONG putc(LONG c, APTR stream);
 LONG aputc(LONG c, APTR stream);
+LONG fputc(LONG c, APTR stream);
 LONG getc(APTR stream);
 LONG agetc(APTR stream);
+LONG fgetc(APTR stream);
 LONG getchar(void);
 LONG ungetc(LONG c, APTR stream);
 LONG putw(ULONG w, APTR stream);
@@ -167,6 +169,7 @@ LONG strlen(STRPTR s);
 STRPTR strncat(STRPTR dst, STRPTR src, LONG n);
 LONG strcasecmp(STRPTR s1, STRPTR s2);
 LONG strcmpa(STRPTR s1, STRPTR s2);
+LONG stricmp(STRPTR s1, STRPTR s2);
 LONG strncmp(STRPTR s1, STRPTR s2, LONG n);
 STRPTR strncpy(STRPTR dst, STRPTR src, LONG n);
 STRPTR strpbrk(STRPTR s, STRPTR accept);
@@ -228,25 +231,60 @@ LONG kill(APTR child);
 LONG kill_children(void);
 LONG cliexec(STRPTR cmd);
 LONG exec(STRPTR cmd);
-/*--- functions in V4 or higher ---*/
-
-/* V4 append-only (-918 ..)*/
-
-/* Memory */
+/* V4 (-918 ..) */
 APTR memmove(APTR dst, APTR src, LONG n);
 APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen);
-/* String */
 LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n);
+LONG strnicmp(STRPTR s1, STRPTR s2, LONG n);
 STRPTR strdup(STRPTR s);
 STRPTR strndup(STRPTR s, LONG n);
 LONG strnlen(STRPTR s, LONG maxlen);
 STRPTR stpcpy(STRPTR dst, STRPTR src);
 STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n);
-/* Environment */
+ULONG strlcpy(STRPTR dst, STRPTR src, ULONG size);
+ULONG strlcat(STRPTR dst, STRPTR src, ULONG size);
+STRPTR strtok_r(STRPTR s, STRPTR delim, APTR saveptr);
+STRPTR strlwr(STRPTR s);
 LONG unsetenv(STRPTR name);
-/* Format */
 LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args);
 LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...);
+LONG vscanf(STRPTR format, APTR args);
+LONG vfscanf(APTR stream, STRPTR format, APTR args);
+LONG vsscanf(STRPTR s, STRPTR format, APTR args);
+LONG getline(APTR lineptr, APTR n, APTR stream);
+LONG getdelim(APTR lineptr, APTR n, LONG delim, APTR stream);
+LONG strtol(STRPTR s, APTR endp, LONG base);
+ULONG strtoul(STRPTR s, APTR endp, LONG base);
+DOUBLE strtod(STRPTR s, APTR endp);
+LONG atoll(STRPTR s);
+APTR bsearch(APTR key, APTR base, ULONG nel, ULONG width, APTR compar);
+void srand(ULONG seed);
+LONG rand(void);
+void div(APTR result, LONG numer, LONG denom);
+void ldiv(APTR result, LONG numer, LONG denom);
+LONG labs(LONG n);
+LONG mkstemp(STRPTR template);
+STRPTR getcwd(STRPTR buf, LONG size);
+LONG chdir(STRPTR path);
+STRPTR realpath(STRPTR path, STRPTR resolved);
+LONG mkdir(STRPTR path, LONG mode);
+LONG rmdir(STRPTR path);
+LONG chmod(STRPTR path, LONG mode);
+LONG utime(STRPTR path, APTR times);
+LONG symlink(STRPTR target, STRPTR linkpath);
+LONG readlink(STRPTR path, STRPTR buf, LONG bufsiz);
+APTR opendir(STRPTR name);
+APTR readdir(APTR dir);
+LONG closedir(APTR dir);
+ULONG sleep(ULONG seconds);
+LONG usleep(ULONG usec);
+LONG nanosleep(APTR req, APTR rem);
+STRPTR setlocale(LONG category, STRPTR name);
+APTR localeconv(void);
+LONG strcoll(STRPTR s1, STRPTR s2);
+ULONG strxfrm(STRPTR dest, STRPTR src, ULONG n);
+STRPTR strptime(STRPTR s, STRPTR format, APTR tm);
+
 
 #ifdef __cplusplus
 }

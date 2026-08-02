@@ -21,220 +21,61 @@
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
-/* V4 append-only (-918 ..): group by category (Memory, String, */
-/* Environment, …). Do not insert mid-table. */
-/* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
-/* aputc) remain as public LVOs. */
-
-
-/* Support / stdio setup (-30 .. -66) */
-
-#pragma amicall(CCLibBase, 0x1E, SetSTDIO())
-#pragma amicall(CCLibBase, 0x24, GetSTDIO())
-#pragma amicall(CCLibBase, 0x2A, ClearSTDIO())
-#pragma amicall(CCLibBase, 0x30, closeall())
-#pragma amicall(CCLibBase, 0x36, SetAbortFunc(a0))
-#pragma amicall(CCLibBase, 0x3C, ClearAbortFunc())
-#pragma amicall(CCLibBase, 0x42, SetupSTDIO(a0,a1,a2,a3,a4,a5,d0,d1,d2,d3,d4))
-
-/* Error strings (-72) */
-
-#pragma amicall(CCLibBase, 0x48, strerror(d0))
-
-/* Low-level I/O (-78 .. -138) */
-
-#pragma amicall(CCLibBase, 0x4E, open(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x54, close(d0))
-#pragma amicall(CCLibBase, 0x5A, remove(a0))
-#pragma amicall(CCLibBase, 0x5A, unlink(a0))
-#pragma amicall(CCLibBase, 0x60, stat(a0,a1))
-#pragma amicall(CCLibBase, 0x66, rename(a0,a1))
-#pragma amicall(CCLibBase, 0x6C, read(d0,a0,d1))
-#pragma amicall(CCLibBase, 0x72, write(d0,a0,d1))
-#pragma amicall(CCLibBase, 0x78, creat(a0,d0))
-#pragma amicall(CCLibBase, 0x7E, lseek(d0,d1,d2))
-#pragma amicall(CCLibBase, 0x84, isatty(d0))
-#pragma amicall(CCLibBase, 0x8A, access(a0,d0))
-
-/* Stream I/O (-144 .. -306) */
-
-#pragma amicall(CCLibBase, 0x90, fopen(a0,a1))
-#pragma amicall(CCLibBase, 0x96, freopen(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x9C, fclose(a0))
-#pragma amicall(CCLibBase, 0xA2, fdopen(d0,a0))
-#pragma amicall(CCLibBase, 0xA8, getbuff(a0))
-#pragma amicall(CCLibBase, 0xAE, setvbuf(a0,a1,d0,d1))
-#pragma amicall(CCLibBase, 0xB4, mktemp(a0))
-#pragma amicall(CCLibBase, 0xBA, tmpnam(a0))
-#pragma amicall(CCLibBase, 0xC0, tmpfile())
-#pragma amicall(CCLibBase, 0xC6, putc(d0,a0))
-#pragma amicall(CCLibBase, 0xCC, aputc(d0,a0))
-#pragma amicall(CCLibBase, 0xD2, getc(a0))
-#pragma amicall(CCLibBase, 0xD8, agetc(a0))
-#pragma amicall(CCLibBase, 0xDE, getchar())
-#pragma amicall(CCLibBase, 0xE4, ungetc(d0,a0))
-#pragma amicall(CCLibBase, 0xEA, putw(d0,a0))
-#pragma amicall(CCLibBase, 0xF0, puts(a0))
-#pragma amicall(CCLibBase, 0xF6, puterr(d0))
-#pragma amicall(CCLibBase, 0xFC, fwrite(a0,d0,d1,a1))
-#pragma amicall(CCLibBase, 0x102, perror(a0))
-#pragma amicall(CCLibBase, 0x108, fseek(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x10E, ftell(a0))
-#pragma amicall(CCLibBase, 0x114, fflush(a0))
-#pragma amicall(CCLibBase, 0x11A, getw(a0))
-#pragma amicall(CCLibBase, 0x120, fread(a0,d0,d1,a1))
-#pragma amicall(CCLibBase, 0x126, gets(a0))
-#pragma amicall(CCLibBase, 0x12C, fgets(a0,d0,a1))
-#pragma amicall(CCLibBase, 0x132, fputs(a0,a1))
-
-/* Formatted I/O (-312 .. -342) */
-
-#pragma amicall(CCLibBase, 0x138, scanf(a0,a1))
-#pragma amicall(CCLibBase, 0x13E, printf(a0,a1))
-#pragma amicall(CCLibBase, 0x144, fscanf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x14A, fprintf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x150, sscanf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x156, sprintf(a0,a1,a2))
-
-/* Heap / allocation (-348 .. -420) */
-
-#pragma amicall(CCLibBase, 0x15C, _alloc(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x162, _fre(a0,a1))
-#pragma amicall(CCLibBase, 0x168, _freall(a0))
-#pragma amicall(CCLibBase, 0x16E, sbrk(d0))
-#pragma amicall(CCLibBase, 0x174, heap_alloc(d0))
-#pragma amicall(CCLibBase, 0x17A, heap_free(a0))
-#pragma amicall(CCLibBase, 0x180, malloc(d0))
-#pragma amicall(CCLibBase, 0x186, calloc(d0,d1))
-#pragma amicall(CCLibBase, 0x18C, realloc(a0,d0))
-#pragma amicall(CCLibBase, 0x192, free(a0))
-#pragma amicall(CCLibBase, 0x198, be_free(a0,d0))
-#pragma amicall(CCLibBase, 0x19E, malloc_size(a0))
-#pragma amicall(CCLibBase, 0x1A4, freeall())
-
-/* Linked lists (-426 .. -480) */
-
-#pragma amicall(CCLibBase, 0x1AA, inst_node(d0))
-#pragma amicall(CCLibBase, 0x1B0, put_head(a0,a1))
-#pragma amicall(CCLibBase, 0x1B6, add_head(a0,d0))
-#pragma amicall(CCLibBase, 0x1BC, put_tail(a0,a1))
-#pragma amicall(CCLibBase, 0x1C2, add_tail(a0,d0))
-#pragma amicall(CCLibBase, 0x1C8, remv_head(a0,a1))
-#pragma amicall(CCLibBase, 0x1CE, remv_tail(a0,a1))
-#pragma amicall(CCLibBase, 0x1D4, remv_list(a0))
-#pragma amicall(CCLibBase, 0x1DA, r_node(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x1E0, remv_node(a0,a1))
-
-/* Format conversion (-486 .. -510) */
-
-#pragma amicall(CCLibBase, 0x1E6, atoi(a0))
-#pragma amicall(CCLibBase, 0x1EC, atol(a0))
-#pragma amicall(CCLibBase, 0x1F2, atof(a0))
-#pragma amicall(CCLibBase, 0x1F8, ltoa(d0,a0))
-#pragma amicall(CCLibBase, 0x1FE, stoa(d0,a0))
-
-/* Memory operations (-516 .. -564) */
-
-#pragma amicall(CCLibBase, 0x204, bcmp(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x20A, bcopy(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x210, bzero(a0,d0))
-#pragma amicall(CCLibBase, 0x216, memccpy(a0,a1,d0,d1))
-#pragma amicall(CCLibBase, 0x21C, memchr(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x222, memcmp(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x228, memcpy(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x22E, memset(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x234, memswap(a0,a1,d0))
-
-/* String operations (-570 .. -696) */
-
-#pragma amicall(CCLibBase, 0x23A, index(a0,d0))
-#pragma amicall(CCLibBase, 0x240, rindex(a0,d0))
-#pragma amicall(CCLibBase, 0x246, strupr(a0))
-#pragma amicall(CCLibBase, 0x24C, stpcrlf(a0))
-#pragma amicall(CCLibBase, 0x252, strcat(a0,a1))
-#pragma amicall(CCLibBase, 0x258, strchr(a0,d0))
-#pragma amicall(CCLibBase, 0x25E, strcmp(a0,a1))
-#pragma amicall(CCLibBase, 0x264, strcpy(a0,a1))
-#pragma amicall(CCLibBase, 0x26A, strcspn(a0,a1))
-#pragma amicall(CCLibBase, 0x270, strlen(a0))
-#pragma amicall(CCLibBase, 0x276, strncat(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x27C, strcasecmp(a0,a1))
-#pragma amicall(CCLibBase, 0x27C, strcmpa(a0,a1))
-#pragma amicall(CCLibBase, 0x282, strncmp(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x288, strncpy(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x28E, strpbrk(a0,a1))
-#pragma amicall(CCLibBase, 0x294, strrchr(a0,d0))
-#pragma amicall(CCLibBase, 0x29A, strspn(a0,a1))
-#pragma amicall(CCLibBase, 0x2A0, strstr(a0,a1))
-#pragma amicall(CCLibBase, 0x2A6, strtok(a0,a1))
-#pragma amicall(CCLibBase, 0x2AC, strrv(a0))
-#pragma amicall(CCLibBase, 0x2B2, strnrv(a0,d0))
-#pragma amicall(CCLibBase, 0x2B8, bcpl_strcpy(a0,a1))
-
-/* Sorting / ctype / CLI-WB parse (-702 .. -732) */
-
-#pragma amicall(CCLibBase, 0x2BE, vquicksort(d0,a0,a1))
-#pragma amicall(CCLibBase, 0x2C4, toupper(d0))
-#pragma amicall(CCLibBase, 0x2CA, quicksort(d0,a0,a1,a2))
-#pragma amicall(CCLibBase, 0x2D0, qsort(a0,d0,d1,a1))
-#pragma amicall(CCLibBase, 0x2D6, cli_parse(a0,d0,a1))
-#pragma amicall(CCLibBase, 0x2DC, wb_parse(a0,a1))
-
-/* Varargs format helpers / file position (-738 .. -762) */
-
-#pragma amicall(CCLibBase, 0x2E2, vprintf(a0,a1))
-#pragma amicall(CCLibBase, 0x2E8, vfprintf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x2EE, vsprintf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x2F4, fgetpos(a0,a1))
-#pragma amicall(CCLibBase, 0x2FA, fsetpos(a0,a1))
-
-/* Time (-768 .. -816) */
-
-#pragma amicall(CCLibBase, 0x300, time(a0))
-#pragma amicall(CCLibBase, 0x306, clock())
-#pragma amicall(CCLibBase, 0x30C, gmtime(a0))
-#pragma amicall(CCLibBase, 0x312, asctime(a0))
-#pragma amicall(CCLibBase, 0x318, ctime(a0))
-#pragma amicall(CCLibBase, 0x31E, localtime(a0))
-#pragma amicall(CCLibBase, 0x324, mktime(a0))
-#pragma amicall(CCLibBase, 0x32A, difftime(d0,d1))
-#pragma amicall(CCLibBase, 0x330, strftime(a0,d0,a1,a2))
-
-/* Directory scan / env / extended stat (-822 .. -852) */
-
-#pragma amicall(CCLibBase, 0x336, scdir(a0))
-#pragma amicall(CCLibBase, 0x33C, scdir_clean())
-#pragma amicall(CCLibBase, 0x342, tolower(d0))
-#pragma amicall(CCLibBase, 0x348, setenv(a0,a1))
-#pragma amicall(CCLibBase, 0x34E, getenv(a0))
-#pragma amicall(CCLibBase, 0x354, stat_(a0,a1))
-
-/* Process control (-858 .. -912) */
-
-#pragma amicall(CCLibBase, 0x35A, wb_exec(a0,a1,a2,a3,a4,a5,d0,d1,d2))
-#pragma amicall(CCLibBase, 0x360, wbexec(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x366, wbAexec(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x36C, wait_child(a0))
-#pragma amicall(CCLibBase, 0x372, wait_children())
-#pragma amicall(CCLibBase, 0x378, signal_child(a0,d0))
-#pragma amicall(CCLibBase, 0x37E, kill(a0))
-#pragma amicall(CCLibBase, 0x384, kill_children())
-#pragma amicall(CCLibBase, 0x38A, cliexec(a0))
-#pragma amicall(CCLibBase, 0x390, exec(a0))
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..) */
+/* V4 (-918 ..) regrouped; ABI not frozen */
 
 #pragma amicall(CCLibBase, 0x396, memmove(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x39C, memmem(a0,d0,a1,d1))
 #pragma amicall(CCLibBase, 0x3A2, strncasecmp(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3A2, strnicmp(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x3A8, strdup(a0))
 #pragma amicall(CCLibBase, 0x3AE, strndup(a0,d0))
 #pragma amicall(CCLibBase, 0x3B4, strnlen(a0,d0))
 #pragma amicall(CCLibBase, 0x3BA, stpcpy(a0,a1))
 #pragma amicall(CCLibBase, 0x3C0, stpncpy(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x3C6, unsetenv(a0))
-#pragma amicall(CCLibBase, 0x3CC, vsnprintf(a0,d0,a1,a2))
-/* snprintf is ==varargs of vsnprintf (same bias); use stubs or SAS tagcall */
+#pragma amicall(CCLibBase, 0x3C6, strlcpy(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3CC, strlcat(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3D2, strtok_r(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3D8, strlwr(a0))
+#pragma amicall(CCLibBase, 0x3DE, unsetenv(a0))
+#pragma amicall(CCLibBase, 0x3E4, vsnprintf(a0,d0,a1,a2))
+/* snprintf ==varargs of vsnprintf (bias -996) */
+#pragma amicall(CCLibBase, 0x3EA, vscanf(a0,a1))
+#pragma amicall(CCLibBase, 0x3F0, vfscanf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3F6, vsscanf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3FC, getline(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x402, getdelim(a0,a1,d0,a2))
+#pragma amicall(CCLibBase, 0x408, strtol(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x40E, strtoul(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x414, strtod(a0,a1))
+#pragma amicall(CCLibBase, 0x41A, atoll(a0))
+#pragma amicall(CCLibBase, 0x420, bsearch(a0,a1,d0,d1,a2))
+#pragma amicall(CCLibBase, 0x426, srand(d0))
+#pragma amicall(CCLibBase, 0x42C, rand())
+#pragma amicall(CCLibBase, 0x432, div(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x438, ldiv(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x43E, labs(d0))
+#pragma amicall(CCLibBase, 0x444, mkstemp(a0))
+#pragma amicall(CCLibBase, 0x44A, getcwd(a0,d0))
+#pragma amicall(CCLibBase, 0x450, chdir(a0))
+#pragma amicall(CCLibBase, 0x456, realpath(a0,a1))
+#pragma amicall(CCLibBase, 0x45C, mkdir(a0,d0))
+#pragma amicall(CCLibBase, 0x462, rmdir(a0))
+#pragma amicall(CCLibBase, 0x468, chmod(a0,d0))
+#pragma amicall(CCLibBase, 0x46E, utime(a0,a1))
+#pragma amicall(CCLibBase, 0x474, symlink(a0,a1))
+#pragma amicall(CCLibBase, 0x47A, readlink(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x480, opendir(a0))
+#pragma amicall(CCLibBase, 0x486, readdir(a0))
+#pragma amicall(CCLibBase, 0x48C, closedir(a0))
+#pragma amicall(CCLibBase, 0x492, sleep(d0))
+#pragma amicall(CCLibBase, 0x498, usleep(d0))
+#pragma amicall(CCLibBase, 0x49E, nanosleep(a0,a1))
+#pragma amicall(CCLibBase, 0x4A4, setlocale(d0,a0))
+#pragma amicall(CCLibBase, 0x4AA, localeconv())
+#pragma amicall(CCLibBase, 0x4B0, strcoll(a0,a1))
+#pragma amicall(CCLibBase, 0x4B6, strxfrm(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x4BC, strptime(a0,a1,a2))
 
 #endif /* PRAGMA_CCLIB_LIB_H */

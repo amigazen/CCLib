@@ -84,6 +84,7 @@ void __ASM__ __SAVE_DS__ getbuff(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	char *buf;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -120,6 +121,7 @@ LONG __ASM__ __SAVE_DS__ setvbuf(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	char *nb;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -179,6 +181,7 @@ LONG __ASM__ __SAVE_DS__ fflush(
 	LONG len;
 
 	/* fflush(NULL) is a no-op here (historic); ISO would flush all. */
+	cc_check_break();
 	if (stream == (APTR)NULL)
 		return 0L;
 
@@ -227,6 +230,7 @@ APTR __ASM__ __SAVE_DS__ fdopen(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	cc_FileDesc *desc;
+	cc_check_break();
 
 	(void)mode;
 
@@ -250,6 +254,7 @@ APTR __ASM__ __SAVE_DS__ fopen(
 	ULONG flags;
 	LONG fd;
 	APTR fp;
+	cc_check_break();
 
 	if (name == NULL || mode == NULL)
 	{
@@ -281,6 +286,7 @@ APTR __ASM__ __SAVE_DS__ freopen(
 	ULONG flags;
 	LONG fd;
 	char *oldtmp;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -332,6 +338,7 @@ LONG __ASM__ __SAVE_DS__ fclose(
 	LONG rc;
 	cc_node *node;
 	ULONG *hp;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -375,6 +382,7 @@ LONG __ASM__ __SAVE_DS__ getc(
 	cc_FILE *fp;
 	LONG n;
 	UBYTE ch;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -426,6 +434,7 @@ LONG __ASM__ __SAVE_DS__ putc(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG leftover;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -480,6 +489,8 @@ LONG __ASM__ __SAVE_DS__ aputc(
 	__REG__(a0, APTR stream))
 {
 	/* Lattice name; same as putc. */
+	cc_check_break();
+
 	return putc(c, stream);
 }
 
@@ -487,12 +498,15 @@ LONG __ASM__ __SAVE_DS__ agetc(
 	__REG__(a0, APTR stream))
 {
 	/* Lattice name; same as getc. */
+	cc_check_break();
+
 	return getc(stream);
 }
 
 LONG __ASM__ __SAVE_DS__ getchar(void)
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stdin_p == NULL || *ud->stdin_p == NULL)
@@ -506,6 +520,7 @@ LONG __ASM__ __SAVE_DS__ ungetc(
 {
 	cc_task_UserData *ud;
 	cc_FILE *fp;
+	cc_check_break();
 
 	if (c == (LONG)CC_EOF)
 		return (LONG)CC_EOF;
@@ -551,6 +566,7 @@ LONG __ASM__ __SAVE_DS__ putw(
 	UWORD word;
 	LONG r0;
 	LONG r1;
+	cc_check_break();
 
 	word = (UWORD)w;
 	r0 = putc((LONG)(word >> 8), stream);
@@ -567,6 +583,7 @@ LONG __ASM__ __SAVE_DS__ getw(
 {
 	LONG hi;
 	LONG lo;
+	cc_check_break();
 
 	hi = getc(stream);
 	if (hi == (LONG)CC_EOF)
@@ -583,6 +600,7 @@ LONG __ASM__ __SAVE_DS__ puts(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG r;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stdout_p == NULL || *ud->stdout_p == NULL)
@@ -601,6 +619,7 @@ LONG __ASM__ __SAVE_DS__ puterr(
 	__REG__(d0, LONG c))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stderr_p == NULL || *ud->stderr_p == NULL)
@@ -618,6 +637,7 @@ ULONG __ASM__ __SAVE_DS__ fwrite(
 	ULONG total;
 	ULONG i;
 	LONG c;
+	cc_check_break();
 
 	if (ptr == NULL || stream == NULL || size == 0UL || nitems == 0UL)
 		return 0UL;
@@ -643,6 +663,7 @@ ULONG __ASM__ __SAVE_DS__ fread(
 	ULONG total;
 	ULONG i;
 	LONG c;
+	cc_check_break();
 
 	if (ptr == NULL || stream == NULL || size == 0UL || nitems == 0UL)
 		return 0UL;
@@ -666,6 +687,7 @@ LONG __ASM__ __SAVE_DS__ perror(
 	cc_FILE *err;
 	STRPTR msg;
 	LONG e;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stderr_p == NULL || *ud->stderr_p == NULL)
@@ -696,6 +718,7 @@ LONG __ASM__ __SAVE_DS__ fseek(
 	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG pos;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -722,6 +745,7 @@ LONG __ASM__ __SAVE_DS__ ftell(
 	cc_FILE *fp;
 	LONG pos;
 	LONG adj;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	fp = cc_file_from_list(ud, stream);
@@ -750,6 +774,7 @@ LONG __ASM__ __SAVE_DS__ fgetpos(
 	__REG__(a1, APTR pos))
 {
 	LONG p;
+	cc_check_break();
 
 	if (pos == NULL)
 	{
@@ -767,6 +792,7 @@ LONG __ASM__ __SAVE_DS__ fsetpos(
 	__REG__(a0, APTR stream),
 	__REG__(a1, APTR pos))
 {
+	cc_check_break();
 	if (pos == NULL)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -783,6 +809,7 @@ STRPTR __ASM__ __SAVE_DS__ fgets(
 	STRPTR p;
 	LONG c;
 	LONG left;
+	cc_check_break();
 
 	if (s == NULL || stream == NULL || n <= 0L)
 		return NULL;
@@ -813,6 +840,7 @@ STRPTR __ASM__ __SAVE_DS__ gets(
 	cc_task_UserData *ud;
 	STRPTR p;
 	LONG c;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stdin_p == NULL || *ud->stdin_p == NULL || s == NULL)
@@ -842,6 +870,7 @@ LONG __ASM__ __SAVE_DS__ fputs(
 {
 	STRPTR p;
 	LONG n;
+	cc_check_break();
 
 	if (s == NULL || stream == NULL)
 		return (LONG)CC_EOF;
@@ -893,6 +922,7 @@ STRPTR __ASM__ __SAVE_DS__ mktemp(
 	ULONG seed;
 	LONG i;
 	BPTR lock;
+	cc_check_break();
 
 	if (template == NULL)
 		return NULL;
@@ -917,12 +947,57 @@ STRPTR __ASM__ __SAVE_DS__ mktemp(
 	return template;
 }
 
+LONG __ASM__ __SAVE_DS__ mkstemp(
+	__REG__(a0, STRPTR template))
+{
+	struct Process *pr;
+	struct DateStamp ds;
+	ULONG seed;
+	LONG i;
+	LONG fd;
+	BPTR lock;
+	cc_check_break();
+
+	if (template == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	pr = (struct Process *)FindTask(NULL);
+	DateStamp(&ds);
+	seed = (ULONG)(LONG)pr;
+	seed ^= (ULONG)ds.ds_Days;
+	seed ^= ((ULONG)ds.ds_Minute << 8);
+	seed ^= (ULONG)ds.ds_Tick;
+
+	for (i = 0L; i < 10000L; i++)
+	{
+		cc_fill_Xs(template, seed + (ULONG)i);
+		lock = Lock(template, ACCESS_READ);
+		if (lock != NULL)
+		{
+			UnLock(lock);
+			continue;
+		}
+		/* O_CREAT|O_EXCL|O_RDWR — open() already enforces EXCL. */
+		fd = open(template,
+			(ULONG)(CC_O_RDWR | CC_O_CREAT | CC_O_EXCL), 0UL);
+		if (fd != -1L)
+			return fd;
+	}
+	template[0] = '\0';
+	cc_set_errno(CC_EEXIST);
+	return -1L;
+}
+
 STRPTR __ASM__ __SAVE_DS__ tmpnam(
 	__REG__(a0, STRPTR s))
 {
 	cc_task_UserData *ud;
 	STRPTR dest;
 	static char fallback[32];
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (s != NULL)
@@ -945,6 +1020,7 @@ APTR __ASM__ __SAVE_DS__ tmpfile(void)
 	char name[32];
 	char *store;
 	APTR stream;
+	cc_check_break();
 
 	strcpy(name, (STRPTR)"T:ccXXXXXX");
 	mktemp(name);
@@ -964,4 +1040,80 @@ APTR __ASM__ __SAVE_DS__ tmpfile(void)
 		fp->_flags |= CC_TEMP;
 	}
 	return stream;
+}
+
+LONG __ASM__ __SAVE_DS__ getdelim(
+	__REG__(a0, APTR lineptr),
+	__REG__(a1, APTR n),
+	__REG__(d0, LONG delim),
+	__REG__(a2, APTR stream))
+{
+	char **lpp;
+	ULONG *np;
+	char *buf;
+	ULONG cap;
+	ULONG len;
+	LONG c;
+	char *nb;
+	cc_check_break();
+
+	lpp = (char **)lineptr;
+	np = (ULONG *)n;
+	if (lpp == (char **)NULL || np == (ULONG *)NULL
+	    || stream == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	buf = *lpp;
+	cap = *np;
+	len = 0UL;
+
+	for (;;)
+	{
+		c = getc(stream);
+		if (c == (LONG)CC_EOF)
+		{
+			if (len == 0UL)
+				return -1L;
+			break;
+		}
+
+		if (len + 2UL > cap)
+		{
+			ULONG ncap;
+
+			ncap = (cap == 0UL) ? 128UL : (cap * 2UL);
+			if (ncap < len + 2UL)
+				ncap = len + 2UL;
+			nb = (char *)realloc(buf, ncap);
+			if (nb == (char *)NULL)
+			{
+				cc_set_errno(CC_ENOMEM);
+				return -1L;
+			}
+			buf = nb;
+			cap = ncap;
+			*lpp = buf;
+			*np = cap;
+		}
+
+		buf[len] = (char)c;
+		len++;
+		if (c == delim)
+			break;
+	}
+
+	buf[len] = '\0';
+	return (LONG)len;
+}
+
+LONG __ASM__ __SAVE_DS__ getline(
+	__REG__(a0, APTR lineptr),
+	__REG__(a1, APTR n),
+	__REG__(a2, APTR stream))
+{
+	cc_check_break();
+	return getdelim(lineptr, n, (LONG)'\n', stream);
 }

@@ -16,7 +16,7 @@
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
-/* Do not reorder or insert mid-table. Append new LVOs only at the end. */
+/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
@@ -71,8 +71,10 @@
 #pragma amicall(CCLibBase, 0xC0, tmpfile())
 #pragma amicall(CCLibBase, 0xC6, putc(d0,a0))
 #pragma amicall(CCLibBase, 0xCC, aputc(d0,a0))
+#pragma amicall(CCLibBase, 0xCC, fputc(d0,a0))
 #pragma amicall(CCLibBase, 0xD2, getc(a0))
 #pragma amicall(CCLibBase, 0xD8, agetc(a0))
+#pragma amicall(CCLibBase, 0xD8, fgetc(a0))
 #pragma amicall(CCLibBase, 0xDE, getchar())
 #pragma amicall(CCLibBase, 0xE4, ungetc(d0,a0))
 #pragma amicall(CCLibBase, 0xEA, putw(d0,a0))
@@ -162,6 +164,7 @@
 #pragma amicall(CCLibBase, 0x276, strncat(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x27C, strcasecmp(a0,a1))
 #pragma amicall(CCLibBase, 0x27C, strcmpa(a0,a1))
+#pragma amicall(CCLibBase, 0x27C, stricmp(a0,a1))
 #pragma amicall(CCLibBase, 0x282, strncmp(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x288, strncpy(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x28E, strpbrk(a0,a1))
@@ -225,7 +228,8 @@
 #pragma amicall(CCLibBase, 0x390, exec(a0))
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..). Group by category when extending. */
+/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
+/* realtime.library) backs sleep/usleep/nanosleep. */
 
 /* Memory */
 #pragma amicall(CCLibBase, 0x396, memmove(a0,a1,d0))
@@ -233,21 +237,72 @@
 
 /* String */
 #pragma amicall(CCLibBase, 0x3A2, strncasecmp(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3A2, strnicmp(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x3A8, strdup(a0))
 #pragma amicall(CCLibBase, 0x3AE, strndup(a0,d0))
 #pragma amicall(CCLibBase, 0x3B4, strnlen(a0,d0))
 #pragma amicall(CCLibBase, 0x3BA, stpcpy(a0,a1))
 #pragma amicall(CCLibBase, 0x3C0, stpncpy(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3C6, strlcpy(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3CC, strlcat(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3D2, strtok_r(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3D8, strlwr(a0))
 
 /* Environment */
-#pragma amicall(CCLibBase, 0x3C6, unsetenv(a0))
+#pragma amicall(CCLibBase, 0x3DE, unsetenv(a0))
 
-/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
-/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
-
-#pragma amicall(CCLibBase, 0x3CC, vsnprintf(a0,d0,a1,a2))
+/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+#pragma amicall(CCLibBase, 0x3E4, vsnprintf(a0,d0,a1,a2))
 #if defined(__STORM__)
-#pragma tagcall(CCLibBase, 0x3CC, snprintf(a0,d0,a1,a2))
+#pragma tagcall(CCLibBase, 0x3E4, snprintf(a0,d0,a1,a2))
 #endif /* __STORM__ */
+#pragma amicall(CCLibBase, 0x3EA, vscanf(a0,a1))
+#pragma amicall(CCLibBase, 0x3F0, vfscanf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3F6, vsscanf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x3FC, getline(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x402, getdelim(a0,a1,d0,a2))
+
+/* Conversion */
+#pragma amicall(CCLibBase, 0x408, strtol(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x40E, strtoul(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x414, strtod(a0,a1))
+#pragma amicall(CCLibBase, 0x41A, atoll(a0))
+
+/* Search / random / integer math */
+#pragma amicall(CCLibBase, 0x420, bsearch(a0,a1,d0,d1,a2))
+#pragma amicall(CCLibBase, 0x426, srand(d0))
+#pragma amicall(CCLibBase, 0x42C, rand())
+#pragma amicall(CCLibBase, 0x432, div(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x438, ldiv(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x43E, labs(d0))
+
+/* Path / filesystem (dos.library) */
+#pragma amicall(CCLibBase, 0x444, mkstemp(a0))
+#pragma amicall(CCLibBase, 0x44A, getcwd(a0,d0))
+#pragma amicall(CCLibBase, 0x450, chdir(a0))
+#pragma amicall(CCLibBase, 0x456, realpath(a0,a1))
+#pragma amicall(CCLibBase, 0x45C, mkdir(a0,d0))
+#pragma amicall(CCLibBase, 0x462, rmdir(a0))
+#pragma amicall(CCLibBase, 0x468, chmod(a0,d0))
+#pragma amicall(CCLibBase, 0x46E, utime(a0,a1))
+#pragma amicall(CCLibBase, 0x474, symlink(a0,a1))
+#pragma amicall(CCLibBase, 0x47A, readlink(a0,a1,d0))
+
+/* Directory (POSIX dirent beside historic scdir) */
+#pragma amicall(CCLibBase, 0x480, opendir(a0))
+#pragma amicall(CCLibBase, 0x486, readdir(a0))
+#pragma amicall(CCLibBase, 0x48C, closedir(a0))
+
+/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
+#pragma amicall(CCLibBase, 0x492, sleep(d0))
+#pragma amicall(CCLibBase, 0x498, usleep(d0))
+#pragma amicall(CCLibBase, 0x49E, nanosleep(a0,a1))
+
+/* Locale */
+#pragma amicall(CCLibBase, 0x4A4, setlocale(d0,a0))
+#pragma amicall(CCLibBase, 0x4AA, localeconv())
+#pragma amicall(CCLibBase, 0x4B0, strcoll(a0,a1))
+#pragma amicall(CCLibBase, 0x4B6, strxfrm(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x4BC, strptime(a0,a1,a2))
 
 #endif /* PRAGMA_CCLIB_LIB_H */

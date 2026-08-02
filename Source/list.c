@@ -51,7 +51,9 @@ APTR __ASM__ __SAVE_DS__ inst_node(
 {
 	ULONG total;
 	ULONG *hp;
+
 	cc_node *node;
+	cc_check_break();
 
 	if (size < 0)
 		size = 0;
@@ -72,6 +74,7 @@ void __ASM__ __SAVE_DS__ put_head(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	n = (cc_node *)node;
@@ -97,6 +100,7 @@ APTR __ASM__ __SAVE_DS__ add_head(
 	cc_node *node;
 
 	/* Alloc + link in-line (same layout as inst_node / put_head). */
+	cc_check_break();
 	l = (cc_list *)list;
 	if (!l)
 		return NULL;
@@ -125,6 +129,7 @@ void __ASM__ __SAVE_DS__ put_tail(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	n = (cc_node *)node;
@@ -148,6 +153,7 @@ APTR __ASM__ __SAVE_DS__ add_tail(
 	ULONG total;
 	ULONG *hp;
 	cc_node *node;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	if (!l)
@@ -177,6 +183,7 @@ APTR __ASM__ __SAVE_DS__ remv_head(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	if (!l || !l->first)
@@ -201,6 +208,7 @@ APTR __ASM__ __SAVE_DS__ remv_tail(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	if (!l || !l->last)
@@ -225,6 +233,7 @@ void __ASM__ __SAVE_DS__ remv_list(
 	cc_list *l;
 	cc_node *n;
 	cc_node *next;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	if (!l)
@@ -249,6 +258,7 @@ APTR __ASM__ __SAVE_DS__ r_node(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	n = (cc_node *)node;
@@ -279,6 +289,7 @@ APTR __ASM__ __SAVE_DS__ remv_node(
 {
 	cc_list *l;
 	cc_node *n;
+	cc_check_break();
 
 	l = (cc_list *)list;
 	if (!l || !data)

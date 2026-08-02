@@ -12,7 +12,7 @@
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
-/* Do not reorder or insert mid-table. Append new LVOs only at the end. */
+/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
@@ -129,11 +129,17 @@ LONG __putc(__reg("a6") void *, __reg("d0") LONG c, __reg("a0") APTR stream)="\t
 LONG __aputc(__reg("a6") void *, __reg("d0") LONG c, __reg("a0") APTR stream)="\tjsr\t-204(a6)";
 #define aputc(c, stream) __aputc(CCLibBase, (c), (stream))
 
+LONG __fputc(__reg("a6") void *, __reg("d0") LONG c, __reg("a0") APTR stream)="\tjsr\t-204(a6)";
+#define fputc(c, stream) __fputc(CCLibBase, (c), (stream))
+
 LONG __getc(__reg("a6") void *, __reg("a0") APTR stream)="\tjsr\t-210(a6)";
 #define getc(stream) __getc(CCLibBase, (stream))
 
 LONG __agetc(__reg("a6") void *, __reg("a0") APTR stream)="\tjsr\t-216(a6)";
 #define agetc(stream) __agetc(CCLibBase, (stream))
+
+LONG __fgetc(__reg("a6") void *, __reg("a0") APTR stream)="\tjsr\t-216(a6)";
+#define fgetc(stream) __fgetc(CCLibBase, (stream))
 
 LONG __getchar(__reg("a6") void *)="\tjsr\t-222(a6)";
 #define getchar() __getchar(CCLibBase)
@@ -366,6 +372,9 @@ LONG __strcasecmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR 
 LONG __strcmpa(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2)="\tjsr\t-636(a6)";
 #define strcmpa(s1, s2) __strcmpa(CCLibBase, (s1), (s2))
 
+LONG __stricmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2)="\tjsr\t-636(a6)";
+#define stricmp(s1, s2) __stricmp(CCLibBase, (s1), (s2))
+
 LONG __strncmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2, __reg("d0") LONG n)="\tjsr\t-642(a6)";
 #define strncmp(s1, s2, n) __strncmp(CCLibBase, (s1), (s2), (n))
 
@@ -521,7 +530,8 @@ LONG __exec(__reg("a6") void *, __reg("a0") STRPTR cmd)="\tjsr\t-912(a6)";
 
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..). Group by category when extending. */
+/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
+/* realtime.library) backs sleep/usleep/nanosleep. */
 
 /* Memory */
 APTR __memmove(__reg("a6") void *, __reg("a0") APTR dst, __reg("a1") APTR src, __reg("d0") LONG n)="\tjsr\t-918(a6)";
@@ -534,6 +544,9 @@ APTR __memmem(__reg("a6") void *, __reg("a0") APTR haystack, __reg("d0") LONG hl
 /* String */
 LONG __strncasecmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2, __reg("d0") LONG n)="\tjsr\t-930(a6)";
 #define strncasecmp(s1, s2, n) __strncasecmp(CCLibBase, (s1), (s2), (n))
+
+LONG __strnicmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2, __reg("d0") LONG n)="\tjsr\t-930(a6)";
+#define strnicmp(s1, s2, n) __strnicmp(CCLibBase, (s1), (s2), (n))
 
 STRPTR __strdup(__reg("a6") void *, __reg("a0") STRPTR s)="\tjsr\t-936(a6)";
 #define strdup(s) __strdup(CCLibBase, (s))
@@ -550,22 +563,152 @@ STRPTR __stpcpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR s
 STRPTR __stpncpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR src, __reg("d0") LONG n)="\tjsr\t-960(a6)";
 #define stpncpy(dst, src, n) __stpncpy(CCLibBase, (dst), (src), (n))
 
+ULONG __strlcpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR src, __reg("d0") ULONG size)="\tjsr\t-966(a6)";
+#define strlcpy(dst, src, size) __strlcpy(CCLibBase, (dst), (src), (size))
+
+ULONG __strlcat(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR src, __reg("d0") ULONG size)="\tjsr\t-972(a6)";
+#define strlcat(dst, src, size) __strlcat(CCLibBase, (dst), (src), (size))
+
+STRPTR __strtok_r(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR delim, __reg("a2") APTR saveptr)="\tjsr\t-978(a6)";
+#define strtok_r(s, delim, saveptr) __strtok_r(CCLibBase, (s), (delim), (saveptr))
+
+STRPTR __strlwr(__reg("a6") void *, __reg("a0") STRPTR s)="\tjsr\t-984(a6)";
+#define strlwr(s) __strlwr(CCLibBase, (s))
+
 
 /* Environment */
-LONG __unsetenv(__reg("a6") void *, __reg("a0") STRPTR name)="\tjsr\t-966(a6)";
+LONG __unsetenv(__reg("a6") void *, __reg("a0") STRPTR name)="\tjsr\t-990(a6)";
 #define unsetenv(name) __unsetenv(CCLibBase, (name))
 
 
-/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
-/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
-
-LONG __vsnprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-972(a6)";
+/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+LONG __vsnprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-996(a6)";
 #define vsnprintf(s, n, format, args) __vsnprintf(CCLibBase, (s), (n), (format), (args))
 
 #if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)
-LONG __snprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, ...)="\tmove.l\ta2,-(a7)\n\tlea\t4(a7),a2\n\tjsr\t-972(a6)\n\tmovea.l\t(a7)+,a2";
+LONG __snprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") ULONG n, __reg("a1") STRPTR format, ...)="\tmove.l\ta2,-(a7)\n\tlea\t4(a7),a2\n\tjsr\t-996(a6)\n\tmovea.l\t(a7)+,a2";
 #define snprintf(...) __snprintf(CCLibBase, __VA_ARGS__)
 #endif
+
+LONG __vscanf(__reg("a6") void *, __reg("a0") STRPTR format, __reg("a1") APTR args)="\tjsr\t-1002(a6)";
+#define vscanf(format, args) __vscanf(CCLibBase, (format), (args))
+
+LONG __vfscanf(__reg("a6") void *, __reg("a0") APTR stream, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-1008(a6)";
+#define vfscanf(stream, format, args) __vfscanf(CCLibBase, (stream), (format), (args))
+
+LONG __vsscanf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-1014(a6)";
+#define vsscanf(s, format, args) __vsscanf(CCLibBase, (s), (format), (args))
+
+LONG __getline(__reg("a6") void *, __reg("a0") APTR lineptr, __reg("a1") APTR n, __reg("a2") APTR stream)="\tjsr\t-1020(a6)";
+#define getline(lineptr, n, stream) __getline(CCLibBase, (lineptr), (n), (stream))
+
+LONG __getdelim(__reg("a6") void *, __reg("a0") APTR lineptr, __reg("a1") APTR n, __reg("d0") LONG delim, __reg("a2") APTR stream)="\tjsr\t-1026(a6)";
+#define getdelim(lineptr, n, delim, stream) __getdelim(CCLibBase, (lineptr), (n), (delim), (stream))
+
+
+/* Conversion */
+LONG __strtol(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") APTR endp, __reg("d0") LONG base)="\tjsr\t-1032(a6)";
+#define strtol(s, endp, base) __strtol(CCLibBase, (s), (endp), (base))
+
+ULONG __strtoul(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") APTR endp, __reg("d0") LONG base)="\tjsr\t-1038(a6)";
+#define strtoul(s, endp, base) __strtoul(CCLibBase, (s), (endp), (base))
+
+DOUBLE __strtod(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") APTR endp)="\tjsr\t-1044(a6)";
+#define strtod(s, endp) __strtod(CCLibBase, (s), (endp))
+
+LONG __atoll(__reg("a6") void *, __reg("a0") STRPTR s)="\tjsr\t-1050(a6)";
+#define atoll(s) __atoll(CCLibBase, (s))
+
+
+/* Search / random / integer math */
+APTR __bsearch(__reg("a6") void *, __reg("a0") APTR key, __reg("a1") APTR base, __reg("d0") ULONG nel, __reg("d1") ULONG width, __reg("a2") APTR compar)="\tjsr\t-1056(a6)";
+#define bsearch(key, base, nel, width, compar) __bsearch(CCLibBase, (key), (base), (nel), (width), (compar))
+
+void __srand(__reg("a6") void *, __reg("d0") ULONG seed)="\tjsr\t-1062(a6)";
+#define srand(seed) __srand(CCLibBase, (seed))
+
+LONG __rand(__reg("a6") void *)="\tjsr\t-1068(a6)";
+#define rand() __rand(CCLibBase)
+
+void __div(__reg("a6") void *, __reg("a0") APTR result, __reg("d0") LONG numer, __reg("d1") LONG denom)="\tjsr\t-1074(a6)";
+#define div(result, numer, denom) __div(CCLibBase, (result), (numer), (denom))
+
+void __ldiv(__reg("a6") void *, __reg("a0") APTR result, __reg("d0") LONG numer, __reg("d1") LONG denom)="\tjsr\t-1080(a6)";
+#define ldiv(result, numer, denom) __ldiv(CCLibBase, (result), (numer), (denom))
+
+LONG __labs(__reg("a6") void *, __reg("d0") LONG n)="\tjsr\t-1086(a6)";
+#define labs(n) __labs(CCLibBase, (n))
+
+
+/* Path / filesystem (dos.library) */
+LONG __mkstemp(__reg("a6") void *, __reg("a0") STRPTR template)="\tjsr\t-1092(a6)";
+#define mkstemp(template) __mkstemp(CCLibBase, (template))
+
+STRPTR __getcwd(__reg("a6") void *, __reg("a0") STRPTR buf, __reg("d0") LONG size)="\tjsr\t-1098(a6)";
+#define getcwd(buf, size) __getcwd(CCLibBase, (buf), (size))
+
+LONG __chdir(__reg("a6") void *, __reg("a0") STRPTR path)="\tjsr\t-1104(a6)";
+#define chdir(path) __chdir(CCLibBase, (path))
+
+STRPTR __realpath(__reg("a6") void *, __reg("a0") STRPTR path, __reg("a1") STRPTR resolved)="\tjsr\t-1110(a6)";
+#define realpath(path, resolved) __realpath(CCLibBase, (path), (resolved))
+
+LONG __mkdir(__reg("a6") void *, __reg("a0") STRPTR path, __reg("d0") LONG mode)="\tjsr\t-1116(a6)";
+#define mkdir(path, mode) __mkdir(CCLibBase, (path), (mode))
+
+LONG __rmdir(__reg("a6") void *, __reg("a0") STRPTR path)="\tjsr\t-1122(a6)";
+#define rmdir(path) __rmdir(CCLibBase, (path))
+
+LONG __chmod(__reg("a6") void *, __reg("a0") STRPTR path, __reg("d0") LONG mode)="\tjsr\t-1128(a6)";
+#define chmod(path, mode) __chmod(CCLibBase, (path), (mode))
+
+LONG __utime(__reg("a6") void *, __reg("a0") STRPTR path, __reg("a1") APTR times)="\tjsr\t-1134(a6)";
+#define utime(path, times) __utime(CCLibBase, (path), (times))
+
+LONG __symlink(__reg("a6") void *, __reg("a0") STRPTR target, __reg("a1") STRPTR linkpath)="\tjsr\t-1140(a6)";
+#define symlink(target, linkpath) __symlink(CCLibBase, (target), (linkpath))
+
+LONG __readlink(__reg("a6") void *, __reg("a0") STRPTR path, __reg("a1") STRPTR buf, __reg("d0") LONG bufsiz)="\tjsr\t-1146(a6)";
+#define readlink(path, buf, bufsiz) __readlink(CCLibBase, (path), (buf), (bufsiz))
+
+
+/* Directory (POSIX dirent beside historic scdir) */
+APTR __opendir(__reg("a6") void *, __reg("a0") STRPTR name)="\tjsr\t-1152(a6)";
+#define opendir(name) __opendir(CCLibBase, (name))
+
+APTR __readdir(__reg("a6") void *, __reg("a0") APTR dir)="\tjsr\t-1158(a6)";
+#define readdir(dir) __readdir(CCLibBase, (dir))
+
+LONG __closedir(__reg("a6") void *, __reg("a0") APTR dir)="\tjsr\t-1164(a6)";
+#define closedir(dir) __closedir(CCLibBase, (dir))
+
+
+/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
+ULONG __sleep(__reg("a6") void *, __reg("d0") ULONG seconds)="\tjsr\t-1170(a6)";
+#define sleep(seconds) __sleep(CCLibBase, (seconds))
+
+LONG __usleep(__reg("a6") void *, __reg("d0") ULONG usec)="\tjsr\t-1176(a6)";
+#define usleep(usec) __usleep(CCLibBase, (usec))
+
+LONG __nanosleep(__reg("a6") void *, __reg("a0") APTR req, __reg("a1") APTR rem)="\tjsr\t-1182(a6)";
+#define nanosleep(req, rem) __nanosleep(CCLibBase, (req), (rem))
+
+
+/* Locale */
+STRPTR __setlocale(__reg("a6") void *, __reg("d0") LONG category, __reg("a0") STRPTR name)="\tjsr\t-1188(a6)";
+#define setlocale(category, name) __setlocale(CCLibBase, (category), (name))
+
+APTR __localeconv(__reg("a6") void *)="\tjsr\t-1194(a6)";
+#define localeconv() __localeconv(CCLibBase)
+
+LONG __strcoll(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2)="\tjsr\t-1200(a6)";
+#define strcoll(s1, s2) __strcoll(CCLibBase, (s1), (s2))
+
+ULONG __strxfrm(__reg("a6") void *, __reg("a0") STRPTR dest, __reg("a1") STRPTR src, __reg("d0") ULONG n)="\tjsr\t-1206(a6)";
+#define strxfrm(dest, src, n) __strxfrm(CCLibBase, (dest), (src), (n))
+
+STRPTR __strptime(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR tm)="\tjsr\t-1212(a6)";
+#define strptime(s, format, tm) __strptime(CCLibBase, (s), (format), (tm))
 
 
 #endif /* INLINE_CCLIB_PROTOS_H */

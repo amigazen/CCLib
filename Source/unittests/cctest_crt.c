@@ -12,8 +12,10 @@ extern FILE *stdout;
 extern FILE *stderr;
 extern struct Library *CCLibBase;
 
-static void ct_abort_smoke(void)
+static void __stdargs __saveds
+ct_abort_smoke(LONG code)
 {
+	(void)code;
 }
 
 void
@@ -136,6 +138,13 @@ ct_suite_crt(void)
 		(STRPTR)"ClearAbortFunc()",
 		(STRPTR)"ClearAbortFunc must clear the abort hook without fault",
 		1);
+
+	/*
+	 * Re-arm CRT exit so Ctrl-C during later suites terminates the
+	 * process (atexit + ClearSTDIO).  Leaving the hook NULL after
+	 * ClearAbortFunc made break checks no-ops and usleep returned EINTR.
+	 */
+	ct_restore_panic_hook();
 
 	ud2 = GetSTDIO();
 	ct_check_ptr_eq((STRPTR)"crt", (STRPTR)"GetSTDIO_stable",

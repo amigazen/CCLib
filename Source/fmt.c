@@ -422,6 +422,7 @@ LONG __ASM__ __SAVE_DS__ vsprintf(
 	__REG__(a2, APTR args))
 {
 	fmt_str_ctx ctx;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL || format == (STRPTR)NULL)
 		return -1L;
@@ -437,6 +438,7 @@ LONG __ASM__ __SAVE_DS__ sprintf(
 	__REG__(a1, STRPTR format),
 	__REG__(a2, APTR args))
 {
+	cc_check_break();
 	return vsprintf(s, format, args);
 }
 
@@ -457,6 +459,7 @@ LONG __ASM__ __SAVE_DS__ cc_vsnprintf(
 	__REG__(a2, APTR args))
 {
 	fmt_strn_ctx ctx;
+	cc_check_break();
 
 	if (format == (STRPTR)NULL)
 	{
@@ -483,6 +486,7 @@ LONG __ASM__ __SAVE_DS__ vfprintf(
 	__REG__(a2, APTR args))
 {
 	fmt_file_ctx ctx;
+	cc_check_break();
 
 	if (stream == (APTR)NULL || format == (STRPTR)NULL)
 		return -1L;
@@ -501,6 +505,7 @@ LONG __ASM__ __SAVE_DS__ fprintf(
 	__REG__(a1, STRPTR format),
 	__REG__(a2, APTR args))
 {
+	cc_check_break();
 	return vfprintf(stream, format, args);
 }
 
@@ -509,6 +514,7 @@ LONG __ASM__ __SAVE_DS__ vprintf(
 	__REG__(a1, APTR args))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL
@@ -522,6 +528,7 @@ LONG __ASM__ __SAVE_DS__ printf(
 	__REG__(a0, STRPTR format),
 	__REG__(a1, APTR args))
 {
+	cc_check_break();
 	return vprintf(format, args);
 }
 
@@ -942,6 +949,7 @@ LONG __ASM__ __SAVE_DS__ sscanf(
 	__REG__(a2, APTR args))
 {
 	scan_ctx sc;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL || format == (STRPTR)NULL)
 		return (LONG)CC_EOF;
@@ -959,6 +967,7 @@ LONG __ASM__ __SAVE_DS__ fscanf(
 	__REG__(a2, APTR args))
 {
 	scan_ctx sc;
+	cc_check_break();
 
 	if (stream == (APTR)NULL || format == (STRPTR)NULL)
 		return (LONG)CC_EOF;
@@ -975,6 +984,7 @@ LONG __ASM__ __SAVE_DS__ scanf(
 	__REG__(a1, APTR args))
 {
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL
@@ -982,4 +992,30 @@ LONG __ASM__ __SAVE_DS__ scanf(
 	    || *ud->stdin_p == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
 	return fscanf((APTR)*ud->stdin_p, format, args);
+}
+
+LONG __ASM__ __SAVE_DS__ vscanf(
+	__REG__(a0, STRPTR format),
+	__REG__(a1, APTR args))
+{
+	cc_check_break();
+	return scanf(format, args);
+}
+
+LONG __ASM__ __SAVE_DS__ vfscanf(
+	__REG__(a0, APTR stream),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args))
+{
+	cc_check_break();
+	return fscanf(stream, format, args);
+}
+
+LONG __ASM__ __SAVE_DS__ vsscanf(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR args))
+{
+	cc_check_break();
+	return sscanf(s, format, args);
 }

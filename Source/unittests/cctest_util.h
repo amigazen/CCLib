@@ -81,6 +81,8 @@ void ct_suite_time(void);
 void ct_suite_env(void);
 void ct_suite_sort(void);
 void ct_suite_dir(void);
+void ct_suite_path(void);
+void ct_suite_locale(void);
 
 /* Suite entry points — CCPanic (validation / abort_func) */
 void ct_suite_panic_heap(void);

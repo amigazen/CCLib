@@ -16,7 +16,7 @@
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
-/* Do not reorder or insert mid-table. Append new LVOs only at the end. */
+/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
@@ -71,8 +71,10 @@
 #pragma libcall CCLibBase tmpfile C0 00
 #pragma libcall CCLibBase putc C6 8002
 #pragma libcall CCLibBase aputc CC 8002
+#pragma libcall CCLibBase fputc CC 8002
 #pragma libcall CCLibBase getc D2 801
 #pragma libcall CCLibBase agetc D8 801
+#pragma libcall CCLibBase fgetc D8 801
 #pragma libcall CCLibBase getchar DE 00
 #pragma libcall CCLibBase ungetc E4 8002
 #pragma libcall CCLibBase putw EA 8002
@@ -162,6 +164,7 @@
 #pragma libcall CCLibBase strncat 276 09803
 #pragma libcall CCLibBase strcasecmp 27C 9802
 #pragma libcall CCLibBase strcmpa 27C 9802
+#pragma libcall CCLibBase stricmp 27C 9802
 #pragma libcall CCLibBase strncmp 282 09803
 #pragma libcall CCLibBase strncpy 288 09803
 #pragma libcall CCLibBase strpbrk 28E 9802
@@ -225,7 +228,8 @@
 #pragma libcall CCLibBase exec 390 801
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..). Group by category when extending. */
+/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
+/* realtime.library) backs sleep/usleep/nanosleep. */
 
 /* Memory */
 #pragma libcall CCLibBase memmove 396 09803
@@ -233,21 +237,72 @@
 
 /* String */
 #pragma libcall CCLibBase strncasecmp 3A2 09803
+#pragma libcall CCLibBase strnicmp 3A2 09803
 #pragma libcall CCLibBase strdup 3A8 801
 #pragma libcall CCLibBase strndup 3AE 0802
 #pragma libcall CCLibBase strnlen 3B4 0802
 #pragma libcall CCLibBase stpcpy 3BA 9802
 #pragma libcall CCLibBase stpncpy 3C0 09803
+#pragma libcall CCLibBase strlcpy 3C6 09803
+#pragma libcall CCLibBase strlcat 3CC 09803
+#pragma libcall CCLibBase strtok_r 3D2 A9803
+#pragma libcall CCLibBase strlwr 3D8 801
 
 /* Environment */
-#pragma libcall CCLibBase unsetenv 3C6 801
+#pragma libcall CCLibBase unsetenv 3DE 801
 
-/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
-/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
-
-#pragma libcall CCLibBase vsnprintf 3CC A90804
+/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+#pragma libcall CCLibBase vsnprintf 3E4 A90804
 #if defined(__SASC_60)
-#pragma tagcall CCLibBase snprintf 3CC A90804
+#pragma tagcall CCLibBase snprintf 3E4 A90804
 #endif /* __SASC_60 */
+#pragma libcall CCLibBase vscanf 3EA 9802
+#pragma libcall CCLibBase vfscanf 3F0 A9803
+#pragma libcall CCLibBase vsscanf 3F6 A9803
+#pragma libcall CCLibBase getline 3FC A9803
+#pragma libcall CCLibBase getdelim 402 A09804
+
+/* Conversion */
+#pragma libcall CCLibBase strtol 408 09803
+#pragma libcall CCLibBase strtoul 40E 09803
+#pragma libcall CCLibBase strtod 414 9802
+#pragma libcall CCLibBase atoll 41A 801
+
+/* Search / random / integer math */
+#pragma libcall CCLibBase bsearch 420 A109805
+#pragma libcall CCLibBase srand 426 001
+#pragma libcall CCLibBase rand 42C 00
+#pragma libcall CCLibBase div 432 10803
+#pragma libcall CCLibBase ldiv 438 10803
+#pragma libcall CCLibBase labs 43E 001
+
+/* Path / filesystem (dos.library) */
+#pragma libcall CCLibBase mkstemp 444 801
+#pragma libcall CCLibBase getcwd 44A 0802
+#pragma libcall CCLibBase chdir 450 801
+#pragma libcall CCLibBase realpath 456 9802
+#pragma libcall CCLibBase mkdir 45C 0802
+#pragma libcall CCLibBase rmdir 462 801
+#pragma libcall CCLibBase chmod 468 0802
+#pragma libcall CCLibBase utime 46E 9802
+#pragma libcall CCLibBase symlink 474 9802
+#pragma libcall CCLibBase readlink 47A 09803
+
+/* Directory (POSIX dirent beside historic scdir) */
+#pragma libcall CCLibBase opendir 480 801
+#pragma libcall CCLibBase readdir 486 801
+#pragma libcall CCLibBase closedir 48C 801
+
+/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
+#pragma libcall CCLibBase sleep 492 001
+#pragma libcall CCLibBase usleep 498 001
+#pragma libcall CCLibBase nanosleep 49E 9802
+
+/* Locale */
+#pragma libcall CCLibBase setlocale 4A4 8002
+#pragma libcall CCLibBase localeconv 4AA 00
+#pragma libcall CCLibBase strcoll 4B0 9802
+#pragma libcall CCLibBase strxfrm 4B6 09803
+#pragma libcall CCLibBase strptime 4BC A9803
 
 #endif /* PRAGMAS_CCLIB_PRAGMAS_H */

@@ -843,4 +843,61 @@ ct_suite_string(void)
 		(STRPTR)"second hyphen-delimited strtok token must be token2",
 		(STRPTR)"token2",
 		q);
+
+	/* --- strlcpy / strlcat / strtok_r --- */
+	{
+		char *save;
+		ULONG ul;
+
+		ul = strlcpy(a, (STRPTR)"hello", 4UL);
+		ct_check_ulong((STRPTR)"string", (STRPTR)"strlcpy_trunc_len",
+			(STRPTR)"strlcpy(a,\"hello\",4)",
+			(STRPTR)"strlcpy must return the full source length",
+			5UL, ul);
+		ct_check_string((STRPTR)"string",
+			(STRPTR)"strlcpy_trunc",
+			(STRPTR)"strlcpy into size 4",
+			(STRPTR)"strlcpy must NUL-terminate within the buffer",
+			(STRPTR)"hel",
+			a);
+
+		strcpy(a, (STRPTR)"hi");
+		ul = strlcat(a, (STRPTR)"there", 8UL);
+		ct_check_ulong((STRPTR)"string", (STRPTR)"strlcat_len",
+			(STRPTR)"strlcat(\"hi\",\"there\",8)",
+			(STRPTR)"strlcat must return would-be total length",
+			7UL, ul);
+		ct_check_string((STRPTR)"string",
+			(STRPTR)"strlcat_ok",
+			(STRPTR)"strlcat result",
+			(STRPTR)"strlcat must append within the buffer size",
+			(STRPTR)"hithere",
+			a);
+
+		strcpy(a, (STRPTR)"one two");
+		save = (char *)NULL;
+		p = strtok_r(a, (STRPTR)" ", (APTR)&save);
+		ct_check_string((STRPTR)"string",
+			(STRPTR)"strtok_r_first",
+			(STRPTR)"strtok_r first token",
+			(STRPTR)"strtok_r must return the first token",
+			(STRPTR)"one",
+			p);
+		q = strtok_r((STRPTR)NULL, (STRPTR)" ", (APTR)&save);
+		ct_check_string((STRPTR)"string",
+			(STRPTR)"strtok_r_second",
+			(STRPTR)"strtok_r second token",
+			(STRPTR)"strtok_r must continue with the save pointer",
+			(STRPTR)"two",
+			q);
+	}
+
+	strcpy(a, (STRPTR)"AbC");
+	strlwr(a);
+	ct_check_string((STRPTR)"string",
+		(STRPTR)"strlwr_ok",
+		(STRPTR)"strlwr(\"AbC\")",
+		(STRPTR)"strlwr must fold ASCII letters to lower case",
+		(STRPTR)"abc",
+		a);
 }

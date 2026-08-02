@@ -31,6 +31,7 @@ struct Resident RomTag = {
 };
 
 #ifdef __SASC
+/* Library TUs: SAS chkabort inserts are no-ops; LVOs poll via cc_check_break. */
 void __regargs __chkabort(void) { }
 void __regargs _CXBRK(void)     { }
 

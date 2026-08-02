@@ -88,6 +88,8 @@ STRPTR __ASM__ __SAVE_DS__ index(
 	__REG__(d0, LONG c))
 {
 	/* BSD name; same as strchr. */
+	cc_check_break();
+
 	return cc_strchr(s, c);
 }
 
@@ -96,6 +98,8 @@ STRPTR __ASM__ __SAVE_DS__ rindex(
 	__REG__(d0, LONG c))
 {
 	/* BSD name; same as strrchr. */
+	cc_check_break();
+
 	return cc_strrchr(s, c);
 }
 
@@ -103,7 +107,9 @@ STRPTR __ASM__ __SAVE_DS__ strupr(
 	__REG__(a0, STRPTR s))
 {
 	UBYTE *p;
+
 	cc_task_UserData *ud;
+	cc_check_break();
 
 	p = (UBYTE *)s;
 	if (p == (UBYTE *)NULL)
@@ -125,6 +131,8 @@ STRPTR __ASM__ __SAVE_DS__ stpcrlf(
 	UBYTE *p;
 
 	/* CClib extension: truncate at first CR or LF (Pure C). */
+	cc_check_break();
+
 	p = (UBYTE *)s;
 	if (p == (UBYTE *)NULL)
 		return s;
@@ -147,6 +155,8 @@ STRPTR __ASM__ __SAVE_DS__ strcat(
 	UBYTE *d;
 
 	/* Append via Strncpy at the existing NUL (same unlimited assumption). */
+	cc_check_break();
+
 	d = (UBYTE *)dst;
 	if (d == (UBYTE *)NULL)
 		return dst;
@@ -160,6 +170,7 @@ STRPTR __ASM__ __SAVE_DS__ strchr(
 	__REG__(a0, STRPTR s),
 	__REG__(d0, LONG c))
 {
+	cc_check_break();
 	return cc_strchr(s, c);
 }
 
@@ -171,6 +182,8 @@ LONG __ASM__ __SAVE_DS__ strcmp(
 	UBYTE *p2;
 
 	/* Pure C (case-sensitive; Stricmp is case-insensitive only). */
+	cc_check_break();
+
 	p1 = (UBYTE *)s1;
 	p2 = (UBYTE *)s2;
 	if (p1 == p2)
@@ -192,10 +205,12 @@ STRPTR __ASM__ __SAVE_DS__ strcpy(
 	__REG__(a1, STRPTR src))
 {
 	/*
+
 	 * utility.library/Strncpy (V47): length-limited copy.  C strcpy has
 	 * no buffer size, so pass ULONG_MAX (caller must supply room).
 	 * Return dst for C semantics (Strncpy returns end-of-string or NULL).
 	 */
+	cc_check_break();
 	(void)Strncpy((UBYTE *)dst, (UBYTE *)src, (ULONG)~0UL);
 	return dst;
 }
@@ -208,6 +223,7 @@ LONG __ASM__ __SAVE_DS__ strcspn(
 	UBYTE *r;
 	LONG n;
 	UBYTE found;
+	cc_check_break();
 
 	p = (UBYTE *)s;
 	n = 0;
@@ -244,6 +260,8 @@ LONG __ASM__ __SAVE_DS__ strlen(
 	LONG n;
 
 	/* Pure C — no strlen in AmigaOS 3.x utility.library. */
+	cc_check_break();
+
 	p = (UBYTE *)s;
 	n = 0;
 	if (p == (UBYTE *)NULL)
@@ -263,10 +281,12 @@ STRPTR __ASM__ __SAVE_DS__ strncat(
 	LONG i;
 
 	/*
+
 	 * Pure C.  utility Strncat (V47) takes the full destination buffer
 	 * size, not C's "append at most n chars from src".
 	 * See https://developer.amigaos3.net/autodocs/utility.library/Strncat.html
 	 */
+	cc_check_break();
 	d = (UBYTE *)dst;
 	s = (UBYTE *)src;
 	while (*d)
@@ -286,6 +306,8 @@ LONG __ASM__ __SAVE_DS__ strcasecmp(
 	__REG__(a1, STRPTR s2))
 {
 	/* Case-insensitive compare via helper (Stricmp / locale ctype later). */
+	cc_check_break();
+
 	return cc_str_casecmp(cc_get_ud(), s1, s2);
 }
 
@@ -294,6 +316,7 @@ LONG __ASM__ __SAVE_DS__ strncasecmp(
 	__REG__(a1, STRPTR s2),
 	__REG__(d0, LONG n))
 {
+	cc_check_break();
 	return cc_str_ncasecmp(cc_get_ud(), s1, s2, n);
 }
 
@@ -302,6 +325,7 @@ STRPTR __ASM__ __SAVE_DS__ strdup(
 {
 	LONG len;
 	STRPTR d;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL)
 	{
@@ -323,6 +347,7 @@ STRPTR __ASM__ __SAVE_DS__ strndup(
 	LONG i;
 	LONG len;
 	STRPTR d;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL || n < 0L)
 	{
@@ -350,6 +375,7 @@ LONG __ASM__ __SAVE_DS__ strnlen(
 	__REG__(d0, LONG maxlen))
 {
 	LONG i;
+	cc_check_break();
 
 	if (s == (STRPTR)NULL || maxlen <= 0L)
 		return 0L;
@@ -367,6 +393,8 @@ STRPTR __ASM__ __SAVE_DS__ stpcpy(
 	UBYTE *s;
 
 	/* Like strcpy but returns pointer to the terminating NUL. */
+	cc_check_break();
+
 	if (dst == (STRPTR)NULL || src == (STRPTR)NULL)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -394,10 +422,12 @@ STRPTR __ASM__ __SAVE_DS__ stpncpy(
 	LONG i;
 
 	/*
+
 	 * Copy at most n bytes; pad with NULs like strncpy when src is
 	 * short.  Return pointer to the last written byte (NUL if padded
 	 * or if a terminator was stored within n).
 	 */
+	cc_check_break();
 	if (dst == (STRPTR)NULL || src == (STRPTR)NULL || n < 0L)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -432,9 +462,11 @@ LONG __ASM__ __SAVE_DS__ strncmp(
 	LONG i;
 
 	/*
+
 	 * Pure C for case-sensitive compare.  utility Strnicmp is
 	 * case-insensitive (maps to strncasecmp, not strncmp).
 	 */
+	cc_check_break();
 	p1 = (UBYTE *)s1;
 	p2 = (UBYTE *)s2;
 	if (n <= 0 || p1 == p2)
@@ -463,12 +495,14 @@ STRPTR __ASM__ __SAVE_DS__ strncpy(
 	LONG i;
 
 	/*
+
 	 * Pure C (ANSI strncpy + CClib n==0).  Do not call utility Strncpy:
 	 * that API's third argument is destination buffer size and always
 	 * NUL-terminates inside the buffer; C strncpy copies exactly n bytes
 	 * (no forced NUL when src is longer) and zero-pads when src is shorter.
 	 * See https://developer.amigaos3.net/autodocs/utility.library/Strncpy.html
 	 */
+	cc_check_break();
 	d = (UBYTE *)dst;
 	s = (UBYTE *)src;
 	if (n <= 0)
@@ -498,6 +532,7 @@ STRPTR __ASM__ __SAVE_DS__ strpbrk(
 {
 	UBYTE *p;
 	UBYTE *a;
+	cc_check_break();
 
 	p = (UBYTE *)s;
 	if (p == (UBYTE *)NULL || accept == (STRPTR)NULL)
@@ -520,6 +555,7 @@ STRPTR __ASM__ __SAVE_DS__ strrchr(
 	__REG__(a0, STRPTR s),
 	__REG__(d0, LONG c))
 {
+	cc_check_break();
 	return cc_strrchr(s, c);
 }
 
@@ -531,6 +567,7 @@ LONG __ASM__ __SAVE_DS__ strspn(
 	UBYTE *a;
 	LONG n;
 	UBYTE found;
+	cc_check_break();
 
 	p = (UBYTE *)s;
 	n = 0;
@@ -568,6 +605,7 @@ STRPTR __ASM__ __SAVE_DS__ strstr(
 	UBYTE *n;
 	UBYTE *p;
 	UBYTE *q;
+	cc_check_break();
 
 	h = (UBYTE *)haystack;
 	n = (UBYTE *)needle;
@@ -602,6 +640,7 @@ STRPTR __ASM__ __SAVE_DS__ strtok(
 	UBYTE found;
 
 	/* Pure C; continuation pointer lives in per-task task_UserData. */
+	cc_check_break();
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
 		return (STRPTR)NULL;
@@ -675,6 +714,8 @@ STRPTR __ASM__ __SAVE_DS__ strrv(
 	UBYTE tmp;
 
 	/* CClib extension (Pure C). */
+	cc_check_break();
+
 	if (s == (STRPTR)NULL || *s == 0)
 		return s;
 	left = (UBYTE *)s;
@@ -702,6 +743,8 @@ STRPTR __ASM__ __SAVE_DS__ strnrv(
 	LONG len;
 
 	/* CClib extension: reverse first n bytes (Pure C). */
+	cc_check_break();
+
 	if (s == (STRPTR)NULL || n <= 0)
 		return s;
 	len = 0;
@@ -734,6 +777,8 @@ STRPTR __ASM__ __SAVE_DS__ bcpl_strcpy(
 	UBYTE i;
 
 	/* BCPL BSTR (BPTR) to C string via exec BADDR (Pure C over OS types). */
+	cc_check_break();
+
 	d = (UBYTE *)dst;
 	if (d == (UBYTE *)NULL)
 		return dst;
@@ -748,4 +793,205 @@ STRPTR __ASM__ __SAVE_DS__ bcpl_strcpy(
 		d[i] = b[i + 1];
 	d[len] = 0;
 	return dst;
+}
+
+ULONG __ASM__ __SAVE_DS__ strlcpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, ULONG size))
+{
+	UBYTE *d;
+	UBYTE *s;
+	ULONG n;
+	ULONG srclen;
+
+	/*
+
+	 * BSD strlcpy: buffer-size semantics (NUL-terminate when size>0).
+	 * utility Strncpy is equivalent; Pure C keeps the LVO self-contained.
+	 */
+	cc_check_break();
+	d = (UBYTE *)dst;
+	s = (UBYTE *)src;
+	srclen = 0UL;
+	if (s != (UBYTE *)NULL)
+	{
+		while (s[srclen] != 0)
+			srclen++;
+	}
+
+	if (d == (UBYTE *)NULL)
+		return srclen;
+	if (size == 0UL)
+		return srclen;
+
+	n = size - 1UL;
+	if (s == (UBYTE *)NULL)
+	{
+		d[0] = 0;
+		return 0UL;
+	}
+	if (n > srclen)
+		n = srclen;
+	{
+		ULONG i;
+
+		i = 0UL;
+		while (i < n)
+		{
+			d[i] = s[i];
+			i++;
+		}
+		d[n] = 0;
+	}
+	return srclen;
+}
+
+ULONG __ASM__ __SAVE_DS__ strlcat(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, ULONG size))
+{
+	UBYTE *d;
+	UBYTE *s;
+	ULONG dlen;
+	ULONG slen;
+	ULONG n;
+	ULONG i;
+	cc_check_break();
+
+	d = (UBYTE *)dst;
+	s = (UBYTE *)src;
+	slen = 0UL;
+	if (s != (UBYTE *)NULL)
+	{
+		while (s[slen] != 0)
+			slen++;
+	}
+
+	if (d == (UBYTE *)NULL)
+		return slen;
+	if (size == 0UL)
+		return slen;
+
+	dlen = 0UL;
+	while (dlen < size && d[dlen] != 0)
+		dlen++;
+	if (dlen == size)
+		return size + slen;
+
+	n = size - dlen - 1UL;
+	if (s == (UBYTE *)NULL)
+	{
+		d[dlen] = 0;
+		return dlen;
+	}
+	if (n > slen)
+		n = slen;
+	i = 0UL;
+	while (i < n)
+	{
+		d[dlen + i] = s[i];
+		i++;
+	}
+	d[dlen + n] = 0;
+	return dlen + slen;
+}
+
+STRPTR __ASM__ __SAVE_DS__ strtok_r(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR delim),
+	__REG__(a2, APTR saveptr))
+{
+	char **sp;
+	UBYTE *p;
+	UBYTE *start;
+	UBYTE *d;
+	UBYTE found;
+	cc_check_break();
+
+	sp = (char **)saveptr;
+	if (sp == (char **)NULL)
+		return (STRPTR)NULL;
+
+	if (s != (STRPTR)NULL)
+		*sp = (char *)s;
+	p = (UBYTE *)*sp;
+	if (p == (UBYTE *)NULL || *p == 0)
+		return (STRPTR)NULL;
+
+	while (*p)
+	{
+		found = 0;
+		d = (UBYTE *)delim;
+		if (d != (UBYTE *)NULL)
+		{
+			while (*d)
+			{
+				if (*p == *d)
+				{
+					found = 1;
+					break;
+				}
+				d++;
+			}
+		}
+		if (!found)
+			break;
+		p++;
+	}
+	if (*p == 0)
+	{
+		*sp = (char *)p;
+		return (STRPTR)NULL;
+	}
+
+	start = p;
+	while (*p)
+	{
+		found = 0;
+		d = (UBYTE *)delim;
+		if (d != (UBYTE *)NULL)
+		{
+			while (*d)
+			{
+				if (*p == *d)
+				{
+					found = 1;
+					break;
+				}
+				d++;
+			}
+		}
+		if (found)
+		{
+			*p = 0;
+			*sp = (char *)(p + 1);
+			return (STRPTR)start;
+		}
+		p++;
+	}
+	*sp = (char *)p;
+	return (STRPTR)start;
+}
+
+STRPTR __ASM__ __SAVE_DS__ strlwr(
+	__REG__(a0, STRPTR s))
+{
+	UBYTE *p;
+
+	cc_task_UserData *ud;
+	cc_check_break();
+
+	p = (UBYTE *)s;
+	if (p == (UBYTE *)NULL)
+		return s;
+
+	ud = cc_get_ud();
+	while (*p)
+	{
+		*p = (UBYTE)cc_tolower_ch(ud, (LONG)*p);
+		p++;
+	}
+	return s;
 }

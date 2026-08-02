@@ -12,7 +12,7 @@
 **"cclib.library"
 ** Canonical LVO interface for cclib.library (V4.0 reimplementation of the
 ** historic V3.0 jump table). Register-args LVO calling convention
-** Do not reorder or insert mid-table. Append new LVOs only at the end.
+** V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.
 ** Opaque C objects (FILE, task_UserData, tm, …) are APTR.
 ** V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
 ** strcasecmp is canonical (strcmpa ==alias).
@@ -56,8 +56,10 @@ _LVOtmpnam equ -186
 _LVOtmpfile equ -192
 _LVOputc equ -198
 _LVOaputc equ -204
+_LVOfputc equ -204
 _LVOgetc equ -210
 _LVOagetc equ -216
+_LVOfgetc equ -216
 _LVOgetchar equ -222
 _LVOungetc equ -228
 _LVOputw equ -234
@@ -135,6 +137,7 @@ _LVOstrlen equ -624
 _LVOstrncat equ -630
 _LVOstrcasecmp equ -636
 _LVOstrcmpa equ -636
+_LVOstricmp equ -636
 _LVOstrncmp equ -642
 _LVOstrncpy equ -648
 _LVOstrpbrk equ -654
@@ -187,20 +190,67 @@ _LVOkill_children equ -900
 _LVOcliexec equ -906
 _LVOexec equ -912
 **--- functions in V4 or higher ---
-** V4 append-only (-918 ..). Group by category when extending.
+** V4 (-918 ..). Not frozen: grouped by category. timer.device (not
+** realtime.library) backs sleep/usleep/nanosleep.
 ** Memory
 _LVOmemmove equ -918
 _LVOmemmem equ -924
 ** String
 _LVOstrncasecmp equ -930
+_LVOstrnicmp equ -930
 _LVOstrdup equ -936
 _LVOstrndup equ -942
 _LVOstrnlen equ -948
 _LVOstpcpy equ -954
 _LVOstpncpy equ -960
+_LVOstrlcpy equ -966
+_LVOstrlcat equ -972
+_LVOstrtok_r equ -978
+_LVOstrlwr equ -984
 ** Environment
-_LVOunsetenv equ -966
-** Format — vsnprintf is the LVO; snprintf is the ==varargs alias
-** (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf).
-_LVOvsnprintf equ -972
+_LVOunsetenv equ -990
+** Format — vsnprintf LVO; snprintf is ==varargs at the same bias
+_LVOvsnprintf equ -996
+_LVOvscanf equ -1002
+_LVOvfscanf equ -1008
+_LVOvsscanf equ -1014
+_LVOgetline equ -1020
+_LVOgetdelim equ -1026
+** Conversion
+_LVOstrtol equ -1032
+_LVOstrtoul equ -1038
+_LVOstrtod equ -1044
+_LVOatoll equ -1050
+** Search / random / integer math
+_LVObsearch equ -1056
+_LVOsrand equ -1062
+_LVOrand equ -1068
+_LVOdiv equ -1074
+_LVOldiv equ -1080
+_LVOlabs equ -1086
+** Path / filesystem (dos.library)
+_LVOmkstemp equ -1092
+_LVOgetcwd equ -1098
+_LVOchdir equ -1104
+_LVOrealpath equ -1110
+_LVOmkdir equ -1116
+_LVOrmdir equ -1122
+_LVOchmod equ -1128
+_LVOutime equ -1134
+_LVOsymlink equ -1140
+_LVOreadlink equ -1146
+** Directory (POSIX dirent beside historic scdir)
+_LVOopendir equ -1152
+_LVOreaddir equ -1158
+_LVOclosedir equ -1164
+** Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay)
+_LVOsleep equ -1170
+_LVOusleep equ -1176
+_LVOnanosleep equ -1182
+** Locale
+_LVOsetlocale equ -1188
+_LVOlocaleconv equ -1194
+_LVOstrcoll equ -1200
+_LVOstrxfrm equ -1206
+_LVOstrptime equ -1212
 

@@ -32,6 +32,14 @@ char *ctime(time_t *);
 struct tm *gmtime(time_t *);
 struct tm *localtime(time_t *);
 size_t strftime(char *,size_t,char *,struct tm *);
+char *strptime(char *, char *, struct tm *);
+
+struct timespec {
+	long tv_sec;
+	long tv_nsec;
+};
+
+long nanosleep(struct timespec *req, struct timespec *rem);
 
 #else
 
@@ -44,6 +52,8 @@ char *ctime();
 struct tm *gmtime();
 struct tm *localtime();
 size_t strftime();
+char *strptime();
+long nanosleep();
 
 #endif
 

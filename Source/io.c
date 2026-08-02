@@ -64,6 +64,7 @@ LONG __ASM__ __SAVE_DS__ open(
 	BPTR lock;
 	LONG dosmode;
 	ULONG flags;
+	cc_check_break();
 
 	(void)perms;
 
@@ -131,6 +132,7 @@ LONG __ASM__ __SAVE_DS__ close(
 	cc_FileDesc *desc;
 	cc_node *node;
 	ULONG *hp;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	/* Validate membership before any dos Close (forged fd must not hit OS). */
@@ -161,6 +163,7 @@ LONG __ASM__ __SAVE_DS__ remove(
 	__REG__(a0, STRPTR name))
 {
 	LONG ok;
+	cc_check_break();
 
 	if (name == NULL)
 	{
@@ -182,6 +185,7 @@ LONG __ASM__ __SAVE_DS__ rename(
 	__REG__(a1, STRPTR newname))
 {
 	LONG ok;
+	cc_check_break();
 
 	if (oldname == NULL || newname == NULL)
 	{
@@ -206,6 +210,7 @@ LONG __ASM__ __SAVE_DS__ read(
 	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG n;
+	cc_check_break();
 
 	if (buf == NULL || len < 0L)
 	{
@@ -240,6 +245,7 @@ LONG __ASM__ __SAVE_DS__ write(
 	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG n;
+	cc_check_break();
 
 	if (buf == NULL || len < 0L)
 	{
@@ -270,6 +276,7 @@ LONG __ASM__ __SAVE_DS__ creat(
 	__REG__(a0, STRPTR name),
 	__REG__(d0, ULONG perms))
 {
+	cc_check_break();
 	return open(name, (ULONG)(CC_O_WRONLY | CC_O_CREAT | CC_O_TRUNC), perms);
 }
 
@@ -283,6 +290,7 @@ LONG __ASM__ __SAVE_DS__ lseek(
 	LONG mode;
 	LONG oldpos;
 	LONG newpos;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	desc = cc_fd_from_list(ud, fd);
@@ -328,6 +336,7 @@ LONG __ASM__ __SAVE_DS__ isatty(
 {
 	cc_task_UserData *ud;
 	cc_FileDesc *desc;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	desc = cc_fd_from_list(ud, fd);
@@ -354,6 +363,7 @@ LONG __ASM__ __SAVE_DS__ access(
 	struct FileInfoBlock *fib;
 	LONG ok;
 	ULONG prot;
+	cc_check_break();
 
 	if (name == NULL)
 	{
@@ -478,6 +488,7 @@ LONG __ASM__ __SAVE_DS__ stat(
 	__REG__(a0, STRPTR name),
 	__REG__(a1, APTR buf))
 {
+	cc_check_break();
 	if (name == NULL || buf == NULL)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -490,10 +501,341 @@ LONG __ASM__ __SAVE_DS__ stat_(
 	__REG__(a0, STRPTR name),
 	__REG__(a1, APTR buf))
 {
+	cc_check_break();
 	if (name == NULL || buf == NULL)
 	{
 		cc_set_errno(CC_EINVAL);
 		return -1L;
 	}
 	return cc_fill_stat(name, (cc_stat *)buf, 1L);
+}
+
+STRPTR __ASM__ __SAVE_DS__ getcwd(
+	__REG__(a0, STRPTR buf),
+	__REG__(d0, LONG size))
+{
+	struct Process *pr;
+	BPTR lock;
+	STRPTR out;
+	LONG alloced;
+	cc_check_break();
+
+	if (size < 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+
+	alloced = 0;
+	out = buf;
+	if (out == (STRPTR)NULL)
+	{
+		if (size == 0L)
+			size = CC_PATH_MAX;
+		out = (STRPTR)malloc((ULONG)size);
+		if (out == (STRPTR)NULL)
+		{
+			cc_set_errno(CC_ENOMEM);
+			return (STRPTR)NULL;
+		}
+		alloced = 1;
+	}
+	if (size == 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		if (alloced)
+			free(out);
+		return (STRPTR)NULL;
+	}
+
+	pr = (struct Process *)FindTask((STRPTR)NULL);
+	lock = pr->pr_CurrentDir;
+	if (!NameFromLock(lock, out, size))
+	{
+		cc_set_errno(CC_ERANGE);
+		if (alloced)
+			free(out);
+		return (STRPTR)NULL;
+	}
+	return out;
+}
+
+LONG __ASM__ __SAVE_DS__ chdir(
+	__REG__(a0, STRPTR path))
+{
+	BPTR lock;
+	BPTR old;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	lock = Lock(path, ACCESS_READ);
+	if (lock == NULL)
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+
+	old = CurrentDir(lock);
+	if (old != NULL)
+		UnLock(old);
+	return 0L;
+}
+
+STRPTR __ASM__ __SAVE_DS__ realpath(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, STRPTR resolved))
+{
+	BPTR lock;
+	STRPTR out;
+	LONG alloced;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+
+	alloced = 0;
+	out = resolved;
+	if (out == (STRPTR)NULL)
+	{
+		out = (STRPTR)malloc((ULONG)CC_PATH_MAX);
+		if (out == (STRPTR)NULL)
+		{
+			cc_set_errno(CC_ENOMEM);
+			return (STRPTR)NULL;
+		}
+		alloced = 1;
+	}
+
+	lock = Lock(path, ACCESS_READ);
+	if (lock == NULL)
+	{
+		cc_set_errno(CC_ENOENT);
+		if (alloced)
+			free(out);
+		return (STRPTR)NULL;
+	}
+
+	if (!NameFromLock(lock, out, CC_PATH_MAX))
+	{
+		UnLock(lock);
+		cc_set_errno(CC_ERANGE);
+		if (alloced)
+			free(out);
+		return (STRPTR)NULL;
+	}
+	UnLock(lock);
+	return out;
+}
+
+LONG __ASM__ __SAVE_DS__ mkdir(
+	__REG__(a0, STRPTR path),
+	__REG__(d0, LONG mode))
+{
+	BPTR lock;
+	cc_check_break();
+
+	(void)mode; /* Amiga CreateDir has no POSIX mode bits */
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	lock = CreateDir(path);
+	if (lock == NULL)
+	{
+		cc_set_errno(CC_EEXIST);
+		return -1L;
+	}
+	UnLock(lock);
+	return 0L;
+}
+
+LONG __ASM__ __SAVE_DS__ rmdir(
+	__REG__(a0, STRPTR path))
+{
+	BPTR lock;
+	struct FileInfoBlock *fib;
+	LONG ok;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	lock = Lock(path, ACCESS_READ);
+	if (lock == NULL)
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+
+	fib = (struct FileInfoBlock *)AllocMem(
+		sizeof(struct FileInfoBlock), MEMF_CLEAR);
+	if (fib == (struct FileInfoBlock *)NULL)
+	{
+		UnLock(lock);
+		cc_set_errno(CC_ENOMEM);
+		return -1L;
+	}
+
+	ok = Examine(lock, fib);
+	UnLock(lock);
+	if (!ok || fib->fib_DirEntryType < 0)
+	{
+		FreeMem(fib, sizeof(struct FileInfoBlock));
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+	FreeMem(fib, sizeof(struct FileInfoBlock));
+
+	if (!DeleteFile(path))
+	{
+		cc_set_errno(CC_EACCES);
+		return -1L;
+	}
+	return 0L;
+}
+
+LONG __ASM__ __SAVE_DS__ chmod(
+	__REG__(a0, STRPTR path),
+	__REG__(d0, LONG mode))
+{
+	ULONG prot;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	/*
+	 * Map low 9 Unix permission bits onto inverted Amiga FIBF_* flags.
+	 * Owner rwx → absence of FIBF_READ/WRITE/EXECUTE.
+	 */
+	prot = 0UL;
+	if ((mode & 0400L) == 0L)
+		prot |= (ULONG)FIBF_READ;
+	if ((mode & 0200L) == 0L)
+		prot |= (ULONG)FIBF_WRITE;
+	if ((mode & 0100L) == 0L)
+		prot |= (ULONG)FIBF_EXECUTE;
+
+	if (!SetProtection(path, (LONG)prot))
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+	return 0L;
+}
+
+LONG __ASM__ __SAVE_DS__ utime(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, APTR times))
+{
+	struct DateStamp ds;
+	LONG *tp;
+	LONG secs;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	/* struct utimbuf { long actime; long modtime; } — Amiga epoch seconds. */
+	if (times == (APTR)NULL)
+	{
+		DateStamp(&ds);
+	}
+	else
+	{
+		tp = (LONG *)times;
+		secs = tp[1]; /* modtime */
+		if (secs < 0L)
+			secs = 0L;
+		ds.ds_Days = secs / 86400L;
+		secs = secs % 86400L;
+		ds.ds_Minute = secs / 60L;
+		ds.ds_Tick = (secs % 60L) * 50L;
+	}
+
+	if (!SetFileDate(path, &ds))
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+	return 0L;
+}
+
+LONG __ASM__ __SAVE_DS__ symlink(
+	__REG__(a0, STRPTR target),
+	__REG__(a1, STRPTR linkpath))
+{
+	cc_check_break();
+	if (target == (STRPTR)NULL || linkpath == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	/* soft != 0: dest is a pointer to the link text (dos MakeLink). */
+	if (!MakeLink(linkpath, (LONG)target, 1L))
+	{
+		cc_set_errno(CC_EEXIST);
+		return -1L;
+	}
+	return 0L;
+}
+
+LONG __ASM__ __SAVE_DS__ readlink(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, STRPTR buf),
+	__REG__(d0, LONG bufsiz))
+{
+	struct DevProc *dp;
+	STRPTR namepart;
+	LONG ok;
+	LONG len;
+	cc_check_break();
+
+	if (path == (STRPTR)NULL || buf == (STRPTR)NULL || bufsiz <= 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	dp = GetDeviceProc(path, (struct DevProc *)NULL);
+	if (dp == (struct DevProc *)NULL)
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+
+	namepart = FilePart(path);
+	ok = ReadLink(dp->dvp_Port, dp->dvp_Lock, namepart, buf, (ULONG)bufsiz);
+	FreeDeviceProc(dp);
+	if (!ok)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	len = 0L;
+	while (len < bufsiz && buf[len] != '\0')
+		len++;
+	return len;
 }

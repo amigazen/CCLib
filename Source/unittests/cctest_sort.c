@@ -259,4 +259,36 @@ ct_suite_sort(void)
 		(STRPTR)"quicksort(n=0)",
 		(STRPTR)"quicksort with n=0 must not modify the array (no crash)",
 		5, ct_sort_arr[0]);
+
+	/* --- bsearch --- */
+	{
+		LONG key;
+		APTR found;
+
+		ct_sort_arr[0] = 1;
+		ct_sort_arr[1] = 3;
+		ct_sort_arr[2] = 5;
+		ct_sort_arr[3] = 7;
+		ct_sort_arr[4] = 9;
+		key = 7;
+		found = bsearch((APTR)&key, (APTR)ct_sort_arr, 5UL, sizeof(LONG),
+			(APTR)ct_cmp_long);
+		ct_check_ptr_nonnull((STRPTR)"sort", (STRPTR)"bsearch_hit",
+			(STRPTR)"bsearch for 7 in {1,3,5,7,9}",
+			(STRPTR)"bsearch must find an existing key",
+			found);
+		if (found != (APTR)NULL)
+			ct_check_long((STRPTR)"sort", (STRPTR)"bsearch_val",
+				(STRPTR)"*found after bsearch(7)",
+				(STRPTR)"bsearch result must point at the matching element",
+				7, *(LONG *)found);
+
+		key = 4;
+		found = bsearch((APTR)&key, (APTR)ct_sort_arr, 5UL, sizeof(LONG),
+			(APTR)ct_cmp_long);
+		ct_check_ptr_null((STRPTR)"sort", (STRPTR)"bsearch_miss",
+			(STRPTR)"bsearch for 4 in odd set",
+			(STRPTR)"bsearch must return NULL when the key is absent",
+			found);
+	}
 }

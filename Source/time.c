@@ -91,6 +91,7 @@ LONG __ASM__ __SAVE_DS__ time(
 {
 	struct DateStamp ds;
 	LONG secs;
+	cc_check_break();
 
 	DateStamp(&ds);
 	secs = cc_ds_to_secs(&ds);
@@ -104,6 +105,7 @@ LONG __ASM__ __SAVE_DS__ clock(void)
 	cc_task_UserData *ud;
 	struct DateStamp ds;
 	LONG now;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	DateStamp(&ds);
@@ -119,6 +121,7 @@ APTR __ASM__ __SAVE_DS__ gmtime(
 {
 	cc_task_UserData *ud;
 	LONG secs;
+	cc_check_break();
 
 	ud = cc_get_ud();
 	if (ud == NULL || timer == NULL)
@@ -133,6 +136,8 @@ APTR __ASM__ __SAVE_DS__ localtime(
 	__REG__(a0, APTR timer))
 {
 	/* Amiga has no timezone database — identical to gmtime */
+	cc_check_break();
+
 	return gmtime(timer);
 }
 
@@ -145,6 +150,7 @@ STRPTR __ASM__ __SAVE_DS__ asctime(
 	LONG wday;
 	LONG mon;
 	APTR args[7];
+	cc_check_break();
 
 	ud = cc_get_ud();
 	t = (cc_tm *)tm;
@@ -175,6 +181,7 @@ STRPTR __ASM__ __SAVE_DS__ ctime(
 	__REG__(a0, APTR timer))
 {
 	APTR tm;
+	cc_check_break();
 
 	tm = localtime(timer);
 	if (tm == NULL)
@@ -191,6 +198,7 @@ LONG __ASM__ __SAVE_DS__ mktime(
 	LONG year;
 	LONG yday;
 	LONG mon;
+	cc_check_break();
 
 	t = (cc_tm *)tm;
 	if (t == NULL)
@@ -245,6 +253,7 @@ LONG __ASM__ __SAVE_DS__ difftime(
 	__REG__(d0, LONG time1),
 	__REG__(d1, LONG time0))
 {
+	cc_check_break();
 	return time1 - time0;
 }
 
@@ -334,6 +343,7 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 	LONG year;
 	LONG hour12;
 	char ch;
+	cc_check_break();
 
 	t = (cc_tm *)tm;
 	if (s == NULL || format == NULL || t == NULL || maxsize == 0UL)
@@ -507,4 +517,171 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 		return 0UL;
 	s[pos] = '\0';
 	return pos;
+}
+
+/* ---- strptime ------------------------------------------------------- */
+
+static LONG sp_isdigit(LONG c)
+{
+	return (c >= '0' && c <= '9') ? 1L : 0L;
+}
+
+static LONG sp_getnum(STRPTR *pp, LONG width, LONG *out)
+{
+	STRPTR p;
+	LONG n;
+	LONG d;
+	LONG got;
+
+	p = *pp;
+	n = 0L;
+	got = 0L;
+	while (width > 0L && sp_isdigit((LONG)(UBYTE)*p))
+	{
+		d = (LONG)(*p - '0');
+		n = n * 10L + d;
+		p++;
+		width--;
+		got = 1L;
+	}
+	if (!got)
+		return 0L;
+	*out = n;
+	*pp = p;
+	return 1L;
+}
+
+static LONG sp_match_str(STRPTR *pp, const char **tab, LONG ntab, LONG *out)
+{
+	LONG i;
+	LONG j;
+	STRPTR p;
+
+	i = 0L;
+	while (i < ntab)
+	{
+		p = *pp;
+		j = 0L;
+		while (tab[i][j] != '\0' && p[j] != '\0')
+		{
+			if (cc_tolower_ch((cc_task_UserData *)NULL, (LONG)(UBYTE)p[j])
+			    != cc_tolower_ch((cc_task_UserData *)NULL, (LONG)(UBYTE)tab[i][j]))
+				break;
+			j++;
+		}
+		if (tab[i][j] == '\0')
+		{
+			*pp = p + j;
+			*out = i;
+			return 1L;
+		}
+		i++;
+	}
+	return 0L;
+}
+
+STRPTR __ASM__ __SAVE_DS__ strptime(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, STRPTR format),
+	__REG__(a2, APTR tm))
+{
+	cc_tm *t;
+	STRPTR p;
+	STRPTR fmt;
+	LONG v;
+	char ch;
+	cc_check_break();
+
+	t = (cc_tm *)tm;
+	if (s == (STRPTR)NULL || format == (STRPTR)NULL || t == (cc_tm *)NULL)
+		return (STRPTR)NULL;
+
+	p = s;
+	fmt = format;
+	while (*fmt)
+	{
+		if (*fmt != '%')
+		{
+			if (*fmt == ' ')
+			{
+				while (*p == ' ' || *p == '\t')
+					p++;
+				fmt++;
+				continue;
+			}
+			if (*p != *fmt)
+				return (STRPTR)NULL;
+			p++;
+			fmt++;
+			continue;
+		}
+		fmt++;
+		ch = *fmt;
+		if (ch == '\0')
+			break;
+		fmt++;
+
+		switch (ch)
+		{
+		case 'Y':
+			if (!sp_getnum(&p, 4L, &v))
+				return (STRPTR)NULL;
+			t->tm_year = (short)(v - 1900L);
+			break;
+		case 'y':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			if (v < 69L)
+				v += 100L;
+			t->tm_year = (short)v;
+			break;
+		case 'm':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			t->tm_mon = (short)(v - 1L);
+			break;
+		case 'd':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			t->tm_mday = (short)v;
+			break;
+		case 'H':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			t->tm_hour = (short)v;
+			break;
+		case 'M':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			t->tm_min = (short)v;
+			break;
+		case 'S':
+			if (!sp_getnum(&p, 2L, &v))
+				return (STRPTR)NULL;
+			t->tm_sec = (short)v;
+			break;
+		case 'b':
+		case 'B':
+			if (!sp_match_str(&p, cc_mon_abbr, 12L, &v)
+			    && !sp_match_str(&p, cc_mon_full, 12L, &v))
+				return (STRPTR)NULL;
+			t->tm_mon = (short)v;
+			break;
+		case 'a':
+		case 'A':
+			if (!sp_match_str(&p, cc_wday_abbr, 7L, &v)
+			    && !sp_match_str(&p, cc_wday_full, 7L, &v))
+				return (STRPTR)NULL;
+			t->tm_wday = (short)v;
+			break;
+		case '%':
+			if (*p != '%')
+				return (STRPTR)NULL;
+			p++;
+			break;
+		default:
+			return (STRPTR)NULL;
+		}
+	}
+	return p;
 }

@@ -12,7 +12,7 @@
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
 /* historic V3.0 jump table). Register-args LVO calling convention */
-/* Do not reorder or insert mid-table. Append new LVOs only at the end. */
+/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
@@ -330,6 +330,16 @@
 	r;   \
 })
 
+#define fputc(c, stream)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR p1 __asm("a0") = (stream);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-204:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
 #define getc(stream)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -340,6 +350,15 @@
 })
 
 #define agetc(stream)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (stream);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-216:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define fgetc(stream)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register APTR p0 __asm("a0") = (stream);   \
@@ -1044,6 +1063,16 @@
 	r;   \
 })
 
+#define stricmp(s1, s2)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s1);   \
+	register STRPTR p1 __asm("a1") = (s2);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-636:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
 #define strncmp(s1, s2, n)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1509,7 +1538,8 @@
 
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..). Group by category when extending. */
+/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
+/* realtime.library) backs sleep/usleep/nanosleep. */
 
 /* Memory */
 #define memmove(dst, src, n)    \
@@ -1538,6 +1568,17 @@
 
 /* String */
 #define strncasecmp(s1, s2, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s1);   \
+	register STRPTR p1 __asm("a1") = (s2);   \
+	register LONG p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-930:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strnicmp(s1, s2, n)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register STRPTR p0 __asm("a0") = (s1);   \
@@ -1598,6 +1639,48 @@
 	r;   \
 })
 
+#define strlcpy(dst, src, size)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (dst);   \
+	register STRPTR p1 __asm("a1") = (src);   \
+	register ULONG p2 __asm("d0") = (size);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-966:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strlcat(dst, src, size)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (dst);   \
+	register STRPTR p1 __asm("a1") = (src);   \
+	register ULONG p2 __asm("d0") = (size);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-972:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strtok_r(s, delim, saveptr)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register STRPTR p1 __asm("a1") = (delim);   \
+	register APTR p2 __asm("a2") = (saveptr);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-978:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strlwr(s)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-984:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
 
 /* Environment */
 #define unsetenv(name)    \
@@ -1605,14 +1688,12 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register STRPTR p0 __asm("a0") = (name);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-966:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-990:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
 
-/* Format — vsnprintf is the LVO; snprintf is the ==varargs alias */
-/* (same bias; SAS tagcall / stub packs stack args into a2 like FPrintf). */
-
+/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
 #define vsnprintf(s, n, format, args)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1621,7 +1702,7 @@
 	register STRPTR p2 __asm("a1") = (format);   \
 	register APTR p3 __asm("a2") = (args);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-972:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-996:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1633,6 +1714,372 @@
 	r;   \
 })
 #endif
+
+#define vscanf(format, args)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (format);   \
+	register APTR p1 __asm("a1") = (args);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1002:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define vfscanf(stream, format, args)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (stream);   \
+	register STRPTR p1 __asm("a1") = (format);   \
+	register APTR p2 __asm("a2") = (args);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1008:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define vsscanf(s, format, args)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register STRPTR p1 __asm("a1") = (format);   \
+	register APTR p2 __asm("a2") = (args);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1014:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define getline(lineptr, n, stream)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (lineptr);   \
+	register APTR p1 __asm("a1") = (n);   \
+	register APTR p2 __asm("a2") = (stream);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1020:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define getdelim(lineptr, n, delim, stream)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (lineptr);   \
+	register APTR p1 __asm("a1") = (n);   \
+	register LONG p2 __asm("d0") = (delim);   \
+	register APTR p3 __asm("a2") = (stream);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1026:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Conversion */
+#define strtol(s, endp, base)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR p1 __asm("a1") = (endp);   \
+	register LONG p2 __asm("d0") = (base);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1032:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strtoul(s, endp, base)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR p1 __asm("a1") = (endp);   \
+	register LONG p2 __asm("d0") = (base);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1038:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strtod(s, endp)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR p1 __asm("a1") = (endp);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1044:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define atoll(s)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1050:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Search / random / integer math */
+#define bsearch(key, base, nel, width, compar)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (key);   \
+	register APTR p1 __asm("a1") = (base);   \
+	register ULONG p2 __asm("d0") = (nel);   \
+	register ULONG p3 __asm("d1") = (width);   \
+	register APTR p4 __asm("a2") = (compar);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1056:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3), "r"(p4) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define srand(seed)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register ULONG p0 __asm("d0") = (seed);   \
+	__asm volatile ("jsr a6@(-1062:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
+#define rand()    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1068:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define div(result, numer, denom)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (result);   \
+	register LONG p1 __asm("d0") = (numer);   \
+	register LONG p2 __asm("d1") = (denom);   \
+	__asm volatile ("jsr a6@(-1074:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
+#define ldiv(result, numer, denom)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (result);   \
+	register LONG p1 __asm("d0") = (numer);   \
+	register LONG p2 __asm("d1") = (denom);   \
+	__asm volatile ("jsr a6@(-1080:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
+#define labs(n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1086:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Path / filesystem (dos.library) */
+#define mkstemp(template)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (template);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1092:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define getcwd(buf, size)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (buf);   \
+	register LONG p1 __asm("d0") = (size);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1098:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define chdir(path)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1104:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define realpath(path, resolved)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register STRPTR p1 __asm("a1") = (resolved);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1110:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define mkdir(path, mode)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register LONG p1 __asm("d0") = (mode);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1116:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define rmdir(path)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1122:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define chmod(path, mode)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register LONG p1 __asm("d0") = (mode);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1128:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define utime(path, times)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register APTR p1 __asm("a1") = (times);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1134:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define symlink(target, linkpath)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (target);   \
+	register STRPTR p1 __asm("a1") = (linkpath);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1140:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define readlink(path, buf, bufsiz)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (path);   \
+	register STRPTR p1 __asm("a1") = (buf);   \
+	register LONG p2 __asm("d0") = (bufsiz);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1146:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Directory (POSIX dirent beside historic scdir) */
+#define opendir(name)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (name);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1152:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define readdir(dir)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (dir);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1158:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define closedir(dir)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (dir);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1164:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
+#define sleep(seconds)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register ULONG p0 __asm("d0") = (seconds);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1170:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define usleep(usec)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register ULONG p0 __asm("d0") = (usec);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1176:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define nanosleep(req, rem)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (req);   \
+	register APTR p1 __asm("a1") = (rem);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1182:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Locale */
+#define setlocale(category, name)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (category);   \
+	register STRPTR p1 __asm("a0") = (name);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1188:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define localeconv()    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1194:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strcoll(s1, s2)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s1);   \
+	register STRPTR p1 __asm("a1") = (s2);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1200:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strxfrm(dest, src, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (dest);   \
+	register STRPTR p1 __asm("a1") = (src);   \
+	register ULONG p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1206:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strptime(s, format, tm)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register STRPTR p1 __asm("a1") = (format);   \
+	register APTR p2 __asm("a2") = (tm);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1212:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
 
 
 #endif /* INLINE_CCLIB_H */

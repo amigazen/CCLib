@@ -37,6 +37,8 @@ CCTEST_OBJS = \
 	cctest_env.o \
 	cctest_sort.o \
 	cctest_dir.o \
+	cctest_path.o \
+	cctest_locale.o \
 	cctest.o
 
 CCPANIC_OBJS = \
@@ -130,6 +132,12 @@ cctest_sort.o: cctest_sort.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 cctest_dir.o: cctest_dir.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+cctest_path.o: cctest_path.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+cctest_locale.o: cctest_locale.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 cctest.o: cctest.c cctest_util.h

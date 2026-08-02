@@ -604,4 +604,17 @@ ct_suite_fmt(void)
 		(STRPTR)"Round-trip literal value",
 		(STRPTR)"Round-trip literal value must be 1234",
 		1234, v);
+
+	/* --- vsscanf --- */
+	v = 0;
+	args[0] = (APTR)&v;
+	n = vsscanf((STRPTR)"77", (STRPTR)"%ld", (APTR)args);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_count",
+		(STRPTR)"vsscanf(\"77\",\"%%ld\",args)",
+		(STRPTR)"vsscanf must assign like sscanf via APTR args",
+		1, n);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_value",
+		(STRPTR)"vsscanf parsed value",
+		(STRPTR)"vsscanf must store the scanned integer",
+		77, v);
 }
