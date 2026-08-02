@@ -13,6 +13,32 @@ LONG ct_pass;
 LONG ct_fail;
 LONG ct_total;
 
+LONG ct_panic_hits;
+
+void
+ct_panic_hook(LONG code)
+{
+	(void)code;
+	ct_panic_hits++;
+}
+
+void
+ct_install_panic_hook(void)
+{
+	ct_panic_hits = 0;
+	/* Replace CRT exit hook so forged-handle panics do not kill CCTest. */
+	SetAbortFunc((APTR)ct_panic_hook);
+}
+
+void
+ct_restore_panic_hook(void)
+{
+	extern void exit(LONG code);
+
+	/* Restore the CRT terminate path used by SetupSTDIO. */
+	SetAbortFunc((APTR)exit);
+}
+
 static void
 ct_out(STRPTR fmt, APTR args)
 {

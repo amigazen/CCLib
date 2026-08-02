@@ -119,16 +119,22 @@ LONG __ASM__ __SAVE_DS__ setenv(
 {
 	LONG ok;
 
+	/*
+	 * Wrap dos SetVar / DeleteVar (see dos.library autodocs).
+	 * Prefer GVF_LOCAL_ONLY — SetVar's default is local-to-process.
+	 */
 	if (name == NULL)
 	{
 		cc_set_errno(CC_EINVAL);
 		return -1L;
 	}
 
-	/* NULL or empty value deletes the variable (like Amiga SETENV) */
+	/* NULL or empty value deletes (Amiga SETENV / POSIX unset-like). */
 	if (value == NULL || value[0] == '\0')
 	{
-		ok = DeleteVar(name, GVF_GLOBAL_ONLY);
+		ok = DeleteVar(name, GVF_LOCAL_ONLY);
+		if (!ok)
+			ok = DeleteVar(name, GVF_GLOBAL_ONLY);
 		if (!ok)
 		{
 			cc_set_errno(CC_ENOENT);
@@ -137,7 +143,7 @@ LONG __ASM__ __SAVE_DS__ setenv(
 		return 0L;
 	}
 
-	ok = SetVar(name, value, -1L, GVF_GLOBAL_ONLY);
+	ok = SetVar(name, value, -1L, GVF_LOCAL_ONLY);
 	if (!ok)
 	{
 		cc_set_errno(CC_ENOMEM);
@@ -149,21 +155,18 @@ LONG __ASM__ __SAVE_DS__ setenv(
 LONG __ASM__ __SAVE_DS__ unsetenv(
 	__REG__(a0, STRPTR name))
 {
-	LONG ok;
-
-	/* POSIX unsetenv; maps to dos DeleteVar (same as setenv empty). */
+	/*
+	 * POSIX unsetenv via DeleteVar.  Drop the local var first; also
+	 * clear a global ENV: copy so getenv's default lookup cannot see it.
+	 */
 	if (name == NULL || name[0] == '\0')
 	{
 		cc_set_errno(CC_EINVAL);
 		return -1L;
 	}
 
-	ok = DeleteVar(name, GVF_GLOBAL_ONLY);
-	if (!ok)
-	{
-		cc_set_errno(CC_ENOENT);
-		return -1L;
-	}
+	(void)DeleteVar(name, GVF_LOCAL_ONLY);
+	(void)DeleteVar(name, GVF_GLOBAL_ONLY);
 	return 0L;
 }
 
@@ -192,11 +195,11 @@ STRPTR __ASM__ __SAVE_DS__ getenv(
 		return NULL;
 	}
 
-	/* Local first, then global ENV: */
-	len = GetVar(name, buf, CC_GETENV_BUFLEN - 1L, GVF_LOCAL_ONLY);
-	if (len < 0L)
-		len = GetVar(name, buf, CC_GETENV_BUFLEN - 1L, GVF_GLOBAL_ONLY);
-
+	/*
+	 * Wrap GetVar with flags 0: local process var first, then global
+	 * ENV: (dos.library GetVar default).
+	 */
+	len = GetVar(name, buf, CC_GETENV_BUFLEN - 1L, 0UL);
 	if (len < 0L)
 	{
 		FreeMem(buf, CC_GETENV_BUFLEN);

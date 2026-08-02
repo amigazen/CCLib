@@ -19,6 +19,7 @@
  */
 
 #include <proto/exec.h>
+#include <proto/dos.h>
 
 #include "private/cc_internal.h"
 #include "cclib_funcs.h"
@@ -92,6 +93,42 @@ void cc_set_errno(LONG err)
 		*ud->errno_p = err;
 }
 
+/*
+ * Abnormal session teardown entry.  Prefer ud->abort_func (CRT sets this
+ * to exit, which runs atexit handlers then ClearSTDIO).  Apps register
+ * their own cleanup with atexit() — no separate library cleanup list.
+ * If there is no hook, reap here and Exit so resources cannot leak.
+ */
+void
+cc_panic(LONG code)
+{
+	cc_task_UserData *ud;
+	static LONG panicking;
+
+	if (panicking)
+	{
+		if (DOSBase != (struct DosLibrary *)NULL)
+			Exit(code);
+		return;
+	}
+	panicking = 1;
+
+	ud = cc_get_ud();
+	if (ud != (cc_task_UserData *)NULL
+	    && ud->abort_func != (cc_ABORT_FUNC)NULL)
+	{
+		(*ud->abort_func)(code);
+		/* Production exit() does not return.  A test hook may return. */
+		panicking = 0;
+		return;
+	}
+
+	ClearSTDIO();
+	panicking = 0;
+	if (DOSBase != (struct DosLibrary *)NULL)
+		Exit(code);
+}
+
 LONG cc_get_errno(void)
 {
 	cc_task_UserData *ud;
@@ -122,7 +159,7 @@ cc_list_has_data(cc_list *list, APTR data)
 
 /*
  * Resolve an open() fd (pointer-as-capability) against OpenFiles.
- * Does not call AmigaOS; sets EBADF on failure.
+ * Sentinels (-1/0) → EBADF.  Forged/stale pointers → panic then EBADF.
  */
 cc_FileDesc *
 cc_fd_from_list(cc_task_UserData *ud, LONG fd)
@@ -135,22 +172,19 @@ cc_fd_from_list(cc_task_UserData *ud, LONG fd)
 		return (cc_FileDesc *)NULL;
 	}
 	desc = (cc_FileDesc *)fd;
-	if (!cc_list_has_data(&ud->OpenFiles, (APTR)desc))
+	if (!cc_list_has_data(&ud->OpenFiles, (APTR)desc)
+	    || desc->magic != CC_FD_MAGIC)
 	{
 		cc_set_errno(CC_EBADF);
-		return (cc_FileDesc *)NULL;
-	}
-	if (desc->magic != CC_FD_MAGIC)
-	{
-		cc_set_errno(CC_EBADF);
+		cc_panic(20L);
 		return (cc_FileDesc *)NULL;
 	}
 	return desc;
 }
 
 /*
- * Resolve a FILE* against StreamFiles.  Sets EINVAL for NULL stream,
- * EBADF if not a live session stream.
+ * Resolve a FILE* against StreamFiles.  NULL → EINVAL.
+ * Forged/stale streams → panic then EBADF.
  */
 cc_FILE *
 cc_file_from_list(cc_task_UserData *ud, APTR stream)
@@ -168,14 +202,11 @@ cc_file_from_list(cc_task_UserData *ud, APTR stream)
 		return (cc_FILE *)NULL;
 	}
 	fp = (cc_FILE *)stream;
-	if (!cc_list_has_data(&ud->StreamFiles, (APTR)fp))
+	if (!cc_list_has_data(&ud->StreamFiles, (APTR)fp)
+	    || fp->magic != CC_FP_MAGIC)
 	{
 		cc_set_errno(CC_EBADF);
-		return (cc_FILE *)NULL;
-	}
-	if (fp->magic != CC_FP_MAGIC)
-	{
-		cc_set_errno(CC_EBADF);
+		cc_panic(20L);
 		return (cc_FILE *)NULL;
 	}
 	return fp;

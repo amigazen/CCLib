@@ -3842,7 +3842,10 @@ CClib.library/setenv                                      CClib.library/setenv
 	Registers: a0=name, a1=value
 
    FUNCTION
-	Sets a global ENV: file variable name to value using SetVar. When value is NULL or an empty string, deletes the variable with DeleteVar (Amiga SETENV semantics).
+	Wraps dos.library SetVar / DeleteVar. Sets a process-local
+	variable (GVF_LOCAL_ONLY). When value is NULL or "", deletes
+	the local var, then any global ENV: copy (Amiga SETENV empty
+	semantics).
 
    INPUTS
 	name - variable name
@@ -3852,10 +3855,10 @@ CClib.library/setenv                                      CClib.library/setenv
 	0 on success, -1 on failure (errno set to EINVAL, ENOENT, or ENOMEM).
 
    NOTES
-	Variables live in the Amiga ENV: directory, not a Unix environ vector.
+	Prefers local vars (SetVar default). See also dos.library/SetVar.
 
    SEE ALSO
-	getenv
+	getenv, unsetenv
 
    (LVO bias -840)
 
@@ -3869,7 +3872,9 @@ CClib.library/getenv                                      CClib.library/getenv
 	Registers: a0=name
 
    FUNCTION
-	Looks up name in the Amiga ENV: filesystem. Checks the local process environment first (GVF_LOCAL_ONLY), then the global ENV: archive (GVF_GLOBAL_ONLY). The value is copied into a buffer allocated from the per-task heap.
+	Wraps dos.library GetVar with flags 0 (local process var first,
+	then global ENV:). Copies the value into a per-task scratch
+	buffer.
 
    INPUTS
 	name - variable name to look up
@@ -3879,11 +3884,34 @@ CClib.library/getenv                                      CClib.library/getenv
 
    NOTES
 	Return pointer is valid only until the next getenv in this task. Copy the string if it must be retained.
+	See also dos.library/GetVar.
 
    SEE ALSO
-	setenv
+	setenv, unsetenv
 
    (LVO bias -846)
+
+CClib.library/unsetenv                                  CClib.library/unsetenv
+   NAME
+	unsetenv -- delete an environment variable
+
+   SYNOPSIS
+	LONG unsetenv(STRPTR name);
+
+	Registers: a0=name
+
+   FUNCTION
+	Wraps dos.library DeleteVar. Removes the local var, then any
+	global ENV: copy so GetVar's default lookup cannot see it.
+	Missing name is success (POSIX).
+
+   RESULT
+	0 on success, -1 if name is NULL or empty (errno EINVAL).
+
+   SEE ALSO
+	setenv, getenv
+
+   (LVO bias -966)
 
 CClib.library/stat_                                        CClib.library/stat_
    NAME

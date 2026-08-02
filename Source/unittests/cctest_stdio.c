@@ -383,18 +383,20 @@ ct_suite_stdio(void)
 		fclose(fp);
 	}
 
-	/* Forged FILE* must not reach dos. */
+	/* Forged FILE* must panic and not reach dos. */
+	ct_install_panic_hook();
 	c = getc((APTR)0x12345678L);
-	ct_check_long((STRPTR)"stdio", (STRPTR)"getc_forged",
+	ct_check_true((STRPTR)"stdio", (STRPTR)"getc_forged",
 		(STRPTR)"getc(forged)",
-		(STRPTR)"getc of a forged FILE* must return EOF",
-		(LONG)(-1), c);
+		(STRPTR)"getc of a forged FILE* must panic and return EOF",
+		c == (LONG)(-1) && ct_panic_hits == 1L);
 
 	n = fclose((APTR)0x12345678L);
-	ct_check_long((STRPTR)"stdio", (STRPTR)"fclose_forged",
+	ct_check_true((STRPTR)"stdio", (STRPTR)"fclose_forged",
 		(STRPTR)"fclose(forged)",
-		(STRPTR)"fclose of a forged FILE* must fail",
-		-1L, n);
+		(STRPTR)"fclose of a forged FILE* must panic and fail",
+		n == -1L && ct_panic_hits == 2L);
+	ct_restore_panic_hook();
 
 	fp = tmpfile();
 	if (fp != (APTR)NULL)
@@ -404,10 +406,12 @@ ct_suite_stdio(void)
 			(STRPTR)"fclose(tmpfile)",
 			(STRPTR)"fclose of tmpfile must succeed",
 			0L, n);
+		ct_install_panic_hook();
 		n = fclose(fp);
-		ct_check_long((STRPTR)"stdio", (STRPTR)"fclose_twice",
+		ct_check_true((STRPTR)"stdio", (STRPTR)"fclose_twice",
 			(STRPTR)"fclose again",
-			(STRPTR)"second fclose of the same FILE* must fail",
-			-1L, n);
+			(STRPTR)"second fclose must panic and fail",
+			n == -1L && ct_panic_hits == 1L);
+		ct_restore_panic_hook();
 	}
 }

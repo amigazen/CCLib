@@ -241,6 +241,13 @@ cc_task_UserData *cc_get_ud(void);
 void cc_set_errno(LONG err);
 LONG cc_get_errno(void);
 
+/*
+ * Panic: invalid capability / programming error.  Invokes ud->abort_func
+ * (CRT installs exit, which runs atexit then ClearSTDIO).  If the hook
+ * returns, the caller must still fail the LVO (errno already set).
+ */
+void cc_panic(LONG code);
+
 /* Capability resolve: membership on session registries (+ magic). */
 cc_FileDesc *cc_fd_from_list(cc_task_UserData *ud, LONG fd);
 cc_FILE *cc_file_from_list(cc_task_UserData *ud, APTR stream);

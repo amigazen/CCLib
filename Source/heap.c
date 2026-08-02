@@ -318,6 +318,7 @@ void __ASM__ __SAVE_DS__ free(
 	if (blk == (cc_MemBlk *)NULL)
 	{
 		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
 		return;
 	}
 
@@ -356,7 +357,11 @@ ULONG __ASM__ __SAVE_DS__ malloc_size(
 
 	ud = cc_get_ud();
 	if (cc_blk_from_malloc_ptr(ud, ptr) == (cc_MemBlk *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
 		return 0;
+	}
 
 	hdr = ((ULONG *)ptr) - 1;
 	return *hdr;

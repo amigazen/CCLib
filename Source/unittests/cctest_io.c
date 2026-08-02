@@ -321,7 +321,7 @@ ct_suite_io(void)
 		remove(path1);
 	}
 
-	/* --- capability / EBADF --- */
+	/* --- capability: sentinels return EBADF; forged pointers panic --- */
 	n = close(-1L);
 	ct_check_long((STRPTR)"io", (STRPTR)"close_bad_neg1",
 		(STRPTR)"close(-1)",
@@ -334,11 +334,13 @@ ct_suite_io(void)
 		(STRPTR)"close of 0 must fail with -1",
 		-1L, n);
 
+	ct_install_panic_hook();
 	n = read(0x12345678L, (APTR)buf, 1L);
-	ct_check_long((STRPTR)"io", (STRPTR)"read_forged_fd",
+	ct_check_true((STRPTR)"io", (STRPTR)"read_forged_fd",
 		(STRPTR)"read(forged fd)",
-		(STRPTR)"read of a forged FileDesc* must fail without calling dos",
-		-1L, n);
+		(STRPTR)"forged fd must panic (abort hook) and fail without calling dos",
+		n == -1L && ct_panic_hits == 1L);
+	ct_restore_panic_hook();
 
 	fd = open(path1, (ULONG)(CT_O_RDWR | CT_O_CREAT | CT_O_TRUNC), 0);
 	ct_check_true((STRPTR)"io", (STRPTR)"open_for_double_close",
@@ -352,16 +354,19 @@ ct_suite_io(void)
 			(STRPTR)"close(fd)",
 			(STRPTR)"first close must return 0",
 			0L, n);
-		n = close(fd);
-		ct_check_long((STRPTR)"io", (STRPTR)"close_twice",
-			(STRPTR)"close(fd) again",
-			(STRPTR)"second close of the same fd must fail with EBADF path",
-			-1L, n);
-		n = write(fd, (APTR)"x", 1L);
-		ct_check_long((STRPTR)"io", (STRPTR)"write_after_close",
-			(STRPTR)"write after close",
-			(STRPTR)"write on a closed fd must fail",
-			-1L, n);
-		remove(path1);
+	ct_install_panic_hook();
+	n = close(fd);
+	ct_check_true((STRPTR)"io", (STRPTR)"close_twice",
+		(STRPTR)"close(fd) again",
+		(STRPTR)"second close must panic and fail",
+		n == -1L && ct_panic_hits == 1L);
+	ct_panic_hits = 0;
+	n = write(fd, (APTR)"x", 1L);
+	ct_check_true((STRPTR)"io", (STRPTR)"write_after_close",
+		(STRPTR)"write after close",
+		(STRPTR)"write on a closed fd must panic and fail",
+		n == -1L && ct_panic_hits == 1L);
+	ct_restore_panic_hook();
+	remove(path1);
 	}
 }
