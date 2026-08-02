@@ -1,0 +1,4173 @@
+TABLE OF CONTENTS
+
+CClib.library/--background--
+CClib.library/--notes-sasc--
+CClib.library/SetSTDIO
+CClib.library/GetSTDIO
+CClib.library/ClearSTDIO
+CClib.library/closeall
+CClib.library/SetAbortFunc
+CClib.library/ClearAbortFunc
+CClib.library/SetupSTDIO
+CClib.library/strerror
+CClib.library/open
+CClib.library/close
+CClib.library/unlink
+CClib.library/stat
+CClib.library/rename
+CClib.library/read
+CClib.library/write
+CClib.library/creat
+CClib.library/lseek
+CClib.library/isatty
+CClib.library/access
+CClib.library/fopen
+CClib.library/freopen
+CClib.library/fclose
+CClib.library/fdopen
+CClib.library/getbuff
+CClib.library/setvbuf
+CClib.library/mktemp
+CClib.library/tmpnam
+CClib.library/tmpfile
+CClib.library/putc
+CClib.library/aputc
+CClib.library/getc
+CClib.library/agetc
+CClib.library/getchar
+CClib.library/ungetc
+CClib.library/putw
+CClib.library/puts
+CClib.library/puterr
+CClib.library/fwrite
+CClib.library/perror
+CClib.library/fseek
+CClib.library/ftell
+CClib.library/fflush
+CClib.library/getw
+CClib.library/fread
+CClib.library/gets
+CClib.library/fgets
+CClib.library/fputs
+CClib.library/scanf
+CClib.library/printf
+CClib.library/fscanf
+CClib.library/fprintf
+CClib.library/sscanf
+CClib.library/sprintf
+CClib.library/_alloc
+CClib.library/_fre
+CClib.library/_freall
+CClib.library/sbrk
+CClib.library/heap_alloc
+CClib.library/heap_free
+CClib.library/malloc
+CClib.library/calloc
+CClib.library/realloc
+CClib.library/free
+CClib.library/be_free
+CClib.library/malloc_size
+CClib.library/freeall
+CClib.library/inst_node
+CClib.library/put_head
+CClib.library/add_head
+CClib.library/put_tail
+CClib.library/add_tail
+CClib.library/remv_head
+CClib.library/remv_tail
+CClib.library/remv_list
+CClib.library/r_node
+CClib.library/remv_node
+CClib.library/atoi
+CClib.library/atol
+CClib.library/atof
+CClib.library/ltoa
+CClib.library/stoa
+CClib.library/bcmp
+CClib.library/bcopy
+CClib.library/bzero
+CClib.library/memccpy
+CClib.library/memchr
+CClib.library/memcmp
+CClib.library/memcpy
+CClib.library/memset
+CClib.library/memswap
+CClib.library/index
+CClib.library/rindex
+CClib.library/strupr
+CClib.library/stpcrlf
+CClib.library/strcat
+CClib.library/strchr
+CClib.library/strcmp
+CClib.library/strcpy
+CClib.library/strcspn
+CClib.library/strlen
+CClib.library/strncat
+CClib.library/strcmpa
+CClib.library/strncmp
+CClib.library/strncpy
+CClib.library/strpbrk
+CClib.library/strrchr
+CClib.library/strspn
+CClib.library/strstr
+CClib.library/strtok
+CClib.library/strrv
+CClib.library/strnrv
+CClib.library/bcpl_strcpy
+CClib.library/vquicksort
+CClib.library/toupper
+CClib.library/quicksort
+CClib.library/qsort
+CClib.library/cli_parse
+CClib.library/wb_parse
+CClib.library/vprintf
+CClib.library/vfprintf
+CClib.library/vsprintf
+CClib.library/fgetpos
+CClib.library/fsetpos
+CClib.library/time
+CClib.library/clock
+CClib.library/gmtime
+CClib.library/asctime
+CClib.library/ctime
+CClib.library/localtime
+CClib.library/mktime
+CClib.library/difftime
+CClib.library/strftime
+CClib.library/scdir
+CClib.library/scdir_clean
+CClib.library/tolower
+CClib.library/setenv
+CClib.library/getenv
+CClib.library/stat_
+CClib.library/wb_exec
+CClib.library/wbexec
+CClib.library/wbAexec
+CClib.library/wait_child
+CClib.library/wait_children
+CClib.library/signal_child
+CClib.library/kill
+CClib.library/kill_children
+CClib.library/cliexec
+CClib.library/exec
+
+CClib.library/--background--                      CClib.library/--background--
+
+    CClib.library is a shared AmigaOS implementation of the standard C
+    library (plus Amiga helpers). Applications OpenLibrary("CClib.library",
+    4), include the CClib SDK headers (<stdio.h>, <string.h>, ...) instead
+    of the SAS/C clib, and either include <proto/cclib.h> (register LVOs)
+    or link the auto/stub library for a normal C calling face.
+
+    Per-task state lives in Task->tc_UserData (task_UserData). Call
+    SetupSTDIO from CRT before using stdio/heap; ClearSTDIO on exit.
+
+    Implementation uses native AmigaOS APIs (exec/dos/utility) only -
+    no dependency on the SAS/C sc.lib runtime.
+
+    WARNING
+	Do not overwrite tc_UserData while CClib is active.
+	printf/scanf LVOs take a format string and an APTR argument array
+	(RawDoFmt style). C varargs "..." belongs in the stub/auto layer
+	or client wrappers, not in the raw LVO register signature.
+	Opaque types (FILE *, task_UserData *, struct tm *, ...) are APTR at
+	the LVO boundary; client headers restore typed C declarations.
+	%e/%f/%g consume a DOUBLE as two consecutive LONGs in the arg array.
+
+    REENTRANCY (historic CClib.Doc)
+	Mutable C "globals" live in per-task task_UserData (heap freelist,
+	FILE/fd lists, strtok scanpoint, tmpnam/asctime/localtime buffers,
+	children, errno/blocksize/mathbase pointers).  Tasks never share a
+	freelist.  The ctype table in the library is shared and read-only.
+	Classic static-buffer APIs are per-task safe, not call-safe within
+	one task.  FILEs are linked lists - use fileno(), not hard-coded 0/1/2.
+
+    FLOATING POINT (historic CClib.Doc)
+	Library FP uses only mathieeedoubbas.library (64-bit IEEE).  CRT opens
+	it when _math != 0 and passes the base to SetupSTDIO as mathbase.
+	atof and printf/scanf %e/%f/%g call IEEEDP* through that base - never
+	SAS/C softfloat.  Apps that use float must compile/link IEEE (historic
+	-fi + lcmieee.lib; SAS/C scmieee / mathieee*).  Set _math = 0 to skip
+	opening IEEE when the app needs no float.
+
+    SEE ALSO
+	libraries/cclib.h, proto/cclib.h, SDK/SFD/cclib_lib.sfd,
+	CClib.library/--notes-sasc--
+
+CClib.library/--notes-sasc--                      CClib.library/--notes-sasc--
+   NAME
+	Notes on SAS/C (Lattice C 6.x)
+
+   FUNCTION
+	SAS/C is the Lattice C 6 line.  Historic CClib.Doc section IX (Lattice)
+	still applies; this port maps it onto SAS/C 6.x / SLINK as follows.
+
+	Historic Lattice link order
+	    cc.o + lcmain.o + yourstuff.o ... lcclib.lib, lcmieee.lib,
+	    lc.lib, amiga.lib
+
+	    cc.o was a patched Lattice c.o (source not redistributable).
+	    Lines that prepended the program name to the CLI string and that
+	    replied to the Workbench startup message were removed, because
+	    CClib.library already does both.  Symptoms of using stock c.o:
+		CLI - argv[0] and argv[1] both set to the program name
+		Workbench - double ReplyMsg, system crash
+
+	This port (NOSTARTUP)
+	    Source/crt/cc_entry.o  ~=  cc.o   (SysBase/DOSBase, GetArgStr,
+	                                     no argv[0] prepend, no WB reply)
+	    Source/crt/cc_crt.o    ~=  lcmain.o  (_main(aptr), SetupSTDIO,
+	                                     __fpinit, __XCEXIT/Exit,
+	                                     Aztec _savsp/_stkbase/_oldtrap)
+	    stubs/math.o, stubs/blocksize.o
+	    your app .o
+	    LIB lib:amiga.lib only - do not link sc:lib/c.o or sc.lib
+
+	    SLINK: NOSTARTUP ENTRY=_start
+	    See Source/unittests/smakefile (heir of archive test.lmk).
+
+	If WBenchMsg is already non-NULL when _main runs, stock c.o was
+	linked; _main exits 100 (same guard as lcmain.c).
+
+	Floating point
+	    CRT: OpenLibrary("mathieeedoubbas.library") when _math != 0;
+	    pass base to SetupSTDIO.  Library: Source/cc_ieee.c IEEEDP*
+	    wrappers using ud->mathbase (atof, %e/%f/%g).  No sc.lib
+	    softfloat in the .library.  SLINK Warning 625 when omitting
+	    scm*.lib on the library link is advisory.
+
+	Headers
+	    Include CClib SDK headers (Include_H) ahead of SAS/C clib.
+	    Define ANSIC (or rely on the SDK headers' default) for prototypes.
+	    Application LVOs: <proto/cclib.h> (register) or the auto/stub lib
+	    for C varargs/stack calling.
+
+   SEE ALSO
+	archive CClib.Doc (intro reentrancy/IEEE, section IX), Source/crt/,
+	Source/cc_ieee.c, Source/unittests/, proto/cclib.h
+
+CClib.library/SetSTDIO                                  CClib.library/SetSTDIO
+   NAME
+	SetSTDIO -- allocate per-task C library userdata
+
+   SYNOPSIS
+	LONG SetSTDIO(void);
+
+   FUNCTION
+	Allocates a task_UserData structure from the public memory pool and attaches it to the current task's tc_UserData field. The block holds per-task FILE and FileDesc lists, heap freelist anchors, argv parsing results, temporary name buffers, and pointers into the application's errno, blocksize, and stdio globals once SetupSTDIO runs.
+
+	The previous tc_UserData pointer is saved in old_ud so ClearSTDIO can restore it. Lists for RAM allocations, open file descriptors, stream FILE nodes, and child processes are initialized empty. Call SetSTDIO (or let SetupSTDIO call it) before any other CClib routine that touches task state.
+
+	Do not overwrite tc_UserData while CClib is active. Only one task_UserData block should be attached per task at a time.
+
+   INPUTS
+	None.
+
+   RESULT
+	LONG status. Zero is returned if the allocation and attach succeeded. One is returned on failure (no current task or AllocMem failed). No errno is set.
+
+   NOTES
+	task_UserData lives at Task->tc_UserData. GetSTDIO returns the same pointer. SetupSTDIO may call SetSTDIO implicitly when tc_UserData is still NULL.
+
+   SEE ALSO
+	GetSTDIO, ClearSTDIO, SetupSTDIO, closeall
+
+   (LVO bias -30)
+
+CClib.library/GetSTDIO                                  CClib.library/GetSTDIO
+   NAME
+	GetSTDIO -- return the current task's userdata pointer
+
+   SYNOPSIS
+	APTR GetSTDIO(void);
+
+   FUNCTION
+	Returns a pointer to the cc_task_UserData block currently attached to the calling task. Nearly every CClib LVO begins by fetching this block to reach open-file lists, stream buffers, errno storage, and heap state.
+
+	The call is implemented as a compact assembly helper because it is invoked frequently from library internals. Client code may use it to inspect argc/argv after SetupSTDIO or to reach library-owned fields documented in libraries/cclib.h.
+
+   INPUTS
+	None.
+
+   RESULT
+	APTR to task_UserData on success, or NULL if SetSTDIO has not been run for this task (tc_UserData is not a CClib block).
+
+   NOTES
+	Opaque at the LVO boundary (APTR); client headers typedef it as task_UserData *. Never replace tc_UserData manually while CClib is active.
+
+   SEE ALSO
+	SetSTDIO, ClearSTDIO, SetupSTDIO
+
+   (LVO bias -36)
+
+CClib.library/ClearSTDIO                              CClib.library/ClearSTDIO
+   NAME
+	ClearSTDIO -- tear down CClib per-task state
+
+   SYNOPSIS
+	void ClearSTDIO(void);
+
+   FUNCTION
+	Releases all resources owned by CClib for the current task. It first calls closeall to flush and close every tracked FILE stream and FileDesc, then freeall to return heap nodes allocated through the CClib allocator.
+
+	After lists are drained, the task's tc_UserData is restored from old_ud (the value present before SetSTDIO), and the task_UserData structure itself is FreeMem'd.
+
+	Applications should call ClearSTDIO from their CRT exit path (for example after main returns) so DOS handles, ENV scratch buffers, and heap bookkeeping do not leak across program runs.
+
+   INPUTS
+	None.
+
+   RESULT
+	None.
+
+   NOTES
+	Unlike closeall alone, ClearSTDIO also frees heap memory and restores tc_UserData. Use exit or _exit (not AmigaDOS Exit) so the CRT can reach ClearSTDIO.
+
+   SEE ALSO
+	SetSTDIO, GetSTDIO, closeall, SetupSTDIO, freeall
+
+   (LVO bias -42)
+
+CClib.library/closeall                                  CClib.library/closeall
+   NAME
+	closeall -- close every open stream and file descriptor
+
+   SYNOPSIS
+	void closeall(void);
+
+   FUNCTION
+	Walks the StreamFiles and OpenFiles lists in task_UserData, flushing buffer state and closing underlying DOS BPTRs. Stream buffer memory allocated by setvbuf or getbuff is freed when the CC_ALLBUF flag is set.
+
+	CLI standard Input/Output handles marked CC_O_STDIO are not passed to dos.library Close(); only the FILE wrapper nodes are removed. Workbench WINDOW streams opened by wb_parse are closed normally.
+
+	Pointers stored at stdin_p, stdout_p, and stderr_p in the application are cleared to NULL. List nodes allocated by add_head/add_tail are freed; the list headers inside task_UserData remain.
+
+   INPUTS
+	None.
+
+   RESULT
+	None.
+
+   NOTES
+	closeall does not free the task_UserData block or heap RAM from malloc/calloc. For full teardown use ClearSTDIO.
+
+   SEE ALSO
+	ClearSTDIO, fclose, close, SetupSTDIO
+
+   (LVO bias -48)
+
+CClib.library/SetAbortFunc                          CClib.library/SetAbortFunc
+   NAME
+	SetAbortFunc -- install a Ctrl-C / break handler
+
+   SYNOPSIS
+	void SetAbortFunc(APTR abortfunc);
+
+	Registers: a0=abortfunc
+
+   FUNCTION
+	Registers abort_func in task_UserData. When AmigaDOS delivers a break signal (console Ctrl-C or the Break command), the library checks this pointer and, if non-NULL, calls func(signalmask) with the 32-bit signal set that caused the break.
+
+	The default handler installed by SetupSTDIO is the application's exit routine (typically _exit). Replace it when you need to unwind custom state before terminating.
+
+	If you intend to leave the program from the handler, call exit or _exit, not AmigaDOS Exit(), or CClib allocations and open files will not be released.
+
+   INPUTS
+	abortfunc - APTR to a function void func(LONG signalmask), or NULL to clear the hook (same effect as ClearAbortFunc).
+
+   RESULT
+	None.
+
+   NOTES
+	SetupSTDIO also stores its exitfunc argument in abort_func. A later SetAbortFunc overrides that pointer until ClearAbortFunc runs.
+
+   SEE ALSO
+	ClearAbortFunc, SetupSTDIO, ClearSTDIO, signal_child
+
+   (LVO bias -54)
+
+CClib.library/ClearAbortFunc                      CClib.library/ClearAbortFunc
+   NAME
+	ClearAbortFunc -- remove the break signal handler
+
+   SYNOPSIS
+	void ClearAbortFunc(void);
+
+   FUNCTION
+	Sets abort_func in task_UserData to NULL so break signals are no longer forwarded to application code. The library does not install a replacement; the next SetupSTDIO call will set abort_func again from its exitfunc argument.
+
+	Use this when a subsystem that registered a temporary handler has finished and you want breaks ignored until reconfigured.
+
+   INPUTS
+	None.
+
+   RESULT
+	None.
+
+   NOTES
+	Break handling still depends on process signal masks set elsewhere; clearing the func only removes the C callback.
+
+   SEE ALSO
+	SetAbortFunc, SetupSTDIO
+
+   (LVO bias -60)
+
+CClib.library/SetupSTDIO                              CClib.library/SetupSTDIO
+   NAME
+	SetupSTDIO -- wire globals, parse args, open standard streams
+
+   SYNOPSIS
+	LONG SetupSTDIO(APTR stdin_p, APTR stdout_p, APTR stderr_p,
+	APTR errno_p, APTR blocksize_p, APTR type_p, APTR mathbase,
+	LONG alen, STRPTR aptr, APTR wbm, APTR exitfunc);
+
+	Registers: a0=stdin_p, a1=stdout_p, a2=stderr_p, a3=errno_p,
+		a4=blocksize_p, a5=type_p, d0=mathbase, d1=alen,
+		d2=aptr, d3=wbm, d4=exitfunc
+
+   FUNCTION
+	Connects CClib to the application's global variables and prepares standard I/O for the task. If tc_UserData is not yet set, SetupSTDIO calls SetSTDIO first. It then records pointers to the application's stdin, stdout, stderr FILE pointers, errno, blocksize, and (optionally) ctype table pointer, and stores mathbase for IEEE double helpers.
+
+	Command-line programs pass alen and aptr; SetupSTDIO calls cli_parse to build argc/argv from the CLI argument string and command name. Workbench programs pass wbm (struct WBStartup *); wb_parse builds argv from the tool's argument list and, when the icon has a WINDOW tooltype, opens a CON: (or similar) window for standard I/O.
+
+	When standard I/O is available, Input(), Output(), and ErrorOutput() are wrapped in FILE streams and FileDesc records on the task lists. CLI streams are tagged CC_O_STDIO so close() will not Close() the underlying DOS handles.
+
+   INPUTS
+	stdin_p - address of the application's FILE * stdin variable
+	stdout_p - address of FILE * stdout
+	stderr_p - address of FILE * stderr
+	errno_p - address of the application's errno (LONG)
+	blocksize_p - address of blocksize used by the heap manager
+	type_p - address of char *; receives pointer to library ctype table
+	mathbase - MathIeeeDoubBasBase pointer, or NULL if _math == 0
+	alen - CLI argument string length (0 if wbm is used)
+	aptr - CLI argument string pointer
+	wbm - Workbench startup message, or NULL for CLI
+	exitfunc - application exit routine (stored as abort_func)
+
+   RESULT
+	LONG status. One is returned when initialization succeeded (including the case where WB has no WINDOW tooltype and stdio is deliberately absent). Zero is returned if SetSTDIO could not allocate task_UserData.
+
+   NOTES
+	Workbench tools without a WINDOW tooltype get argc/argv but no stdin/stdout/stderr FILEs; writing to NULL streams can crash. printf, fprintf, fscanf, and scanf LVOs take a format string plus an APTR argument array (RawDoFmt style); varargs belong in stub/auto layers. %e/%f/%g consume a DOUBLE as two consecutive LONGs in that array when mathbase is non-NULL.
+
+   SEE ALSO
+	SetSTDIO, GetSTDIO, ClearSTDIO, cli_parse, wb_parse, atof
+
+   (LVO bias -66)
+
+CClib.library/strerror                                  CClib.library/strerror
+   NAME
+	strerror -- map an errno code to a text message
+
+   SYNOPSIS
+	STRPTR strerror(LONG err);
+
+	Registers: d0=err
+
+   FUNCTION
+	Returns a pointer to a static English description for the small errno set used by CClib (CC_E* in cc_internal.h). Index 0 is "No Error"; codes 1 through 10 cover the common file, memory, and math failures the library sets through cc_set_errno().
+
+	Unknown codes receive the string "Unknown Error". The returned pointer is to library static storage and must not be freed or overwritten.
+
+   INPUTS
+	err - errno value (typically from cc_get_errno or *errno_p)
+
+   RESULT
+	STRPTR message string. Always non-NULL.
+
+   NOTES
+	perror combines the caller's prefix with strerror of the current errno. This is not a complete POSIX strerror table.
+
+   SEE ALSO
+	perror, SetupSTDIO
+
+   (LVO bias -72)
+
+CClib.library/open                                          CClib.library/open
+   NAME
+	open -- open a file and return a file descriptor
+
+   SYNOPSIS
+	LONG open(STRPTR name, ULONG mode, ULONG perms);
+
+	Registers: a0=name, d0=mode, d1=perms
+
+   FUNCTION
+	Opens the named file through dos.library and allocates a FileDesc node on the task's OpenFiles list. The value returned is a LONG cast of the FileDesc * pointer, not a small integer index like Unix.
+
+	mode combines O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_TRUNC, O_EXCL, and O_APPEND from fcntl.h. O_CREAT opens for read/write when the object is missing; O_TRUNC selects MODE_NEWFILE. O_EXCL with O_CREAT fails if the object already exists. O_APPEND seeks to end after open.
+
+	Use fileno() on a FILE * when you need the same FileDesc token for read() or write().
+
+   INPUTS
+	name - path string
+	mode - open flags (O_*)
+	perms - protection mask (reserved; not applied on Amiga)
+
+   RESULT
+	FileDesc * as LONG on success. -1 on failure with errno set (ENOENT, EEXIST, ENOMEM, EINVAL).
+
+   NOTES
+	Never assume fd 0, 1, or 2; stdio FILEs link to arbitrary FileDesc nodes. Compare only to -1 and NULL, not to small ints.
+
+   SEE ALSO
+	close, read, write, lseek, fopen, fdopen, creat
+
+   (LVO bias -78)
+
+CClib.library/close                                        CClib.library/close
+   NAME
+	close -- close a file descriptor
+
+   SYNOPSIS
+	LONG close(LONG fd);
+
+	Registers: d0=fd
+
+   FUNCTION
+	Locates the FileDesc for the given token, closes the underlying DOS BPTR unless the descriptor is marked CC_O_STDIO (CLI Input/Output), removes the node from OpenFiles, and frees the list node memory.
+
+	Any FILE stream still referencing this FileDesc via _unit should be fclose()'d first so buffers are flushed.
+
+   INPUTS
+	fd - FileDesc * token returned by open() or fileno()
+
+   RESULT
+	0 on success. -1 with errno EBADF if fd is 0, -1, or unknown.
+
+   NOTES
+	Closing a stdio-backed CLI handle does not Close() DOS Input/Output; only the FileDesc wrapper is released.
+
+   SEE ALSO
+	open, fclose, closeall
+
+   (LVO bias -84)
+
+CClib.library/unlink                                      CClib.library/unlink
+   NAME
+	unlink -- delete a file by name
+
+   SYNOPSIS
+	LONG unlink(STRPTR name);
+
+	Registers: a0=name
+
+   FUNCTION
+	Deletes the named file using dos.library DeleteFile(). Directories and assign names follow normal AmigaDOS rules; there is no separate remove() LVO.
+
+   INPUTS
+	name - path of the file to delete
+
+   RESULT
+	0 on success. -1 with errno ENOENT (or EINVAL if name is NULL).
+
+   NOTES
+	Failed deletes do not remove open FileDesc nodes; close those separately.
+
+   SEE ALSO
+	open, rename, stat
+
+   (LVO bias -90)
+
+CClib.library/stat                                          CClib.library/stat
+   NAME
+	stat -- read file metadata into a stat buffer
+
+   SYNOPSIS
+	LONG stat(STRPTR name, APTR buf);
+
+	Registers: a0=name, a1=buf
+
+   FUNCTION
+	Locks the named object and fills a cc_stat structure at buf with size, protection, and date information from a FileInfoBlock. The layout matches the SDK stat.h used by CClib clients.
+
+	Use stat_() when extended fields are required; stat() fills the portable subset.
+
+   INPUTS
+	name - path to examine
+	buf - APTR to cc_stat (struct stat in client headers)
+
+   RESULT
+	0 on success. -1 with errno ENOENT if the lock fails.
+
+   NOTES
+	Times are converted from Amiga DateStamp to seconds since 1978-01-01.
+
+   SEE ALSO
+	access, open, stat_
+
+   (LVO bias -96)
+
+CClib.library/rename                                      CClib.library/rename
+   NAME
+	rename -- rename a file or directory
+
+   SYNOPSIS
+	LONG rename(STRPTR oldname, STRPTR newname);
+
+	Registers: a0=oldname, a1=newname
+
+   FUNCTION
+	Renames oldname to newname through dos.library Rename(). Both paths must be on the same volume for classic AmigaDOS behavior.
+
+   INPUTS
+	oldname - current path
+	newname - new path
+
+   RESULT
+	0 on success. -1 with errno ENOENT or EINVAL.
+
+   NOTES
+	Open FileDesc tokens remain valid across rename of the underlying file.
+
+   SEE ALSO
+	unlink, open, stat
+
+   (LVO bias -102)
+
+CClib.library/read                                          CClib.library/read
+   NAME
+	read -- read bytes from a file descriptor
+
+   SYNOPSIS
+	LONG read(LONG fd, APTR buf, LONG len);
+
+	Registers: d0=fd, a0=buf, d1=len
+
+   FUNCTION
+	Reads up to len bytes from the DOS handle inside the FileDesc into buf using dos.library Read(). Works on binary or text files; no newline translation is performed at this layer.
+
+	Buffered stdio input ultimately calls read() from agetc() when the stream buffer is empty.
+
+   INPUTS
+	fd - FileDesc * token
+	buf - destination buffer
+	len - maximum byte count
+
+   RESULT
+	Number of bytes read (0 at EOF), or -1 with errno EBADF.
+
+   NOTES
+	fd must be a FileDesc pointer from open(), not a raw BPTR.
+
+   SEE ALSO
+	write, open, close, agetc, fread
+
+   (LVO bias -108)
+
+CClib.library/write                                        CClib.library/write
+   NAME
+	write -- write bytes to a file descriptor
+
+   SYNOPSIS
+	LONG write(LONG fd, APTR buf, LONG len);
+
+	Registers: d0=fd, a0=buf, d1=len
+
+   FUNCTION
+	Writes len bytes from buf to the DOS handle in the FileDesc using dos.library Write(). This is the low-level path used by fflush() when pushing stream buffers to disk.
+
+	Partial writes are reported by the returned count; check against len when reliability matters.
+
+   INPUTS
+	fd - FileDesc * token
+	buf - source data
+	len - byte count
+
+   RESULT
+	Bytes written, or -1 with errno EBADF.
+
+   NOTES
+	Stream fflush maps short writes to EOF return on the FILE API.
+
+   SEE ALSO
+	read, open, fflush, aputc, fwrite
+
+   (LVO bias -114)
+
+CClib.library/creat                                        CClib.library/creat
+   NAME
+	creat -- create or truncate a file for writing
+
+   SYNOPSIS
+	LONG creat(STRPTR name, ULONG perms);
+
+	Registers: a0=name, d0=perms
+
+   FUNCTION
+	Convenience wrapper equivalent to open(name, O_WRONLY|O_CREAT|O_TRUNC, perms). Creates a new file or truncates an existing one to zero length, then returns a FileDesc * token for write-only access.
+
+   INPUTS
+	name - path to create
+	perms - protection mask (reserved)
+
+   RESULT
+	FileDesc * as LONG, or -1 with errno set like open().
+
+   NOTES
+	For read/write creation use open() with O_CREAT and O_RDWR.
+
+   SEE ALSO
+	open, close, write
+
+   (LVO bias -120)
+
+CClib.library/lseek                                        CClib.library/lseek
+   NAME
+	lseek -- set or query file position
+
+   SYNOPSIS
+	LONG lseek(LONG fd, LONG offset, ULONG whence);
+
+	Registers: d0=fd, d1=offset, d2=whence
+
+   FUNCTION
+	Repositions the DOS file pointer for the given FileDesc. whence is SEEK_SET, SEEK_CUR, or SEEK_END (stdio.h). The new absolute position is returned on success.
+
+	Stream-level fseek() calls fflush() first, then empties the FILE buffer before invoking lseek() on the underlying fd.
+
+   INPUTS
+	fd - FileDesc * token
+	offset - byte offset (signed)
+	whence - SEEK_SET, SEEK_CUR, or SEEK_END
+
+   RESULT
+	New file position, or -1 with errno EINVAL/EBADF.
+
+   NOTES
+	After fseek on a FILE, ungetc pushback uses an empty buffer.
+
+   SEE ALSO
+	fseek, ftell, read, write
+
+   (LVO bias -126)
+
+CClib.library/isatty                                      CClib.library/isatty
+   NAME
+	isatty -- test whether a descriptor is interactive
+
+   SYNOPSIS
+	LONG isatty(LONG fd);
+
+	Registers: d0=fd
+
+   FUNCTION
+	Calls dos.library IsInteractive() on the BPTR inside the FileDesc. Used by stdio to decide whether to line-buffer output on newline (aputc flushes when isatty is true).
+
+	Returns false for regular files and true for CON: and other interactive handles.
+
+   INPUTS
+	fd - FileDesc * token
+
+   RESULT
+	Non-zero if interactive. Zero if not, with errno ENOTTY when the handle is a plain file (errno EBADF for bad fd).
+
+   NOTES
+	fileno(stream) supplies fd for stdio streams.
+
+   SEE ALSO
+	aputc, open, SetupSTDIO
+
+   (LVO bias -132)
+
+CClib.library/access                                      CClib.library/access
+   NAME
+	access -- check file existence or protection
+
+   SYNOPSIS
+	LONG access(STRPTR name, LONG mode);
+
+	Registers: a0=name, d0=mode
+
+   FUNCTION
+	Tests whether name can be accessed in the requested mode. mode 0 checks existence only. Bits 4, 2, and 1 correspond to read, write, and execute permission checks against the file's fib_Protection bits.
+
+	Amiga protection uses inverted FIBF_* flags relative to classic Unix R_OK/W_OK/X_OK tests.
+
+   INPUTS
+	name - path to test
+	mode - 0 or combination of 4 (read), 2 (write), 1 (execute)
+
+   RESULT
+	0 if access allowed. -1 with errno ENOENT, EACCES, ENOMEM, or EINVAL.
+
+   NOTES
+	Does not open a FileDesc; use open() when you need a handle.
+
+   SEE ALSO
+	stat, open
+
+   (LVO bias -138)
+
+CClib.library/fopen                                        CClib.library/fopen
+   NAME
+	fopen -- open a buffered FILE stream by path
+
+   SYNOPSIS
+	APTR fopen(STRPTR name, STRPTR mode);
+
+	Registers: a0=name, a1=mode
+
+   FUNCTION
+	Parses mode and calls open() with the equivalent O_* flags, then attaches a FILE node on StreamFiles via fdopen(). Supported modes are r, w, a, r+, w+, and a+; an optional b suffix (binary) is accepted and ignored on Amiga.
+
+	read opens existing; write creates/truncates; append creates or seeks to end. Plus modes add O_RDWR.
+
+   INPUTS
+	name - file path
+	mode - C fopen mode string
+
+   RESULT
+	APTR (FILE *) stream, or NULL with errno set.
+
+   NOTES
+	Streams are linked on task_UserData->StreamFiles. Use fileno() for the underlying FileDesc *.
+
+   SEE ALSO
+	fclose, fdopen, freopen, fread, fwrite
+
+   (LVO bias -144)
+
+CClib.library/freopen                                    CClib.library/freopen
+   NAME
+	freopen -- reuse a FILE stream on a new file
+
+   SYNOPSIS
+	APTR freopen(STRPTR name, STRPTR mode, APTR stream);
+
+	Registers: a0=name, a1=mode, a2=stream
+
+   FUNCTION
+	Closes the underlying FileDesc for stream (after fflush), frees any library-owned buffer, deletes a temporary backing file when CC_TEMP is set, and opens name with a fresh FileDesc while reusing the same FILE structure.
+
+	Useful for redirecting stdin/stdout or recycling a static FILE allocated by the application.
+
+   INPUTS
+	name - new path
+	mode - fopen-style mode string
+	stream - existing FILE *
+
+   RESULT
+	stream on success, or NULL with errno set (stream left closed).
+
+   NOTES
+	Temporary files created by tmpfile() store the path in _tmpname.
+
+   SEE ALSO
+	fopen, fclose, tmpfile
+
+   (LVO bias -150)
+
+CClib.library/fclose                                      CClib.library/fclose
+   NAME
+	fclose -- flush and close a FILE stream
+
+   SYNOPSIS
+	LONG fclose(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	Calls fflush() to push dirty output, closes the underlying FileDesc when _unit is valid, frees library-allocated buffer memory, deletes temporary backing files for tmpfile() streams, and removes the FILE node from StreamFiles.
+
+	After fclose the FILE pointer must not be used.
+
+   INPUTS
+	stream - FILE * to close
+
+   RESULT
+	0 on success. -1 if fflush, close, or validation failed (errno set).
+
+   NOTES
+	CLI stdio FILEs close wrappers without Closing DOS Input/Output.
+
+   SEE ALSO
+	fopen, fflush, close, closeall
+
+   (LVO bias -156)
+
+CClib.library/fdopen                                      CClib.library/fdopen
+   NAME
+	fdopen -- wrap an existing file descriptor in a FILE stream
+
+   SYNOPSIS
+	APTR fdopen(LONG fd, STRPTR mode);
+
+	Registers: d0=fd, a0=mode
+
+   FUNCTION
+	Allocates a new FILE node on StreamFiles and sets _unit to the given FileDesc * token. The mode string is currently unused but should match how the fd was opened.
+
+	Multiple FILE streams may share one FileDesc when stdio duplicates CLI handles (stdin/stdout overlap).
+
+   INPUTS
+	fd - FileDesc * from open()
+	mode - fopen-style hint (ignored)
+
+   RESULT
+	APTR (FILE *) or NULL with errno EINVAL.
+
+   NOTES
+	Do not fdopen the same fd twice unless you understand shared _unit lifetime.
+
+   SEE ALSO
+	fopen, fileno, close
+
+   (LVO bias -162)
+
+CClib.library/getbuff                                    CClib.library/getbuff
+   NAME
+	getbuff -- allocate the default stream buffer
+
+   SYNOPSIS
+	void getbuff(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	If stream has no buffer yet, allocates CC_BUFSIZ bytes for _buff or falls back to the single-byte _bytbuf embedded in the FILE when memory is low. Sets _bp and _bend to the start of the buffer and marks CC_ALLBUF when the library owns the allocation.
+
+	Called lazily from agetc and aputc before first buffered I/O.
+
+   INPUTS
+	stream - FILE *
+
+   RESULT
+	None.
+
+   NOTES
+	Use setvbuf() for custom buffering; getbuff() is the automatic default.
+
+   SEE ALSO
+	setvbuf, agetc, aputc
+
+   (LVO bias -168)
+
+CClib.library/setvbuf                                    CClib.library/setvbuf
+   NAME
+	setvbuf -- configure stream buffering
+
+   SYNOPSIS
+	LONG setvbuf(APTR stream, STRPTR buf, LONG mode, ULONG size);
+
+	Registers: a0=stream, a1=buf, d0=mode, d1=size
+
+   FUNCTION
+	Selects full buffering, line buffering, or no buffering for stream. Calls fflush() before changing state. When buf is non-NULL the caller supplies storage of size bytes. When buf is NULL and mode is not _IONBF, the library AllocMem's size bytes and sets CC_ALLBUF.
+
+	Returns CC_HASBUF if a library-owned buffer already exists and cannot be replaced, or CC_NOBUFMEM if allocation fails.
+
+   INPUTS
+	stream - FILE *
+	buf - caller buffer or NULL
+	mode - _IOFBF, _IOLBF, or _IONBF
+	size - buffer length
+
+   RESULT
+	0 on success. CC_HASBUF or CC_NOBUFMEM on failure (see stdio.h).
+
+   NOTES
+	_IONBF or size 0 uses the one-byte _bytbuf (unbuffered behavior).
+
+   SEE ALSO
+	getbuff, fflush, setvbuf
+
+   (LVO bias -174)
+
+CClib.library/mktemp                                      CClib.library/mktemp
+   NAME
+	mktemp -- fill a template path with a unique name
+
+   SYNOPSIS
+	STRPTR mktemp(STRPTR template);
+
+	Registers: a0=template
+
+   FUNCTION
+	Replaces trailing X characters in template with digits derived from process identity and the current DateStamp, then tests whether the path already exists via Lock(). Repeats with different seeds up to 10000 times.
+
+	On success template holds a unused pathname. On exhaustion template[0] is set to '\0'.
+
+   INPUTS
+	template - mutable string with trailing XXXXXX pattern
+
+   RESULT
+	template pointer (same as input), or NULL if template was NULL.
+
+   NOTES
+	Classic insecure temporary name API; tmpnam/tmpfile use T:ccXXXXXX. Not thread-safe across tasks (per-task tempname in tmpnam).
+
+   SEE ALSO
+	tmpnam, tmpfile
+
+   (LVO bias -180)
+
+CClib.library/tmpnam                                      CClib.library/tmpnam
+   NAME
+	tmpnam -- generate a temporary file pathname
+
+   SYNOPSIS
+	STRPTR tmpnam(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Builds a unique name under T: using the pattern ccXXXXXX and mktemp(). Stores the result in s when s is non-NULL, otherwise in the per-task tempname buffer inside task_UserData (or a static fallback when userdata is absent).
+
+	The returned string is reused on the next tmpnam() call in the same task when s was NULL.
+
+   INPUTS
+	s - optional caller buffer (recommended size 32+), or NULL
+
+   RESULT
+	STRPTR to the pathname. Caller must not free library-owned storage.
+
+   NOTES
+	Creates a name only; open the file yourself. Not safe for concurrent calls with s == NULL.
+
+   SEE ALSO
+	mktemp, tmpfile, fopen
+
+   (LVO bias -186)
+
+CClib.library/tmpfile                                    CClib.library/tmpfile
+   NAME
+	tmpfile -- create a temporary read/write stream
+
+   SYNOPSIS
+	APTR tmpfile(void);
+
+   FUNCTION
+	Generates a unique T: filename, opens it with fopen() mode w+, and records the path in FILE->_tmpname with CC_TEMP set. fclose() deletes the backing file and frees _tmpname.
+
+	The FILE behaves like any other read/write stream; use fread, fwrite, fseek, and fclose normally.
+
+   INPUTS
+	None.
+
+   RESULT
+	APTR (FILE *) or NULL if mktemp or fopen failed.
+
+   NOTES
+	File is removed on fclose, not on abort unless ClearSTDIO runs closeall.
+
+   SEE ALSO
+	tmpnam, mktemp, fclose, freopen
+
+   (LVO bias -192)
+
+CClib.library/putc                                          CClib.library/putc
+   NAME
+	putc -- write a byte to a stream (macro entry)
+
+   SYNOPSIS
+	LONG putc(LONG c, APTR stream);
+
+	Registers: d0=c, a0=stream
+
+   FUNCTION
+	Public name for aputc(). Writes the low byte of c to stream, allocating a buffer on first use, flushing when the buffer fills, on newline to interactive streams, or when unbuffered.
+
+	Switching from read to write on the same stream seeks back over unread buffered input before accepting output.
+
+   INPUTS
+	c - character (0-255)
+	stream - FILE *
+
+   RESULT
+	c on success. EOF on error (errno may be EINVAL).
+
+   NOTES
+	Prefer aputc at the LVO boundary; putc is the familiar ANSI name.
+
+   SEE ALSO
+	aputc, getc, fputs, fwrite
+
+   (LVO bias -198)
+
+CClib.library/aputc                                        CClib.library/aputc
+   NAME
+	aputc -- buffered put byte on a FILE stream
+
+   SYNOPSIS
+	LONG aputc(LONG c, APTR stream);
+
+	Registers: d0=c, a0=stream
+
+   FUNCTION
+	Core implementation of character output. Maintains _bp within _buff, sets CC_DIRTY when data is pending, clears CC_EOFBIT, and invokes fflush() when the buffer is full, when c is newline and isatty(_unit) is true, or when _buflen is 1 (unbuffered).
+
+	If the stream was reading, any unread bytes in the buffer are undone with lseek() before writing.
+
+   INPUTS
+	c - character value
+	stream - FILE *
+
+   RESULT
+	c (masked to byte) or EOF.
+
+   NOTES
+	puterr and fputs build on aputc.
+
+   SEE ALSO
+	putc, fflush, fwrite, putw
+
+   (LVO bias -204)
+
+CClib.library/getc                                          CClib.library/getc
+   NAME
+	getc -- read a byte from a stream (macro entry)
+
+   SYNOPSIS
+	LONG getc(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	Public alias for agetc(). Returns the next byte from stream, refilling the buffer from read() when exhausted. Sets CC_EOFBIT when the underlying read returns zero or error.
+
+	If the stream has pending output (CC_DIRTY), fflush() runs first.
+
+   INPUTS
+	stream - FILE *
+
+   RESULT
+	0-255 as LONG, or EOF (-1).
+
+   NOTES
+	Macro implementations in client headers may map getc to agetc.
+
+   SEE ALSO
+	agetc, ungetc, fread, getchar
+
+   (LVO bias -210)
+
+CClib.library/agetc                                        CClib.library/agetc
+   NAME
+	agetc -- buffered get byte from a FILE stream
+
+   SYNOPSIS
+	LONG agetc(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	Returns the next input byte, using the stream buffer when data remains between _bp and _bend. Otherwise issues read() for up to _buflen bytes into _buff and returns the first byte of the new chunk.
+
+	Flushes dirty output buffers before reading. On end-of-file or I/O error, sets CC_EOFBIT and optionally CC_IOERR.
+
+   INPUTS
+	stream - FILE *
+
+   RESULT
+	Character 0-255, or EOF.
+
+   NOTES
+	fread and fgets call agetc in a loop.
+
+   SEE ALSO
+	getc, ungetc, getbuff
+
+   (LVO bias -216)
+
+CClib.library/getchar                                    CClib.library/getchar
+   NAME
+	getchar -- read a byte from standard input
+
+   SYNOPSIS
+	LONG getchar(void);
+
+   FUNCTION
+	Reads one character from *stdin_p in task_UserData. Requires SetupSTDIO to have attached a valid stdin FILE (CLI or WB WINDOW). Equivalent to getc(stdin) when stdin is wired.
+
+	Returns EOF immediately when userdata or stdin is missing.
+
+   INPUTS
+	None.
+
+   RESULT
+	Byte value or EOF.
+
+   NOTES
+	Workbench programs without WINDOW have NULL stdin; do not call blindly.
+
+   SEE ALSO
+	agetc, gets, fgets, SetupSTDIO
+
+   (LVO bias -222)
+
+CClib.library/ungetc                                      CClib.library/ungetc
+   NAME
+	ungetc -- push one character back into a stream
+
+   SYNOPSIS
+	LONG ungetc(LONG c, APTR stream);
+
+	Registers: d0=c, a0=stream
+
+   FUNCTION
+	Pushes c back so the next agetc() returns it. Only one character of pushback is guaranteed. EOF cannot be pushed.
+
+	If _bp is past _buff, the pointer is decremented. After fseek emptied the buffer (_bp == _bend == _buff), the character is stored as a one-byte lookahead.
+
+   INPUTS
+	c - character to push back (not EOF)
+	stream - FILE *
+
+   RESULT
+	c on success, or EOF if pushback is not possible.
+
+   NOTES
+	Cannot push back into a full buffer with no room at the start.
+
+   SEE ALSO
+	agetc, fseek
+
+   (LVO bias -228)
+
+CClib.library/putw                                          CClib.library/putw
+   NAME
+	putw -- write a 16-bit word to a stream
+
+   SYNOPSIS
+	LONG putw(ULONG w, APTR stream);
+
+	Registers: d0=w, a0=stream
+
+   FUNCTION
+	Writes w as a big-endian 16-bit value: high byte first via aputc(), then low byte. This is the historic Lattice/C word size, not a 32-bit int.
+
+	Stops and returns EOF if either byte write fails.
+
+   INPUTS
+	w - 16-bit value (ULONG at LVO)
+	stream - FILE *
+
+   RESULT
+	w on success, or EOF.
+
+   NOTES
+	Binary interchange format is machine-endian for the Amiga 680x0.
+
+   SEE ALSO
+	getw, aputc, fwrite
+
+   (LVO bias -234)
+
+CClib.library/puts                                          CClib.library/puts
+   NAME
+	puts -- write a string and newline to stdout
+
+   SYNOPSIS
+	LONG puts(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Writes s to *stdout_p using fputs(), then writes a newline with aputc(). Requires SetupSTDIO to have connected stdout.
+
+	Unlike fputs(), puts() always appends '\n' and targets stdout only.
+
+   INPUTS
+	s - NUL-terminated string
+
+   RESULT
+	Non-negative on success, EOF on failure.
+
+   NOTES
+	For stderr or arbitrary streams use fputs() or fprintf LVO.
+
+   SEE ALSO
+	fputs, aputc, printf
+
+   (LVO bias -240)
+
+CClib.library/puterr                                      CClib.library/puterr
+   NAME
+	puterr -- write a byte to standard error
+
+   SYNOPSIS
+	LONG puterr(LONG c);
+
+	Registers: d0=c
+
+   FUNCTION
+	Writes the low byte of c to *stderr_p via aputc(). Used for diagnostics when stderr is separate from stdout (DOS ErrorOutput when available).
+
+	Returns EOF when stderr was not opened (common for WB tools without WINDOW).
+
+   INPUTS
+	c - character
+
+   RESULT
+	c or EOF.
+
+   NOTES
+	perror() uses fputs to stderr instead of puterr for full lines.
+
+   SEE ALSO
+	aputc, perror, SetupSTDIO
+
+   (LVO bias -246)
+
+CClib.library/fwrite                                      CClib.library/fwrite
+   NAME
+	fwrite -- write formatted blocks to a stream
+
+   SYNOPSIS
+	ULONG fwrite(APTR ptr, ULONG size, ULONG nitems, APTR stream);
+
+	Registers: a0=ptr, d0=size, d1=nitems, a1=stream
+
+   FUNCTION
+	Writes nitems elements of size bytes each from ptr to stream by calling aputc() for every byte. Stops early on the first output failure.
+
+	This is the block-oriented stdio write; it respects stream buffering and line discipline enforced by aputc().
+
+   INPUTS
+	ptr - source data
+	size - element size in bytes
+	nitems - element count
+	stream - FILE *
+
+   RESULT
+	Count of complete elements written (may be less than nitems).
+
+   NOTES
+	For formatted text, fprintf LVO takes an APTR arg array (RawDoFmt style) instead of C varargs at the library boundary.
+
+   SEE ALSO
+	fread, aputc, fprintf
+
+   (LVO bias -252)
+
+CClib.library/perror                                      CClib.library/perror
+   NAME
+	perror -- print a system error message to stderr
+
+   SYNOPSIS
+	LONG perror(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Formats a line on stderr: optional prefix s, a colon and space, the strerror() text for the current errno, and a newline. Uses fputs() and aputc() on *stderr_p.
+
+	Typical use after a failed open(), fread(), or other call that set errno through cc_set_errno().
+
+   INPUTS
+	s - prefix string (may be empty but not NULL for prefix only)
+
+   RESULT
+	0 on success. -1 if stderr is unavailable.
+
+   NOTES
+	Reads errno from the pointer stored at SetupSTDIO. Does not clear errno.
+
+   SEE ALSO
+	strerror, puterr, fputs
+
+   (LVO bias -258)
+
+CClib.library/fseek                                        CClib.library/fseek
+   NAME
+	fseek -- reposition a FILE stream
+
+   SYNOPSIS
+	LONG fseek(APTR stream, LONG offset, LONG whence);
+
+	Registers: a0=stream, d0=offset, d1=whence
+
+   FUNCTION
+	Flushes pending output with fflush(), discards read-ahead by resetting _bp and _bend to _buff, clears EOF and dirty flags, then calls lseek() on the underlying FileDesc.
+
+	Relative and absolute seeks use the same whence constants as lseek(). After fseek, ungetc may plant pushback in an empty buffer.
+
+   INPUTS
+	stream - FILE *
+	offset - byte offset
+	whence - SEEK_SET, SEEK_CUR, or SEEK_END
+
+   RESULT
+	0 on success. -1 if fflush, lseek, or validation failed.
+
+   NOTES
+	Input buffers are emptied, not preserved across seek.
+
+   SEE ALSO
+	ftell, lseek, fflush, ungetc
+
+   (LVO bias -264)
+
+CClib.library/ftell                                        CClib.library/ftell
+   NAME
+	ftell -- report the current stream position
+
+   SYNOPSIS
+	LONG ftell(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	Returns the logical file position for stream, adjusted for buffered data. Queries lseek(fd, 0, SEEK_CUR) on the underlying FileDesc, then adds pending output bytes (dirty buffer) or subtracts unread input bytes in the buffer.
+
+	Matches the position fseek would use for SEEK_SET offsets.
+
+   INPUTS
+	stream - FILE *
+
+   RESULT
+	Byte offset, or -1 with errno set.
+
+   NOTES
+	Use fgetpos/fsetpos when a wider pos type is required.
+
+   SEE ALSO
+	fseek, fgetpos, lseek
+
+   (LVO bias -270)
+
+CClib.library/fflush                                      CClib.library/fflush
+   NAME
+	fflush -- flush stream buffers to the file
+
+   SYNOPSIS
+	LONG fflush(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	For output streams with CC_DIRTY set, writes the bytes between _buff and _bp through write() on the FileDesc, then resets the buffer pointers. Returns EOF if the write count differs from the buffer length.
+
+	For input streams, discards unread buffered data by seeking the file pointer backward over the lookahead region. Called internally before fseek and when switching from read to write.
+
+   INPUTS
+	stream - FILE * (NULL is a no-op success)
+
+   RESULT
+	0 on success. EOF on write failure (CC_IOERR set on stream).
+
+   NOTES
+	fflush(NULL) is not special here; pass a real stream.
+
+   SEE ALSO
+	fseek, aputc, fclose, write
+
+   (LVO bias -276)
+
+CClib.library/getw                                          CClib.library/getw
+   NAME
+	getw -- read a 16-bit word from a stream
+
+   SYNOPSIS
+	LONG getw(APTR stream);
+
+	Registers: a0=stream
+
+   FUNCTION
+	Reads two bytes via agetc() and combines them into a 16-bit value (high byte first). Returns EOF if either byte read fails.
+
+	Pair with putw() for symmetric binary word I/O.
+
+   INPUTS
+	stream - FILE *
+
+   RESULT
+	16-bit value as LONG, or EOF.
+
+   NOTES
+	Word size is 16 bits, not sizeof(int).
+
+   SEE ALSO
+	putw, agetc
+
+   (LVO bias -282)
+
+CClib.library/fread                                        CClib.library/fread
+   NAME
+	fread -- read blocks from a stream
+
+   SYNOPSIS
+	ULONG fread(APTR ptr, ULONG size, ULONG nitems, APTR stream);
+
+	Registers: a0=ptr, d0=size, d1=nitems, a1=stream
+
+   FUNCTION
+	Reads up to nitems elements of size bytes from stream into ptr using agetc() in a loop. Stops at EOF or error and returns the count of complete elements read.
+
+	Honors stdio buffering and errno set by underlying read().
+
+   INPUTS
+	ptr - destination buffer
+	size - element size
+	nitems - element count
+	stream - FILE *
+
+   RESULT
+	Number of elements read (0 on immediate EOF).
+
+   NOTES
+	Text line input is usually fgets(); formatted input uses fscanf LVO with an APTR arg array.
+
+   SEE ALSO
+	fwrite, agetc, fgets
+
+   (LVO bias -288)
+
+CClib.library/gets                                          CClib.library/gets
+   NAME
+	gets -- read a line from stdin without a length limit
+
+   SYNOPSIS
+	STRPTR gets(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Reads bytes from *stdin_p until newline or EOF, storing into s without a maximum length check. The newline is discarded; a NUL terminator is written.
+
+	Returns NULL on immediate EOF with no data read. This is the classic unsafe gets(); prefer fgets() when the buffer size is known.
+
+   INPUTS
+	s - caller buffer large enough for the line
+
+   RESULT
+	s on success, NULL on EOF/error or missing stdin.
+
+   NOTES
+	Deprecated in modern C standards but provided for Lattice compatibility.
+
+   SEE ALSO
+	fgets, getchar, agetc
+
+   (LVO bias -294)
+
+CClib.library/fgets                                        CClib.library/fgets
+   NAME
+	fgets -- read a line from a stream with a size limit
+
+   SYNOPSIS
+	STRPTR fgets(STRPTR s, LONG n, APTR stream);
+
+	Registers: a0=s, d0=n, a1=stream
+
+   FUNCTION
+	Reads at most n-1 characters from stream into s, stopping at newline or EOF. Always NUL-terminates s when n > 0. The newline, if read, is kept in the buffer.
+
+	Returns NULL only when EOF occurs before any character is read.
+
+   INPUTS
+	s - output buffer
+	n - buffer size (including NUL)
+	stream - FILE *
+
+   RESULT
+	s on success, NULL on EOF with empty line.
+
+   NOTES
+	Safer than gets(); typical pattern for CLI line input.
+
+   SEE ALSO
+	gets, agetc, fread
+
+   (LVO bias -300)
+
+CClib.library/fputs                                        CClib.library/fputs
+   NAME
+	fputs -- write a string to a stream
+
+   SYNOPSIS
+	LONG fputs(STRPTR s, APTR stream);
+
+	Registers: a0=s, a1=stream
+
+   FUNCTION
+	Writes every character of s to stream via aputc() until the terminating NUL (which is not written). Does not append a newline; use puts() for stdout with newline.
+
+	Used by perror() and many internal formatters.
+
+   INPUTS
+	s - NUL-terminated string
+	stream - FILE *
+
+   RESULT
+	Non-negative character count on success, EOF on failure.
+
+   NOTES
+	For formatted output use fprintf LVO (APTR arg array, RawDoFmt style) from client stubs.
+
+   SEE ALSO
+	puts, aputc, fprintf, perror
+
+   (LVO bias -306)
+
+CClib.library/scanf                                        CClib.library/scanf
+   NAME
+	scanf -- read formatted input from stdin
+
+   SYNOPSIS
+	LONG scanf(STRPTR format, APTR args);
+
+	Registers: a0=format, a1=args
+
+   FUNCTION
+	Reads formatted input from the task's stdin stream under control of a format string. At the LVO boundary the call takes a format pointer and an APTR args array in RawDoFmt style; the C compiler wraps variable arguments into that array. Whitespace in the format is skipped in the input. Literal characters must match the next non-whitespace input character. Each conversion reads a field and, unless suppressed with '*', stores into the next pointer taken from the args array. Integer conversions %d, %i, %u, %x, %X, %o and %p store a 32-bit LONG by default on the Amiga; prefix %h stores a short, and %l or %ld stores a long. Floating conversions %e, %f and %g read a DOUBLE; the args array must supply two consecutive LONG words for the IEEE value, and mathieeedoubbas must be available through SetupSTDIO mathbase.
+
+   INPUTS
+	STRPTR format - conversion string.
+	APTR args - pointer to an array of argument pointers (RawDoFmt layout).
+
+   RESULT
+	LONG - number of input items converted and assigned, or EOF if no assignment was made before end of input or a matching failure.
+
+   NOTES
+	C callers use scanf(fmt, &a, &b, ...); the library LVO receives only format and args.
+
+   SEE ALSO
+	printf, fscanf, fprintf, sscanf, sprintf, SetupSTDIO
+
+   (LVO bias -312)
+
+CClib.library/printf                                      CClib.library/printf
+   NAME
+	printf -- write formatted output to stdout
+
+   SYNOPSIS
+	LONG printf(STRPTR format, APTR args);
+
+	Registers: a0=format, a1=args
+
+   FUNCTION
+	Writes formatted output to the task's stdout stream. The LVO takes a format string and an APTR args array (RawDoFmt style), not a C varargs stack frame. Ordinary characters are copied. Each '%' conversion pulls the next value from the args array: pointers to LONG for %d, %u, %x and friends (32-bit default), pointers to two LONG words for %e, %f and %g DOUBLE values, and STRPTR for %s. Floating formats use mathieeedoubbas from the task mathbase set by SetupSTDIO; without mathbase, floating output is limited. Field width, precision, and justification flags follow the usual printf rules.
+
+   INPUTS
+	STRPTR format - output format string.
+	APTR args - pointer to an array of argument pointers.
+
+   RESULT
+	LONG - number of characters written, or -1 on error.
+
+   SEE ALSO
+	scanf, fscanf, fprintf, sscanf, sprintf, vprintf
+
+   (LVO bias -318)
+
+CClib.library/fscanf                                      CClib.library/fscanf
+   NAME
+	fscanf -- read formatted input from a stream
+
+   SYNOPSIS
+	LONG fscanf(APTR stream, STRPTR format, APTR args);
+
+	Registers: a0=stream, a1=format, a2=args
+
+   FUNCTION
+	Like scanf but reads from the given buffered FILE stream instead of stdin. The LVO receives the stream handle, format string, and an APTR args array in RawDoFmt style. Conversion rules, integer width defaults (%d/%u/%x as 32-bit LONG, %h for short, %ld for long), and DOUBLE handling (%e/%f/%g as two LONG words via mathieeedoubbas) are the same as scanf.
+
+   INPUTS
+	APTR stream - FILE pointer opened with fopen or fdopen.
+	STRPTR format - conversion string.
+	APTR args - pointer to an array of argument pointers.
+
+   RESULT
+	LONG - number of items assigned, or EOF on failure before any assignment.
+
+   SEE ALSO
+	scanf, printf, fprintf, sscanf, sprintf
+
+   (LVO bias -324)
+
+CClib.library/fprintf                                    CClib.library/fprintf
+   NAME
+	fprintf -- write formatted output to a stream
+
+   SYNOPSIS
+	LONG fprintf(APTR stream, STRPTR format, APTR args);
+
+	Registers: a0=stream, a1=format, a2=args
+
+   FUNCTION
+	Like printf but writes to the specified FILE stream. The LVO passes stream, format, and an APTR args array (RawDoFmt style). Each conversion consumes the next entry from args: LONG pointers for integers (32-bit by default, %h short, %ld long), two LONG words per DOUBLE for %e/%f/%g (requires SetupSTDIO mathbase), and strings for %s. Returns the number of characters written to the stream buffer (which may be flushed later).
+
+   INPUTS
+	APTR stream - destination FILE pointer.
+	STRPTR format - output format string.
+	APTR args - pointer to an array of argument pointers.
+
+   RESULT
+	LONG - characters written, or -1 on error.
+
+   SEE ALSO
+	printf, scanf, fscanf, sscanf, sprintf, vfprintf
+
+   (LVO bias -330)
+
+CClib.library/sscanf                                      CClib.library/sscanf
+   NAME
+	sscanf -- read formatted input from a string
+
+   SYNOPSIS
+	LONG sscanf(STRPTR s, STRPTR format, APTR args);
+
+	Registers: a0=s, a1=format, a2=args
+
+   FUNCTION
+	Like scanf but takes input characters from a memory string rather than a stream. The LVO receives the source string, format, and APTR args array. Scanning stops at the string terminator. Integer and floating conversion rules match scanf: 32-bit LONG by default, %h for short, %ld for long, DOUBLE as two LONGs in args for %e/%f/%g with mathieeedoubbas from SetupSTDIO.
+
+   INPUTS
+	STRPTR s - NUL-terminated input string.
+	STRPTR format - conversion string.
+	APTR args - pointer to an array of argument pointers.
+
+   RESULT
+	LONG - number of items assigned, or EOF if none.
+
+   SEE ALSO
+	scanf, printf, fscanf, fprintf, sprintf
+
+   (LVO bias -336)
+
+CClib.library/sprintf                                    CClib.library/sprintf
+   NAME
+	sprintf -- write formatted output to a string
+
+   SYNOPSIS
+	LONG sprintf(STRPTR s, STRPTR format, APTR args);
+
+	Registers: a0=s, a1=format, a2=args
+
+   FUNCTION
+	Formats output into a caller-supplied character buffer and appends a NUL terminator. The LVO takes the destination buffer, format string, and APTR args array (RawDoFmt style). Conversions follow printf rules: LONG pointers for integers (32-bit default, %h short, %ld long), two LONG words per DOUBLE for %e/%f/%g using mathieeedoubbas when mathbase is set. The returned count excludes the terminating NUL.
+
+   INPUTS
+	STRPTR s - destination buffer; must be large enough for output plus NUL.
+	STRPTR format - output format string.
+	APTR args - pointer to an array of argument pointers.
+
+   RESULT
+	LONG - number of characters written excluding the NUL terminator, or -1 on error.
+
+   NOTES
+	No bounds checking is performed; buffer overrun is the caller's responsibility.
+
+   SEE ALSO
+	printf, scanf, fprintf, fscanf, sscanf, vsprintf
+
+   (LVO bias -342)
+
+CClib.library/_alloc                                      CClib.library/_alloc
+   NAME
+	_alloc -- lowest-level per-task AllocMem
+
+   SYNOPSIS
+	APTR _alloc(APTR ud, LONG size, LONG flags);
+
+	Registers: a0=ud, d0=size, d1=flags
+
+   FUNCTION
+	Allocates memory from Exec AllocMem and links the block on the calling task's RAM list in task_UserData. This is the lowest allocation layer used by sbrk, malloc, and internal bookkeeping. Each block is prefixed with a MemBlk header; the returned pointer points past that header. Obtain the task_UserData pointer with GetSTDIO. The flags argument is passed directly to AllocMem (for example MEMF_ANY, or MEMF_CHIP for chip RAM accessible to custom chips).
+
+   INPUTS
+	APTR ud - task_UserData from GetSTDIO.
+	LONG size - payload bytes requested (header added internally).
+	LONG flags - Exec AllocMem requirement flags.
+
+   RESULT
+	APTR - pointer to allocated payload, or NULL if AllocMem failed.
+
+   SEE ALSO
+	_fre, _freall, sbrk, malloc, GetSTDIO
+
+   (LVO bias -348)
+
+CClib.library/_fre                                          CClib.library/_fre
+   NAME
+	_fre -- free an _alloc or sbrk block
+
+   SYNOPSIS
+	void _fre(APTR ud, APTR ptr);
+
+	Registers: a0=ud, a1=ptr
+
+   FUNCTION
+	Frees a block previously returned by _alloc or sbrk for the given task_UserData. The pointer must be the payload address (after the internal MemBlk header). The block is unlinked from ud->RAM and returned to Exec with FreeMem.
+
+   INPUTS
+	APTR ud - task_UserData from GetSTDIO.
+	APTR ptr - payload pointer from _alloc or sbrk.
+
+   RESULT
+	None.
+
+   NOTES
+	Do not pass pointers from malloc/free; those use a different header layout.
+
+   SEE ALSO
+	_alloc, _freall, sbrk, free
+
+   (LVO bias -354)
+
+CClib.library/_freall                                    CClib.library/_freall
+   NAME
+	_freall -- free every block on the RAM list
+
+   SYNOPSIS
+	void _freall(APTR ud);
+
+	Registers: a0=ud
+
+   FUNCTION
+	Walks ud->RAM and FreeMems every MemBlk allocated through _alloc or sbrk for this task. Does not reset the K&R heap free list used by malloc; use freeall for a full teardown including heap state and open file lists.
+
+   INPUTS
+	APTR ud - task_UserData from GetSTDIO.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	_alloc, _fre, freeall, sbrk
+
+   (LVO bias -360)
+
+CClib.library/sbrk                                          CClib.library/sbrk
+   NAME
+	sbrk -- grow the task RAM arena
+
+   SYNOPSIS
+	APTR sbrk(LONG incr);
+
+	Registers: d0=incr
+
+   FUNCTION
+	Allocates incr bytes through _alloc for the current task (GetSTDIO task_UserData) with MEMF_ANY and returns the payload pointer. Blocks are recorded on the task RAM list like other _alloc requests. This is the historic Unix-style arena grow used beneath the heap manager.
+
+   INPUTS
+	LONG incr - number of bytes to add to the RAM list.
+
+   RESULT
+	APTR - pointer to new memory, or (APTR)-1 if allocation failed.
+
+   NOTES
+	Free with _fre using the same task_UserData, not free().
+
+   SEE ALSO
+	_alloc, _fre, malloc, heap_alloc
+
+   (LVO bias -366)
+
+CClib.library/heap_alloc                              CClib.library/heap_alloc
+   NAME
+	heap_alloc -- allocate from the K&R heap free list
+
+   SYNOPSIS
+	APTR heap_alloc(ULONG size);
+
+	Registers: d0=size
+
+   FUNCTION
+	Allocates from the per-task heap manager. If a be_free donation on lastfree is large enough, that static block is reused once; otherwise the request is satisfied by malloc. Used internally to implement malloc and calloc. Heap memory is drawn from FAST RAM first, then CHIP, via the underlying _alloc path.
+
+   INPUTS
+	ULONG size - minimum payload bytes required.
+
+   RESULT
+	APTR - pointer to allocated block, or NULL on failure.
+
+   SEE ALSO
+	heap_free, malloc, calloc, be_free
+
+   (LVO bias -372)
+
+CClib.library/heap_free                                CClib.library/heap_free
+   NAME
+	heap_free -- return a block to the heap manager
+
+   SYNOPSIS
+	void heap_free(APTR ptr);
+
+	Registers: a0=ptr
+
+   FUNCTION
+	Returns memory obtained from heap_alloc (or malloc/calloc/realloc) to the per-task heap. In this implementation heap_free is an alias for free, which releases the underlying _alloc block via the malloc header.
+
+   INPUTS
+	APTR ptr - pointer from heap_alloc, malloc, calloc, or realloc.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	heap_alloc, free, malloc
+
+   (LVO bias -378)
+
+CClib.library/malloc                                      CClib.library/malloc
+   NAME
+	malloc -- allocate bytes from the task heap
+
+   SYNOPSIS
+	APTR malloc(ULONG size);
+
+	Registers: d0=size
+
+   FUNCTION
+	Allocates at least size bytes from the calling task's heap (task_UserData). The requested size is rounded up to a multiple of eight bytes; malloc_size reports the rounded value. Memory is obtained from Exec via _alloc, trying FAST RAM before CHIP. A ULONG size word precedes the returned pointer. Sets errno to ENOMEM on failure.
+
+   INPUTS
+	ULONG size - minimum number of payload bytes.
+
+   RESULT
+	APTR - pointer to allocated memory, or NULL if unavailable.
+
+   NOTES
+	malloc(0) may return NULL or a unique freeable pointer depending on availability; both are valid historic behaviour.
+
+   SEE ALSO
+	calloc, realloc, free, malloc_size, heap_alloc
+
+   (LVO bias -384)
+
+CClib.library/calloc                                      CClib.library/calloc
+   NAME
+	calloc -- allocate and zero an array
+
+   SYNOPSIS
+	APTR calloc(ULONG nelem, ULONG elsize);
+
+	Registers: d0=nelem, d1=elsize
+
+   FUNCTION
+	Allocates nelem * elsize bytes from the per-task heap (same FAST then CHIP policy as malloc), then clears every byte to zero. Uses malloc internally; returns NULL if the product overflows or allocation fails.
+
+   INPUTS
+	ULONG nelem - number of elements.
+	ULONG elsize - size of each element in bytes.
+
+   RESULT
+	APTR - pointer to zeroed block, or NULL on failure.
+
+   SEE ALSO
+	malloc, realloc, free
+
+   (LVO bias -390)
+
+CClib.library/realloc                                    CClib.library/realloc
+   NAME
+	realloc -- resize a heap block
+
+   SYNOPSIS
+	APTR realloc(APTR ptr, ULONG size);
+
+	Registers: a0=ptr, d0=size
+
+   FUNCTION
+	Changes the size of a block previously obtained from malloc, calloc, or realloc. Contents are preserved up to the smaller of the old and new sizes. A new block is allocated and the old one freed; the address may change. Passing NULL is equivalent to malloc(size); passing size 0 frees ptr and returns NULL.
+
+   INPUTS
+	APTR ptr - existing block, or NULL for a fresh allocation.
+	ULONG size - new minimum payload size (8-byte rounded).
+
+   RESULT
+	APTR - pointer to resized block, or NULL on failure (original block left intact when allocation fails).
+
+   SEE ALSO
+	malloc, calloc, free, malloc_size
+
+   (LVO bias -396)
+
+CClib.library/free                                          CClib.library/free
+   NAME
+	free -- release a heap allocation
+
+   SYNOPSIS
+	void free(APTR ptr);
+
+	Registers: a0=ptr
+
+   FUNCTION
+	Returns a block allocated by malloc, calloc, or realloc to the per-task heap manager. The pointer is adjusted back to the internal header and released through _fre on the current task's task_UserData. NULL is ignored safely.
+
+   INPUTS
+	APTR ptr - payload pointer from malloc family.
+
+   RESULT
+	None.
+
+   NOTES
+	Do not free pointers returned by remv_head and friends until you have finished using the detached node; free the node pointer, not only the data pointer.
+
+   SEE ALSO
+	malloc, calloc, realloc, heap_free
+
+   (LVO bias -402)
+
+CClib.library/be_free                                    CClib.library/be_free
+   NAME
+	be_free -- donate static RAM to the heap
+
+   SYNOPSIS
+	void be_free(APTR ptr, ULONG size);
+
+	Registers: a0=ptr, d0=size
+
+   FUNCTION
+	Registers a block of static memory with the heap manager so a subsequent heap_alloc or malloc of suitable size can reuse it once. The memory must not be written after donation. ptr was not obtained from AllocMem; it is never FreeMem'd by the library. Only the most recent donation on lastfree is remembered.
+
+   INPUTS
+	APTR ptr - start of static buffer to donate.
+	ULONG size - size of the buffer in bytes (rounded up internally).
+
+   RESULT
+	None.
+
+   NOTES
+	Writing into a donated block can corrupt heap bookkeeping.
+
+   SEE ALSO
+	heap_alloc, malloc, free
+
+   (LVO bias -408)
+
+CClib.library/malloc_size                            CClib.library/malloc_size
+   NAME
+	malloc_size -- query an allocated block size
+
+   SYNOPSIS
+	ULONG malloc_size(APTR ptr);
+
+	Registers: a0=ptr
+
+   FUNCTION
+	Returns the size in bytes of the payload region for a pointer obtained from malloc, calloc, realloc, or heap_alloc. The stored size is the value rounded up to eight bytes at allocation time, which may be larger than the size originally requested.
+
+   INPUTS
+	APTR ptr - payload pointer from the malloc family.
+
+   RESULT
+	ULONG - rounded payload size, or 0 if ptr is NULL.
+
+   SEE ALSO
+	malloc, calloc, realloc, heap_alloc
+
+   (LVO bias -414)
+
+CClib.library/freeall                                    CClib.library/freeall
+   NAME
+	freeall -- release all task heap and buffers
+
+   SYNOPSIS
+	void freeall(void);
+
+   FUNCTION
+	Calls _freall to return every _alloc arena block to Exec, resets the K&R heap base pointers, and clears the OpenFiles and StreamFiles lists for the current task. Intended for program shutdown (for example from exit); call closeall first so open BPTRs are released while FILE structures still exist.
+
+   INPUTS
+	None.
+
+   RESULT
+	None.
+
+   NOTES
+	After freeall, previously returned pointers must not be used.
+
+   SEE ALSO
+	_freall, free, closeall, exit
+
+   (LVO bias -420)
+
+CClib.library/inst_node                                CClib.library/inst_node
+   NAME
+	inst_node -- allocate a cleared list node
+
+   SYNOPSIS
+	APTR inst_node(LONG size);
+
+	Registers: d0=size
+
+   FUNCTION
+	Allocates and zero-fills a list node plus size bytes of caller data using Exec AllocMem (not the malloc heap). Layout is [ULONG total][cc_node][data]. Returns a pointer to the cc_node structure; caller data begins at (node + 1). Prev/next are NULL. Link with put_head or put_tail, or use add_head/add_tail to allocate and link in one step.
+
+   INPUTS
+	LONG size - bytes of payload data after the node header.
+
+   RESULT
+	APTR - pointer to cc_node, or NULL if AllocMem failed.
+
+   NOTES
+	Free with FreeMem: hp = (ULONG *)node - 1; FreeMem(hp, *hp).
+
+   SEE ALSO
+	add_head, add_tail, put_head, put_tail, remv_node
+
+   (LVO bias -426)
+
+CClib.library/put_head                                  CClib.library/put_head
+   NAME
+	put_head -- link a node at list head
+
+   SYNOPSIS
+	void put_head(APTR list, APTR node);
+
+	Registers: a0=list, a1=node
+
+   FUNCTION
+	Inserts an existing node at the beginning of a cc_list. Updates first, last, and length. The node must have been allocated with inst_node or add_head/add_tail and must not already be on a list.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR node - pointer to cc_node from inst_node.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	put_tail, add_head, remv_head, inst_node
+
+   (LVO bias -432)
+
+CClib.library/add_head                                  CClib.library/add_head
+   NAME
+	add_head -- allocate a node at list head
+
+   SYNOPSIS
+	APTR add_head(APTR list, LONG size);
+
+	Registers: a0=list, d0=size
+
+   FUNCTION
+	Combines inst_node and put_head: AllocMems a cleared node with size bytes of payload, links it at the head of the list, and returns a pointer to the data area (node + 1), not the node pointer itself.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	LONG size - payload data bytes for the new node.
+
+   RESULT
+	APTR - pointer to node data, or NULL on allocation failure.
+
+   SEE ALSO
+	add_tail, inst_node, put_head, remv_head
+
+   (LVO bias -438)
+
+CClib.library/put_tail                                  CClib.library/put_tail
+   NAME
+	put_tail -- link a node at list tail
+
+   SYNOPSIS
+	void put_tail(APTR list, APTR node);
+
+	Registers: a0=list, a1=node
+
+   FUNCTION
+	Appends an existing node to the end of a cc_list. Updates first when the list was empty, always updates last and length.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR node - pointer to cc_node from inst_node.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	put_head, add_tail, remv_tail, inst_node
+
+   (LVO bias -444)
+
+CClib.library/add_tail                                  CClib.library/add_tail
+   NAME
+	add_tail -- allocate a node at list tail
+
+   SYNOPSIS
+	APTR add_tail(APTR list, LONG size);
+
+	Registers: a0=list, d0=size
+
+   FUNCTION
+	AllocMems a cleared node with size bytes of payload, links it at the tail of the list, and returns a pointer to the data area (node + 1).
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	LONG size - payload data bytes for the new node.
+
+   RESULT
+	APTR - pointer to node data, or NULL on allocation failure.
+
+   SEE ALSO
+	add_head, put_tail, remv_tail, inst_node
+
+   (LVO bias -450)
+
+CClib.library/remv_head                                CClib.library/remv_head
+   NAME
+	remv_head -- detach the first list node
+
+   SYNOPSIS
+	APTR remv_head(APTR list, APTR datap);
+
+	Registers: a0=list, a1=datap
+
+   FUNCTION
+	Removes the first node from the list without freeing memory. If datap is non-NULL, stores a pointer to the node's data (node + 1) at *datap. Returns the cc_node pointer so the caller can FreeMem using the size prefix: hp = (ULONG *)node - 1; FreeMem(hp, *hp).
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR datap - optional pointer to APTR to receive data address.
+
+   RESULT
+	APTR - detached cc_node, or NULL if the list is empty.
+
+   SEE ALSO
+	remv_tail, remv_node, r_node, add_head
+
+   (LVO bias -456)
+
+CClib.library/remv_tail                                CClib.library/remv_tail
+   NAME
+	remv_tail -- detach the last list node
+
+   SYNOPSIS
+	APTR remv_tail(APTR list, APTR datap);
+
+	Registers: a0=list, a1=datap
+
+   FUNCTION
+	Removes the last node from the list without freeing memory. Optionally stores the data pointer at *datap. Returns the node pointer for FreeMem via the ULONG size word immediately before the cc_node.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR datap - optional pointer to APTR to receive data address.
+
+   RESULT
+	APTR - detached cc_node, or NULL if the list is empty.
+
+   SEE ALSO
+	remv_head, remv_node, r_node, add_tail
+
+   (LVO bias -462)
+
+CClib.library/remv_list                                CClib.library/remv_list
+   NAME
+	remv_list -- free an entire list and its header
+
+   SYNOPSIS
+	void remv_list(APTR list);
+
+	Registers: a0=list
+
+   FUNCTION
+	Walks the list, FreeMeming every node using the size prefix before each cc_node, then FreeMems the list header itself as sizeof(cc_list). The header must have been AllocMem'd to that size. After the call the list pointer is invalid.
+
+   INPUTS
+	APTR list - pointer to cc_list header (AllocMem allocated).
+
+   RESULT
+	None.
+
+   NOTES
+	All nodes must use the inst_node/add_head layout with a leading ULONG total size.
+
+   SEE ALSO
+	remv_head, remv_tail, remv_node, inst_node
+
+   (LVO bias -468)
+
+CClib.library/r_node                                      CClib.library/r_node
+   NAME
+	r_node -- detach a known node from a list
+
+   SYNOPSIS
+	APTR r_node(APTR list, APTR node, APTR datap);
+
+	Registers: a0=list, a1=node, a2=datap
+
+   FUNCTION
+	Unlinks a specific cc_node from the list. If datap is non-NULL, stores the data pointer (node + 1) at *datap. Returns the node pointer without freeing; release with FreeMem and the size prefix.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR node - cc_node to remove.
+	APTR datap - optional pointer to APTR to receive data address.
+
+   RESULT
+	APTR - the detached node, or NULL if list or node is invalid.
+
+   SEE ALSO
+	remv_node, remv_head, remv_tail
+
+   (LVO bias -474)
+
+CClib.library/remv_node                                CClib.library/remv_node
+   NAME
+	remv_node -- detach a node by its data pointer
+
+   SYNOPSIS
+	APTR remv_node(APTR list, APTR data);
+
+	Registers: a0=list, a1=data
+
+   FUNCTION
+	Scans the list for a node whose data area (node + 1) matches data, unlinks it, and returns the cc_node pointer. Does not free memory; FreeMem using hp = (ULONG *)node - 1 and size *hp.
+
+   INPUTS
+	APTR list - pointer to cc_list header.
+	APTR data - pointer returned by add_head or add_tail.
+
+   RESULT
+	APTR - detached cc_node, or NULL if no matching data was found.
+
+   SEE ALSO
+	r_node, remv_head, remv_tail
+
+   (LVO bias -480)
+
+CClib.library/atoi                                          CClib.library/atoi
+   NAME
+	atoi -- convert string to integer
+
+   SYNOPSIS
+	LONG atoi(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Parses a decimal integer from a NUL-terminated string. Leading white space is skipped. An optional sign is accepted. Parsing stops at the first non-digit. Implemented as a call to atol; on Amiga LONG and int are both 32-bit.
+
+   INPUTS
+	STRPTR s - string to convert.
+
+   RESULT
+	LONG - converted value, or 0 if no conversion could be performed.
+
+   SEE ALSO
+	atol, atof, ltoa, stoa
+
+   (LVO bias -486)
+
+CClib.library/atol                                          CClib.library/atol
+   NAME
+	atol -- convert string to long integer
+
+   SYNOPSIS
+	LONG atol(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Parses a signed decimal long from s, skipping leading white space and an optional '+' or '-' prefix. Accumulates digits until a non-digit is seen. Returns zero when no digits were read.
+
+   INPUTS
+	STRPTR s - string to convert.
+
+   RESULT
+	LONG - converted value, or 0 if no conversion could be performed.
+
+   SEE ALSO
+	atoi, atof, ltoa
+
+   (LVO bias -492)
+
+CClib.library/atof                                          CClib.library/atof
+   NAME
+	atof -- convert string to IEEE double
+
+   SYNOPSIS
+	DOUBLE atof(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Parses a floating-point literal from a string into an IEEE double-precision value. When SetupSTDIO has installed mathieeedoubbas as mathbase, conversion uses the IEEE library for full accuracy. Without mathbase, a fixed-point fallback builds IEEE bits using integer arithmetic only.
+
+   INPUTS
+	STRPTR s - string to convert.
+
+   RESULT
+	DOUBLE - converted value, or 0.0 if no conversion could be made.
+
+   NOTES
+	Requires SetupSTDIO mathbase for mathieeedoubbas IEEE helpers.
+
+   SEE ALSO
+	atoi, atol, ltoa, SetupSTDIO
+
+   (LVO bias -498)
+
+CClib.library/ltoa                                          CClib.library/ltoa
+   NAME
+	ltoa -- convert long integer to decimal string
+
+   SYNOPSIS
+	void ltoa(LONG n, STRPTR s);
+
+	Registers: d0=n, a0=s
+
+   FUNCTION
+	Writes a signed decimal representation of n into the caller-supplied buffer s as a NUL-terminated string. Handles 0x80000000 explicitly. The buffer must be large enough for the sign, up to ten digits, and the terminator (typically 12 bytes).
+
+   INPUTS
+	LONG n - value to convert.
+	STRPTR s - destination buffer written by the function.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	atol, atoi, stoa
+
+   (LVO bias -504)
+
+CClib.library/stoa                                          CClib.library/stoa
+   NAME
+	stoa -- convert short integer to decimal string
+
+   SYNOPSIS
+	void stoa(LONG n, STRPTR s);
+
+	Registers: d0=n, a0=s
+
+   FUNCTION
+	Converts a short integer n to a decimal string in the caller-supplied buffer s by casting to LONG and calling ltoa. Buffer sizing matches ltoa.
+
+   INPUTS
+	LONG n - short value passed as LONG in the LVO.
+	STRPTR s - destination buffer.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	atoi, ltoa, atol
+
+   (LVO bias -510)
+
+CClib.library/bcmp                                          CClib.library/bcmp
+   NAME
+	bcmp -- compare two memory blocks (BSD)
+
+   SYNOPSIS
+	LONG bcmp(APTR b1, APTR b2, LONG len);
+
+	Registers: a0=b1, a1=b2, d0=len
+
+   FUNCTION
+	Compares the first len bytes of two memory regions byte by byte. Behaves like memcmp in this implementation: returns 0 when all bytes match, a negative LONG if the first differing byte in b1 is less than that in b2, positive if greater. Zero length compares equal without accessing memory.
+
+   INPUTS
+	APTR b1 - first region.
+	APTR b2 - second region.
+	LONG len - number of bytes to compare.
+
+   RESULT
+	LONG - less than, equal to, or greater than zero as memcmp.
+
+   SEE ALSO
+	memcmp, bcopy, memcpy
+
+   (LVO bias -516)
+
+CClib.library/bcopy                                        CClib.library/bcopy
+   NAME
+	bcopy -- copy memory with overlap safety
+
+   SYNOPSIS
+	void bcopy(APTR src, APTR dst, LONG len);
+
+	Registers: a0=src, a1=dst, d0=len
+
+   FUNCTION
+	Copies len bytes from src to dst. When the regions overlap, copy direction is chosen so source data is not clobbered before it is read; non-overlapping copies use Exec CopyMem. Argument order is source then destination (BSD order), opposite to memcpy.
+
+   INPUTS
+	APTR src - source address.
+	APTR dst - destination address.
+	LONG len - number of bytes to copy.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	memcpy, memmove, bzero
+
+   (LVO bias -522)
+
+CClib.library/bzero                                        CClib.library/bzero
+   NAME
+	bzero -- zero a memory region
+
+   SYNOPSIS
+	void bzero(APTR b, LONG len);
+
+	Registers: a0=b, d0=len
+
+   FUNCTION
+	Sets each of the len bytes starting at b to zero. Equivalent to memset(b, 0, len) but provided for BSD compatibility.
+
+   INPUTS
+	APTR b - region to clear.
+	LONG len - number of bytes to set to zero.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	memset, bcopy
+
+   (LVO bias -528)
+
+CClib.library/memccpy                                    CClib.library/memccpy
+   NAME
+	memccpy -- copy bytes until a stop character
+
+   SYNOPSIS
+	APTR memccpy(APTR dst, APTR src, ULONG c, LONG n);
+
+	Registers: a0=dst, a1=src, d0=c, d1=n
+
+   FUNCTION
+	Copies bytes from src to dst up to n bytes or until a byte equal to c (low eight bits) is copied from src, whichever comes first. Returns a pointer to the byte in dst after the copied stop character, or NULL if c was not found within n bytes.
+
+   INPUTS
+	APTR dst - destination.
+	APTR src - source.
+	ULONG c - stop character (truncated to UBYTE).
+	LONG n - maximum bytes to examine.
+
+   RESULT
+	APTR - address after the copied stop byte, or NULL if not found.
+
+   SEE ALSO
+	memcpy, memchr, bcopy
+
+   (LVO bias -534)
+
+CClib.library/memchr                                      CClib.library/memchr
+   NAME
+	memchr -- search a buffer for a byte
+
+   SYNOPSIS
+	APTR memchr(APTR b, ULONG c, LONG n);
+
+	Registers: a0=b, d0=c, d1=n
+
+   FUNCTION
+	Scans the first n bytes of b for the first occurrence of c (low eight bits). Returns a pointer to the matching byte or NULL if c does not appear in the range.
+
+   INPUTS
+	APTR b - buffer to search.
+	ULONG c - byte value to find.
+	LONG n - number of bytes to scan.
+
+   RESULT
+	APTR - pointer to first match, or NULL if not found.
+
+   SEE ALSO
+	memccpy, strchr, index
+
+   (LVO bias -540)
+
+CClib.library/memcmp                                      CClib.library/memcmp
+   NAME
+	memcmp -- compare two memory regions
+
+   SYNOPSIS
+	LONG memcmp(APTR b1, APTR b2, LONG n);
+
+	Registers: a0=b1, a1=b2, d0=n
+
+   FUNCTION
+	Lexicographically compares two regions of n bytes. Returns zero if all bytes are equal, a negative value if the first differing byte in b1 is less than that in b2, or a positive value if greater. Zero length is treated as equal.
+
+   INPUTS
+	APTR b1 - first region.
+	APTR b2 - second region.
+	LONG n - number of bytes to compare.
+
+   RESULT
+	LONG - comparison result as for strcmp.
+
+   SEE ALSO
+	bcmp, memcpy, bcopy
+
+   (LVO bias -546)
+
+CClib.library/memcpy                                      CClib.library/memcpy
+   NAME
+	memcpy -- copy a memory block
+
+   SYNOPSIS
+	APTR memcpy(APTR dst, APTR src, LONG n);
+
+	Registers: a0=dst, a1=src, d0=n
+
+   FUNCTION
+	Copies n bytes from src to dst and returns dst. In this port non-overlapping regions are copied with Exec CopyMem. Callers must ensure regions do not overlap unless bcopy is used; historic CClib documentation documents overlap-safe behaviour for memcpy via the same implementation strategy as bcopy when required.
+
+   INPUTS
+	APTR dst - destination.
+	APTR src - source.
+	LONG n - number of bytes to copy.
+
+   RESULT
+	APTR - dst.
+
+   NOTES
+	Prefer bcopy when overlap is possible.
+
+   SEE ALSO
+	bcopy, memmove, memset
+
+   (LVO bias -552)
+
+CClib.library/memset                                      CClib.library/memset
+   NAME
+	memset -- fill a memory region with a byte
+
+   SYNOPSIS
+	APTR memset(APTR b, ULONG c, LONG n);
+
+	Registers: a0=b, d0=c, d1=n
+
+   FUNCTION
+	Writes the low eight bits of c into each of the n bytes starting at b. Returns b. Commonly used to initialise structures and buffers.
+
+   INPUTS
+	APTR b - region to fill.
+	ULONG c - fill byte (truncated to UBYTE).
+	LONG n - number of bytes to set.
+
+   RESULT
+	APTR - b.
+
+   SEE ALSO
+	bzero, memcpy
+
+   (LVO bias -558)
+
+CClib.library/memswap                                    CClib.library/memswap
+   NAME
+	memswap -- exchange two memory regions
+
+   SYNOPSIS
+	void memswap(APTR b1, APTR b2, LONG n);
+
+	Registers: a0=b1, a1=b2, d0=n
+
+   FUNCTION
+	Swaps the contents of two buffers of n bytes byte by byte using a temporary variable. Both pointers must address at least n valid bytes.
+
+   INPUTS
+	APTR b1 - first region.
+	APTR b2 - second region.
+	LONG n - number of bytes to exchange.
+
+   RESULT
+	None.
+
+   SEE ALSO
+	memcpy, bcopy
+
+   (LVO bias -564)
+
+CClib.library/index                                        CClib.library/index
+   NAME
+	index -- find first byte in string (BSD alias)
+
+   SYNOPSIS
+	STRPTR index(STRPTR s, LONG c);
+
+	Registers: a0=s, d0=c
+
+   FUNCTION
+	Scans the NUL-terminated string s from the beginning and returns a pointer to the first occurrence of the byte c (cast to unsigned char). The search includes the terminating NUL when c is zero.
+
+	This is the historic BSD name for strchr. CClib implements index directly rather than calling strchr, so both names are available for legacy sources.
+
+   INPUTS
+	s - NUL-terminated string to search
+	c - byte value to find (LONG, low 8 bits used)
+
+   RESULT
+	Pointer to the matching byte within s, or NULL if c does not occur (or if s is NULL).
+
+   SEE ALSO
+	strchr, rindex, strrchr
+
+   (LVO bias -570)
+
+CClib.library/rindex                                      CClib.library/rindex
+   NAME
+	rindex -- find last byte in string (BSD alias)
+
+   SYNOPSIS
+	STRPTR rindex(STRPTR s, LONG c);
+
+	Registers: a0=s, d0=c
+
+   FUNCTION
+	Scans the NUL-terminated string s and returns a pointer to the last occurrence of the byte c. If c does not appear, returns NULL. When c is zero, the returned pointer is the terminating NUL of s.
+
+	This is the historic BSD name for strrchr.
+
+   INPUTS
+	s - NUL-terminated string to search
+	c - byte value to find (LONG, low 8 bits used)
+
+   RESULT
+	Pointer to the last matching byte within s, or NULL if not found (or if s is NULL).
+
+   SEE ALSO
+	strrchr, index, strchr
+
+   (LVO bias -576)
+
+CClib.library/strupr                                      CClib.library/strupr
+   NAME
+	strupr -- convert string to uppercase in place
+
+   SYNOPSIS
+	STRPTR strupr(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Walks the NUL-terminated string s and converts every lowercase letter 'a' through 'z' to the corresponding uppercase letter. All other bytes are left unchanged. The conversion is done in place; the same pointer s is returned.
+
+	This is an Amiga/CClib helper not found in strict ANSI C.
+
+   INPUTS
+	s - NUL-terminated string to upper-case
+
+   RESULT
+	s (unchanged pointer; contents modified), or s if s is NULL.
+
+   SEE ALSO
+	toupper, tolower, strcmpa
+
+   (LVO bias -582)
+
+CClib.library/stpcrlf                                    CClib.library/stpcrlf
+   NAME
+	stpcrlf -- truncate string at first CR or LF
+
+   SYNOPSIS
+	STRPTR stpcrlf(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Scans the NUL-terminated string s from the start. When the first carriage return ('\r') or line feed ('\n') is found, that byte is replaced with NUL and scanning stops. Bytes before the line break remain; the remainder of the original string is no longer reachable through s.
+
+	Useful for stripping AmigaDOS or serial line endings from a buffer read by gets or fgets.
+
+   INPUTS
+	s - NUL-terminated string to trim
+
+   RESULT
+	s (modified in place).
+
+   SEE ALSO
+	strcat, strcpy, strlen
+
+   (LVO bias -588)
+
+CClib.library/strcat                                      CClib.library/strcat
+   NAME
+	strcat -- append one string to another
+
+   SYNOPSIS
+	STRPTR strcat(STRPTR dst, STRPTR src);
+
+	Registers: a0=dst, a1=src
+
+   FUNCTION
+	Appends the NUL-terminated string src to the end of dst. Finds the existing NUL in dst, then copies src with utility.library/Strncpy (V47) using ULONG_MAX as the size. dst must already contain a valid NUL-terminated string with enough allocated space for the combined result plus a terminating NUL.
+
+   INPUTS
+	dst - destination buffer containing an existing string
+	src - NUL-terminated string to append
+
+   RESULT
+	dst (pointer to the combined string).
+
+   NOTES
+	Requires utility.library V47+.
+
+   SEE ALSO
+	strcpy, strncat, strlen
+
+   (LVO bias -594)
+
+CClib.library/strchr                                      CClib.library/strchr
+   NAME
+	strchr -- find first byte in string
+
+   SYNOPSIS
+	STRPTR strchr(STRPTR s, LONG c);
+
+	Registers: a0=s, d0=c
+
+   FUNCTION
+	Scans the NUL-terminated string s from the beginning and returns a pointer to the first occurrence of the byte c. Identical in behaviour to index; both names are provided for portability.
+
+   INPUTS
+	s - NUL-terminated string to search
+	c - byte value to find (LONG, low 8 bits used)
+
+   RESULT
+	Pointer to the matching byte within s, or NULL if c does not occur (or if s is NULL).
+
+   SEE ALSO
+	index, strrchr, rindex
+
+   (LVO bias -600)
+
+CClib.library/strcmp                                      CClib.library/strcmp
+   NAME
+	strcmp -- compare two strings
+
+   SYNOPSIS
+	LONG strcmp(STRPTR s1, STRPTR s2);
+
+	Registers: a0=s1, a1=s2
+
+   FUNCTION
+	Compares the NUL-terminated strings s1 and s2 byte by byte using unsigned char values. Scanning stops at the first differing byte or at the first NUL in either string.
+
+	When utility.library is available, Strcmp may be used internally for the same semantics.
+
+   INPUTS
+	s1 - first string
+	s2 - second string
+
+   RESULT
+	Zero if the strings are equal. A positive LONG if s1 is greater than s2, negative if s1 is less. NULL pointers sort before non-NULL pointers.
+
+   SEE ALSO
+	strncmp, strcmpa
+
+   (LVO bias -606)
+
+CClib.library/strcpy                                      CClib.library/strcpy
+   NAME
+	strcpy -- copy a string
+
+   SYNOPSIS
+	STRPTR strcpy(STRPTR dst, STRPTR src);
+
+	Registers: a0=dst, a1=src
+
+   FUNCTION
+	Copies bytes from the NUL-terminated string src into dst, including the terminating NUL. Implemented with utility.library/Strncpy (V47) using ULONG_MAX as the buffer size, matching unbounded C strcpy. dst must be large enough to hold the full source string plus its terminator.
+
+   INPUTS
+	dst - destination buffer
+	src - NUL-terminated source string
+
+   RESULT
+	dst (pointer to the copied string).
+
+   NOTES
+	Requires utility.library V47+. Strncpy's return (end pointer) is discarded; the LVO always returns dst.
+
+   SEE ALSO
+	strncpy, strcat, bcpl_strcpy
+
+   (LVO bias -612)
+
+CClib.library/strcspn                                    CClib.library/strcspn
+   NAME
+	strcspn -- length of initial segment not in reject set
+
+   SYNOPSIS
+	LONG strcspn(STRPTR s, STRPTR reject);
+
+	Registers: a0=s, a1=reject
+
+   FUNCTION
+	Measures the length of the initial segment of s that contains only bytes not present in the NUL-terminated string reject. Scanning stops at the first byte of s that appears anywhere in reject, or at the NUL terminator of s.
+
+   INPUTS
+	s - string to scan
+	reject - NUL-terminated set of bytes to reject
+
+   RESULT
+	Number of bytes in the initial segment of s before any reject character (0 if s is NULL).
+
+   SEE ALSO
+	strspn, strpbrk, strbrk
+
+   (LVO bias -618)
+
+CClib.library/strlen                                      CClib.library/strlen
+   NAME
+	strlen -- length of a string
+
+   SYNOPSIS
+	LONG strlen(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Counts bytes in the NUL-terminated string s up to but not including the terminating NUL.
+
+   INPUTS
+	s - NUL-terminated string
+
+   RESULT
+	Number of bytes before the terminator (0 if s is NULL).
+
+   SEE ALSO
+	strcpy, strcat, strncmp
+
+   (LVO bias -624)
+
+CClib.library/strncat                                    CClib.library/strncat
+   NAME
+	strncat -- append up to n bytes from a string
+
+   SYNOPSIS
+	STRPTR strncat(STRPTR dst, STRPTR src, LONG n);
+
+	Registers: a0=dst, a1=src, d0=n
+
+   FUNCTION
+	Appends at most n bytes from src to the end of dst, then writes a terminating NUL. If src is shorter than n bytes, copying stops at the NUL in src. dst must already contain a NUL-terminated string with room for the appended bytes and a new terminator.
+
+   INPUTS
+	dst - destination buffer with existing string
+	src - source string
+	n - maximum number of bytes to copy from src
+
+   RESULT
+	dst.
+
+   NOTES
+	Not utility.library/Strncat: that call takes the full destination buffer size, not C's append count.
+
+   SEE ALSO
+	strcat, strncpy, strcpy
+
+   (LVO bias -630)
+
+CClib.library/strcmpa                                    CClib.library/strcmpa
+   NAME
+	strcmpa -- case-insensitive string compare (Amiga)
+
+   SYNOPSIS
+	LONG strcmpa(STRPTR s1, STRPTR s2);
+
+	Registers: a0=s1, a1=s2
+
+   FUNCTION
+	Compares s1 and s2 without regard to letter case. When utility.library is open, Stricmp is used. Otherwise CClib folds ASCII 'A'-'Z' to lowercase before comparing unsigned bytes.
+
+	This is the Amiga equivalent of strcasecmp / stricmp.
+
+   INPUTS
+	s1 - first string
+	s2 - second string
+
+   RESULT
+	Zero if equal ignoring case; positive or negative LONG if they differ (same ordering rules as strcmp).
+
+   SEE ALSO
+	strcmp, strncmp, strupr
+
+   (LVO bias -636)
+
+CClib.library/strncmp                                    CClib.library/strncmp
+   NAME
+	strncmp -- compare at most n bytes of two strings
+
+   SYNOPSIS
+	LONG strncmp(STRPTR s1, STRPTR s2, LONG n);
+
+	Registers: a0=s1, a1=s2, d0=n
+
+   FUNCTION
+	Compares at most n bytes of s1 and s2 as unsigned characters. If all n bytes match and neither string ended early, returns zero. Stops at the first mismatch or at a NUL in either string within the first n bytes.
+
+   INPUTS
+	s1 - first string
+	s2 - second string
+	n - maximum number of bytes to compare
+
+   RESULT
+	Zero if the compared portions are equal; otherwise a positive or negative difference of the first unequal bytes. Returns 0 when n <= 0.
+
+   SEE ALSO
+	strcmp, strcmpa, strncpy
+
+   (LVO bias -642)
+
+CClib.library/strncpy                                    CClib.library/strncpy
+   NAME
+	strncpy -- copy at most n bytes (ANSI padding)
+
+   SYNOPSIS
+	STRPTR strncpy(STRPTR dst, STRPTR src, LONG n);
+
+	Registers: a0=dst, a1=src, d0=n
+
+   FUNCTION
+	Copies at most n bytes from src into dst. If src is shorter than n, the remainder of the n-byte region is filled with NUL bytes (ANSI strncpy). If src is longer than or equal to n, exactly n bytes are stored and no extra terminator is written beyond that region.
+
+	When n is 0, CClib still writes a single NUL at dst[0] and copies no source bytes (historic CClib behaviour).
+
+   INPUTS
+	dst - destination buffer
+	src - source string
+	n - size of the destination region to fill
+
+   RESULT
+	dst.
+
+   NOTES
+	Not utility.library/Strncpy: that API takes destination buffer size and always NUL-terminates inside the buffer.
+
+   SEE ALSO
+	strcpy, strncat
+
+   (LVO bias -648)
+
+CClib.library/strpbrk                                    CClib.library/strpbrk
+   NAME
+	strpbrk -- find first byte from a set in a string
+
+   SYNOPSIS
+	STRPTR strpbrk(STRPTR s, STRPTR accept);
+
+	Registers: a0=s, a1=accept
+
+   FUNCTION
+	Scans s from the beginning and returns a pointer to the first byte that also appears in the NUL-terminated string accept.
+
+   INPUTS
+	s - string to scan
+	accept - NUL-terminated set of bytes to match
+
+   RESULT
+	Pointer to the first matching byte in s, or NULL if no accept byte occurs (or if s or accept is NULL).
+
+   SEE ALSO
+	strcspn, strspn, strchr
+
+   (LVO bias -654)
+
+CClib.library/strrchr                                    CClib.library/strrchr
+   NAME
+	strrchr -- find last byte in string
+
+   SYNOPSIS
+	STRPTR strrchr(STRPTR s, LONG c);
+
+	Registers: a0=s, d0=c
+
+   FUNCTION
+	Scans the NUL-terminated string s and returns a pointer to the last occurrence of byte c. Identical in behaviour to rindex.
+
+   INPUTS
+	s - NUL-terminated string to search
+	c - byte value to find (LONG, low 8 bits used)
+
+   RESULT
+	Pointer to the last matching byte within s, or NULL if not found (or if s is NULL).
+
+   SEE ALSO
+	rindex, strchr, index
+
+   (LVO bias -660)
+
+CClib.library/strspn                                      CClib.library/strspn
+   NAME
+	strspn -- length of initial segment in accept set
+
+   SYNOPSIS
+	LONG strspn(STRPTR s, STRPTR accept);
+
+	Registers: a0=s, a1=accept
+
+   FUNCTION
+	Measures the length of the initial segment of s consisting only of bytes that appear in the NUL-terminated string accept. Scanning stops at the first byte of s not found in accept, or at the NUL terminator of s.
+
+   INPUTS
+	s - string to scan
+	accept - NUL-terminated set of bytes to accept
+
+   RESULT
+	Number of bytes in the initial accepted segment (0 if s is NULL).
+
+   SEE ALSO
+	strcspn, strpbrk
+
+   (LVO bias -666)
+
+CClib.library/strstr                                      CClib.library/strstr
+   NAME
+	strstr -- find substring in string
+
+   SYNOPSIS
+	STRPTR strstr(STRPTR haystack, STRPTR needle);
+
+	Registers: a0=haystack, a1=needle
+
+   FUNCTION
+	Searches haystack for the first occurrence of the NUL-terminated substring needle. An empty needle is considered to match at the start of haystack.
+
+   INPUTS
+	haystack - string to search in
+	needle - substring to find
+
+   RESULT
+	Pointer to the first match within haystack, or NULL if needle does not occur (or if haystack is NULL).
+
+   SEE ALSO
+	strchr, strcmp, strlen
+
+   (LVO bias -672)
+
+CClib.library/strtok                                      CClib.library/strtok
+   NAME
+	strtok -- tokenize a string
+
+   SYNOPSIS
+	STRPTR strtok(STRPTR s, STRPTR delim);
+
+	Registers: a0=s, a1=delim
+
+   FUNCTION
+	Splits a string into tokens separated by any byte from delim. On the first call pass the string in s; on subsequent calls pass NULL to continue from the previous position. Delimiter bytes are overwritten with NUL in the original buffer.
+
+	CClib stores the resume pointer in task_UserData->scanpoint rather than a static C variable, so concurrent tasks do not share strtok state. Only one strtok sequence may be active per task at a time.
+
+   INPUTS
+	s - string to tokenize, or NULL to continue
+	delim - NUL-terminated set of delimiter bytes
+
+   RESULT
+	Pointer to the next token, or NULL when no tokens remain.
+
+   NOTES
+	Modifies the string buffer. scanpoint in task_UserData holds the continuation offset between calls.
+
+   SEE ALSO
+	strspn, strcspn, strpbrk
+
+   (LVO bias -678)
+
+CClib.library/strrv                                        CClib.library/strrv
+   NAME
+	strrv -- reverse a string in place
+
+   SYNOPSIS
+	STRPTR strrv(STRPTR s);
+
+	Registers: a0=s
+
+   FUNCTION
+	Reverses the order of all bytes in the NUL-terminated string s by swapping characters from each end toward the centre. The terminating NUL remains at the end.
+
+   INPUTS
+	s - NUL-terminated string to reverse
+
+   RESULT
+	s (reversed in place).
+
+   SEE ALSO
+	strnrv, strupr
+
+   (LVO bias -684)
+
+CClib.library/strnrv                                      CClib.library/strnrv
+   NAME
+	strnrv -- reverse first n bytes of a string
+
+   SYNOPSIS
+	STRPTR strnrv(STRPTR s, LONG n);
+
+	Registers: a0=s, d0=n
+
+   FUNCTION
+	Reverses the first n bytes of s in place. If n exceeds the string length, only the actual string bytes are reversed. Does nothing when n <= 1.
+
+   INPUTS
+	s - string to partially reverse
+	n - number of leading bytes to reverse
+
+   RESULT
+	s.
+
+   SEE ALSO
+	strrv
+
+   (LVO bias -690)
+
+CClib.library/bcpl_strcpy                            CClib.library/bcpl_strcpy
+   NAME
+	bcpl_strcpy -- copy BPTR BCPL string to C string
+
+   SYNOPSIS
+	STRPTR bcpl_strcpy(STRPTR dst, BPTR src);
+
+	Registers: a0=dst, a1=src
+
+   FUNCTION
+	Copies a BCPL-style string referenced by BPTR src into the C buffer dst. BADDR(src) points at a length byte followed by that many characters (no separate NUL in the BCPL string). A terminating NUL is always written in dst after the copied characters.
+
+	When src is NULL, dst receives an empty C string.
+
+   INPUTS
+	dst - destination C buffer
+	src - BPTR to BCPL string (length-prefixed)
+
+   RESULT
+	dst.
+
+   NOTES
+	Used when reading AmigaOS BSTR fields (CLI command names, tool types, etc.).
+
+   SEE ALSO
+	strcpy, strncpy
+
+   (LVO bias -696)
+
+CClib.library/vquicksort                              CClib.library/vquicksort
+   NAME
+	vquicksort -- quicksort by index with compare/swap hooks
+
+   SYNOPSIS
+	void vquicksort(ULONG n, APTR cmp, APTR swap);
+
+	Registers: d0=n, a0=cmp, a1=swap
+
+   FUNCTION
+	Sorts n abstract elements indexed 0 .. n-1 using caller-supplied compare and swap functions. cmp(a,b) must return negative if element a sorts before b, zero if equal, positive if after. swap(a,b) exchanges the two indexed elements.
+
+	The sort operates on indices only; the caller's hooks map indices to real data (rows in a table, node numbers, etc.). Uses a median-of-three pivot with insertion sort for small partitions.
+
+   INPUTS
+	n - number of elements (ULONG)
+	cmp - compare hook: LONG (*)(ULONG a, ULONG b)
+	swap - swap hook: void (*)(ULONG a, ULONG b)
+
+   RESULT
+	None. Elements are reordered via swap.
+
+   SEE ALSO
+	quicksort, qsort
+
+   (LVO bias -702)
+
+CClib.library/toupper                                    CClib.library/toupper
+   NAME
+	toupper -- convert character to uppercase
+
+   SYNOPSIS
+	LONG toupper(LONG c);
+
+	Registers: d0=c
+
+   FUNCTION
+	Returns the uppercase equivalent of the low byte of c. When utility.library is available, ToUpper is used. Otherwise ASCII 'a'-'z' are mapped to 'A'-'Z'; all other values are returned unchanged.
+
+   INPUTS
+	c - character code (LONG, low 8 bits used)
+
+   RESULT
+	Uppercase character, or c unchanged if not a lowercase letter.
+
+   SEE ALSO
+	tolower, strupr, strcmpa
+
+   (LVO bias -708)
+
+CClib.library/quicksort                                CClib.library/quicksort
+   NAME
+	quicksort -- quicksort by index with user argument
+
+   SYNOPSIS
+	void quicksort(ULONG n, APTR cmp, APTR swap, APTR arg);
+
+	Registers: d0=n, a0=cmp, a1=swap, a2=arg
+
+   FUNCTION
+	Like vquicksort but the compare and swap hooks also receive an opaque arg pointer. cmp(a,b,arg) and swap(a,b,arg) implement the same index-based sort with access to caller context (array pointer, sort direction, etc.).
+
+   INPUTS
+	n - number of elements (ULONG)
+	cmp - compare hook: LONG (*)(ULONG a, ULONG b, APTR arg)
+	swap - swap hook: void (*)(ULONG a, ULONG b, APTR arg)
+	arg - caller context passed to both hooks
+
+   RESULT
+	None.
+
+   SEE ALSO
+	vquicksort, qsort
+
+   (LVO bias -714)
+
+CClib.library/qsort                                        CClib.library/qsort
+   NAME
+	qsort -- sort an array of fixed-size elements
+
+   SYNOPSIS
+	void qsort(APTR base, ULONG nel, ULONG width, APTR compar);
+
+	Registers: a0=base, d0=nel, d1=width, a1=compar
+
+   FUNCTION
+	Sorts nel elements of width bytes each starting at base. The compar callback receives pointers to two elements and must return a negative LONG if the first sorts before the second, zero if equal, positive if after:
+
+	LONG compar(APTR a, APTR b);
+
+	Internally qsort adapts the abstract quicksort engine with index-based compare/swap wrappers over the byte array.
+
+   INPUTS
+	base - pointer to element array
+	nel - number of elements (ULONG)
+	width - size of each element in bytes (ULONG)
+	compar - element compare function
+
+   RESULT
+	None. Array contents are reordered in place.
+
+   SEE ALSO
+	quicksort, vquicksort
+
+   (LVO bias -720)
+
+CClib.library/cli_parse                                CClib.library/cli_parse
+   NAME
+	cli_parse -- parse CLI argument vector for SetupSTDIO
+
+   SYNOPSIS
+	void cli_parse(APTR ud, LONG alen, STRPTR aptr);
+
+	Registers: a0=ud, d0=alen, a1=aptr
+
+   FUNCTION
+	Builds argc/argv in task_UserData from the CLI startup argument block. argv[0] is taken from the CLI command name BSTR when available; remaining tokens are split from aptr (whitespace separated, up to alen bytes). Memory is allocated from the per-task heap via _alloc.
+
+	SetupSTDIO calls cli_parse for CLI-launched programs so main(argc,argv) wrappers see a conventional argv.
+
+   INPUTS
+	ud - task_UserData pointer
+	alen - length of CLI argument bytes
+	aptr - pointer to CLI argument string (may be NULL)
+
+   RESULT
+	None. Sets ud->_argc, ud->_argv, ud->_arg_lin.
+
+   NOTES
+	Called from SetupSTDIO; not usually invoked by applications directly.
+
+   SEE ALSO
+	wb_parse, SetupSTDIO
+
+   (LVO bias -726)
+
+CClib.library/wb_parse                                  CClib.library/wb_parse
+   NAME
+	wb_parse -- parse Workbench startup for SetupSTDIO
+
+   SYNOPSIS
+	LONG wb_parse(APTR ud, APTR wbm);
+
+	Registers: a0=ud, a1=wbm
+
+   FUNCTION
+	Processes a WBStartup message for a Workbench-launched program. Builds argc/argv from sm_ArgList (argv[0] is the tool file name). Stores the WBStartup pointer in ud->wbmsg.
+
+	If the tool icon has a WINDOW tooltype, opens that path and SelectInput/SelectOutput so stdio is attached to the named window file. Without WINDOW, SetupSTDIO falls back to NIL: handles and stdio may be unavailable under Workbench.
+
+   INPUTS
+	ud - task_UserData pointer
+	wbm - pointer to struct WBStartup message
+
+   RESULT
+	1 if parsing succeeded (and WINDOW opened when present), 0 on failure.
+
+   NOTES
+	Workbench programs need WINDOW in the icon tooltypes for console I/O. icon.library is opened temporarily.
+
+   SEE ALSO
+	cli_parse, SetupSTDIO, wb_exec
+
+   (LVO bias -732)
+
+CClib.library/vprintf                                    CClib.library/vprintf
+   NAME
+	vprintf -- formatted output to stdout via arg array
+
+   SYNOPSIS
+	LONG vprintf(STRPTR format, APTR args);
+
+	Registers: a0=format, a1=args
+
+   FUNCTION
+	Formats output according to format and writes to the task's stdout FILE. args is an APTR array of arguments in RawDoFmt order (not a C varargs stack). Integer and string conversions use one array slot; %e/%f/%g consume a DOUBLE as two consecutive LONG slots.
+
+	This is the LVO behind printf when linked through the stub layer.
+
+   INPUTS
+	format - printf-style format string
+	args - APTR array of format arguments
+
+   RESULT
+	Number of characters written, or -1 on error (no stdout or format failure).
+
+   NOTES
+	LVO takes (format, args) only. Client stubs build the args array from C varargs.
+
+   SEE ALSO
+	printf, vfprintf, vsprintf
+
+   (LVO bias -738)
+
+CClib.library/vfprintf                                  CClib.library/vfprintf
+   NAME
+	vfprintf -- formatted output to a stream via arg array
+
+   SYNOPSIS
+	LONG vfprintf(APTR stream, STRPTR format, APTR args);
+
+	Registers: a0=stream, a1=format, a2=args
+
+   FUNCTION
+	Like vprintf but writes to the given FILE stream. Uses the same RawDoFmt-style args array as the other printf LVOs.
+
+   INPUTS
+	stream - FILE pointer (APTR at LVO boundary)
+	format - printf-style format string
+	args - APTR array of format arguments
+
+   RESULT
+	Number of characters written, or -1 on error.
+
+   SEE ALSO
+	fprintf, vprintf, vsprintf
+
+   (LVO bias -744)
+
+CClib.library/vsprintf                                  CClib.library/vsprintf
+   NAME
+	vsprintf -- formatted output to a string via arg array
+
+   SYNOPSIS
+	LONG vsprintf(STRPTR s, STRPTR format, APTR args);
+
+	Registers: a0=s, a1=format, a2=args
+
+   FUNCTION
+	Formats into the buffer s according to format using the RawDoFmt args array. A terminating NUL is always written. The buffer must be large enough for the expanded result.
+
+   INPUTS
+	s - destination character buffer
+	format - printf-style format string
+	args - APTR array of format arguments
+
+   RESULT
+	Number of characters written (excluding NUL), or -1 on error.
+
+   SEE ALSO
+	sprintf, vprintf, vfprintf
+
+   (LVO bias -750)
+
+CClib.library/fgetpos                                    CClib.library/fgetpos
+   NAME
+	fgetpos -- read current stream position
+
+   SYNOPSIS
+	LONG fgetpos(APTR stream, APTR pos);
+
+	Registers: a0=stream, a1=pos
+
+   FUNCTION
+	Stores the current read/write offset of stream into the LONG pointed to by pos. Accounts for stdio buffering by adjusting the underlying file position returned by ftell.
+
+   INPUTS
+	stream - FILE pointer
+	pos - pointer to LONG to receive position
+
+   RESULT
+	0 on success, -1 on error (sets errno).
+
+   SEE ALSO
+	fsetpos, ftell, fseek
+
+   (LVO bias -756)
+
+CClib.library/fsetpos                                    CClib.library/fsetpos
+   NAME
+	fsetpos -- restore stream position
+
+   SYNOPSIS
+	LONG fsetpos(APTR stream, APTR pos);
+
+	Registers: a0=stream, a1=pos
+
+   FUNCTION
+	Sets the read/write position of stream to the value previously stored by fgetpos. Implemented as fseek(stream, *pos, SEEK_SET).
+
+   INPUTS
+	stream - FILE pointer
+	pos - pointer to LONG position from fgetpos
+
+   RESULT
+	0 on success, -1 on error (sets errno).
+
+   SEE ALSO
+	fgetpos, fseek, ftell
+
+   (LVO bias -762)
+
+CClib.library/time                                          CClib.library/time
+   NAME
+	time -- seconds since Amiga epoch
+
+   SYNOPSIS
+	LONG time(APTR tloc);
+
+	Registers: a0=tloc
+
+   FUNCTION
+	Returns the current time as seconds since 1978-01-01 00:00:00 (Amiga epoch), derived from DateStamp via utility.library conversion. When tloc is non-NULL, the same value is stored at *tloc.
+
+   INPUTS
+	tloc - optional pointer to LONG to receive time, or NULL
+
+   RESULT
+	Current time in seconds (Amiga epoch).
+
+   NOTES
+	Amiga epoch is 1978-01-01, not Unix 1970. Offset is roughly eight years.
+
+   SEE ALSO
+	clock, gmtime, localtime, mktime
+
+   (LVO bias -768)
+
+CClib.library/clock                                        CClib.library/clock
+   NAME
+	clock -- elapsed processor time for this task
+
+   SYNOPSIS
+	LONG clock(void);
+
+   FUNCTION
+	Returns an approximation of elapsed time for the current task since SetupSTDIO recorded ud->start. Uses the same Amiga-epoch seconds as time() minus the startup stamp.
+
+   INPUTS
+	None.
+
+   RESULT
+	Elapsed seconds since task stdio setup, or current time if task_UserData is unavailable.
+
+   SEE ALSO
+	time, difftime
+
+   (LVO bias -774)
+
+CClib.library/gmtime                                      CClib.library/gmtime
+   NAME
+	gmtime -- break seconds into struct tm
+
+   SYNOPSIS
+	APTR gmtime(APTR timer);
+
+	Registers: a0=timer
+
+   FUNCTION
+	Converts the Amiga-epoch seconds pointed to by timer into a struct tm stored in task_UserData->tm. Fields follow ANSI conventions (tm_mon 0-11, tm_year years since 1900, etc.), filled via Amiga2Date.
+
+   INPUTS
+	timer - pointer to LONG seconds since Amiga epoch
+
+   RESULT
+	Pointer to ud->tm, or NULL if task_UserData or timer is NULL.
+
+   NOTES
+	Returned struct tm is per-task storage; not safe across nested calls in the same task.
+
+   SEE ALSO
+	localtime, mktime, asctime, ctime
+
+   (LVO bias -780)
+
+CClib.library/asctime                                    CClib.library/asctime
+   NAME
+	asctime -- format struct tm as text
+
+   SYNOPSIS
+	STRPTR asctime(APTR tm);
+
+	Registers: a0=tm
+
+   FUNCTION
+	Formats the struct tm pointed to by tm into a fixed-width ASCII string of the form:
+
+	Sun Jan  1 12:00:00 1989\n
+
+	The result is built into task_UserData->buffer via sprintf.
+
+   INPUTS
+	tm - pointer to struct tm to format
+
+   RESULT
+	Pointer to ud->buffer, or NULL on error. Buffer is overwritten on each call.
+
+   NOTES
+	Per-task static buffer in task_UserData; not re-entrant within one task.
+
+   SEE ALSO
+	ctime, gmtime, localtime, strftime
+
+   (LVO bias -786)
+
+CClib.library/ctime                                        CClib.library/ctime
+   NAME
+	ctime -- convert time value to ASCII string
+
+   SYNOPSIS
+	STRPTR ctime(APTR timer);
+
+	Registers: a0=timer
+
+   FUNCTION
+	Converts the Amiga-epoch seconds pointed to by timer to a struct tm via localtime, then formats with asctime. Convenience wrapper equivalent to asctime(localtime(timer)).
+
+   INPUTS
+	timer - pointer to LONG seconds since Amiga epoch
+
+   RESULT
+	Pointer to formatted string in task_UserData->buffer, or NULL.
+
+   SEE ALSO
+	asctime, localtime, time
+
+   (LVO bias -792)
+
+CClib.library/localtime                                CClib.library/localtime
+   NAME
+	localtime -- convert seconds to struct tm (no timezone)
+
+   SYNOPSIS
+	APTR localtime(APTR timer);
+
+	Registers: a0=timer
+
+   FUNCTION
+	Identical to gmtime. AmigaOS has no timezone database in CClib, so local time and UTC are the same conversion.
+
+   INPUTS
+	timer - pointer to LONG seconds since Amiga epoch
+
+   RESULT
+	Pointer to ud->tm, or NULL on error.
+
+   NOTES
+	gmtime and localtime return the same per-task struct tm.
+
+   SEE ALSO
+	gmtime, mktime, ctime
+
+   (LVO bias -798)
+
+CClib.library/mktime                                      CClib.library/mktime
+   NAME
+	mktime -- convert struct tm to seconds
+
+   SYNOPSIS
+	LONG mktime(APTR tm);
+
+	Registers: a0=tm
+
+   FUNCTION
+	Normalizes the struct tm pointed to by tm and returns Amiga-epoch seconds. Uses Date2Amiga when month and day are valid; otherwise derives seconds from tm_year and tm_yday.
+
+   INPUTS
+	tm - pointer to struct tm (fields may be updated)
+
+   RESULT
+	Seconds since Amiga epoch, or -1 if tm is NULL or conversion fails.
+
+   SEE ALSO
+	gmtime, localtime, time, difftime
+
+   (LVO bias -804)
+
+CClib.library/difftime                                  CClib.library/difftime
+   NAME
+	difftime -- difference between two time values
+
+   SYNOPSIS
+	LONG difftime(LONG time1, LONG time0);
+
+	Registers: d0=time1, d1=time0
+
+   FUNCTION
+	Returns time1 minus time0 as a signed LONG. Both values are expected to be Amiga-epoch seconds from time() or mktime().
+
+   INPUTS
+	time1 - later time value
+	time0 - earlier time value
+
+   RESULT
+	time1 - time0 in seconds.
+
+   SEE ALSO
+	time, mktime, clock
+
+   (LVO bias -810)
+
+CClib.library/strftime                                  CClib.library/strftime
+   NAME
+	strftime -- format struct tm into a string
+
+   SYNOPSIS
+	ULONG strftime(STRPTR s, ULONG maxsize, STRPTR format, APTR tm);
+
+	Registers: a0=s, d0=maxsize, a1=format, a2=tm
+
+   FUNCTION
+	Formats the struct tm pointed to by tm into s according to format, writing at most maxsize bytes including a terminating NUL. Supports common conversion specifiers (%a, %A, %b, %B, %c, %d, %H, %I, %j, %m, %M, %p, %S, %U, %w, %W, %x, %X, %y, %Y, %% and others as implemented).
+
+   INPUTS
+	s - output buffer
+	maxsize - size of s including room for NUL
+	format - strftime format string
+	tm - struct tm to format
+
+   RESULT
+	Number of bytes placed in s (excluding NUL), or 0 if the result does not fit in maxsize.
+
+   SEE ALSO
+	asctime, gmtime, localtime
+
+   (LVO bias -816)
+
+CClib.library/scdir                                        CClib.library/scdir
+   NAME
+	scdir -- enumerate files matching a pattern
+
+   SYNOPSIS
+	STRPTR scdir(STRPTR pattern);
+
+	Registers: a0=pattern
+
+   FUNCTION
+	Directory scanner built on MatchFirst/MatchNext. On the first call with a pattern, converts shell-style * wildcards to Amiga '#?' and starts a scan stored in task_UserData->scdir_mem. Returns a pointer to the current entry file name.
+
+	Subsequent calls with any pattern (usually the same) advance with MatchNext until no more matches, then end the scan and return NULL. Call scdir_clean to abort mid-scan.
+
+	Do not pass patterns that reference non-existent volume names; AmigaDOS may display a volume requester. Use existing volumes (e.g. T:, LIBS:) or specific file paths instead.
+
+   INPUTS
+	pattern - file pattern with optional * and ? wildcards (required on first call of a sequence)
+
+   RESULT
+	Pointer to current file name, or NULL when the scan ends or fails. errno may be set on allocation failure.
+
+   NOTES
+	Scan state is per-task in scdir_mem. Pattern is ignored after the first call until the scan completes or scdir_clean runs.
+
+   SEE ALSO
+	scdir_clean, getenv, stat_
+
+   (LVO bias -822)
+
+CClib.library/scdir_clean                            CClib.library/scdir_clean
+   NAME
+	scdir_clean -- abort an scdir scan
+
+   SYNOPSIS
+	void scdir_clean(void);
+
+   FUNCTION
+	Ends an in-progress scdir scan: calls MatchEnd, frees the AnchorPath in task_UserData->scdir_mem, and clears the pointer. Safe to call when no scan is active.
+
+   INPUTS
+	None.
+
+   RESULT
+	None.
+
+   NOTES
+	Call before starting a new pattern or when abandoning a partial enumeration.
+
+   SEE ALSO
+	scdir
+
+   (LVO bias -828)
+
+CClib.library/tolower                                    CClib.library/tolower
+   NAME
+	tolower -- convert character to lowercase
+
+   SYNOPSIS
+	LONG tolower(LONG c);
+
+	Registers: d0=c
+
+   FUNCTION
+	Returns the lowercase equivalent of the low byte of c. When utility.library is available, ToLower is used. Otherwise ASCII 'A'-'Z' map to 'a'-'z'; other values are unchanged.
+
+   INPUTS
+	c - character code (LONG, low 8 bits used)
+
+   RESULT
+	Lowercase character, or c unchanged if not uppercase.
+
+   SEE ALSO
+	toupper, strupr, strcmpa
+
+   (LVO bias -834)
+
+CClib.library/setenv                                      CClib.library/setenv
+   NAME
+	setenv -- set or delete an environment variable
+
+   SYNOPSIS
+	LONG setenv(STRPTR name, STRPTR value);
+
+	Registers: a0=name, a1=value
+
+   FUNCTION
+	Sets a global ENV: file variable name to value using SetVar. When value is NULL or an empty string, deletes the variable with DeleteVar (Amiga SETENV semantics).
+
+   INPUTS
+	name - variable name
+	value - new value string, or NULL/"" to delete
+
+   RESULT
+	0 on success, -1 on failure (errno set to EINVAL, ENOENT, or ENOMEM).
+
+   NOTES
+	Variables live in the Amiga ENV: directory, not a Unix environ vector.
+
+   SEE ALSO
+	getenv
+
+   (LVO bias -840)
+
+CClib.library/getenv                                      CClib.library/getenv
+   NAME
+	getenv -- read an environment variable
+
+   SYNOPSIS
+	STRPTR getenv(STRPTR name);
+
+	Registers: a0=name
+
+   FUNCTION
+	Looks up name in the Amiga ENV: filesystem. Checks the local process environment first (GVF_LOCAL_ONLY), then the global ENV: archive (GVF_GLOBAL_ONLY). The value is copied into a buffer allocated from the per-task heap.
+
+   INPUTS
+	name - variable name to look up
+
+   RESULT
+	Pointer to the value string, or NULL if not found. The buffer is freed on the next getenv call in the same task.
+
+   NOTES
+	Return pointer is valid only until the next getenv in this task. Copy the string if it must be retained.
+
+   SEE ALSO
+	setenv
+
+   (LVO bias -846)
+
+CClib.library/stat_                                        CClib.library/stat_
+   NAME
+	stat_ -- extended file status
+
+   SYNOPSIS
+	LONG stat_(STRPTR name, APTR buf);
+
+	Registers: a0=name, a1=buf
+
+   FUNCTION
+	Fills the cc_stat buffer for the named file or directory. Like stat but also sets st_mode (file/directory), st_nlink (always 1), st_atime, and st_ctime from the FileInfoBlock. st_mtime and st_size are always filled; st_attr holds Amiga protection bits.
+
+   INPUTS
+	name - path to examine
+	buf - pointer to cc_stat structure to fill
+
+   RESULT
+	0 on success, -1 on failure (errno ENOENT, ENOMEM, EACCES, or EINVAL).
+
+   NOTES
+	stat() is the classic subset (mode/nlink/atime/ctime zeroed). Use stat_ when full POSIX-like fields are needed.
+
+   SEE ALSO
+	stat, access, scdir
+
+   (LVO bias -852)
+
+CClib.library/wb_exec                                    CClib.library/wb_exec
+   NAME
+	wb_exec -- launch a Workbench child process
+
+   SYNOPSIS
+	LONG wb_exec(STRPTR filename, STRPTR procname, STRPTR toolname,
+	STRPTR toolwindow, BPTR curdir, APTR rport, LONG stk, LONG pri,
+	APTR child);
+
+	Registers: a0=filename, a1=procname, a2=toolname, a3=toolwindow,
+		a4=curdir, a5=rport, d0=stk, d1=pri, d2=child
+
+   FUNCTION
+	Loads filename as an Amiga executable segment, creates a new process, and sends a WBStartup message to it. The child structure (cc_Child) must be supplied by the caller; segment, locks, and reply port are filled in. Does not wait for exit.
+
+	Searches the current directory then C: for the file. curdir selects the initial lock passed in wa_Lock; rport receives the WBStartup reply (defaults to the per-task exeport).
+
+   INPUTS
+	filename - executable file name
+	procname - process name tag (or filename)
+	toolname - WBStartup tool name (wa_Name)
+	toolwindow - WBStartup window string
+	curdir - BPTR lock for initial directory, or -1 for parent's
+	rport - reply MsgPort, or NULL for default
+	stk - stack size (0 = parent default)
+	pri - process priority
+	child - pointer to cc_Child to initialize
+
+   RESULT
+	1 if launch succeeded, 0 on failure.
+
+   SEE ALSO
+	wbexec, wbAexec, wait_child, exec
+
+   (LVO bias -858)
+
+CClib.library/wbexec                                      CClib.library/wbexec
+   NAME
+	wbexec -- run a program from Workbench and wait
+
+   SYNOPSIS
+	LONG wbexec(STRPTR name, LONG stk, LONG pri);
+
+	Registers: a0=name, d0=stk, d1=pri
+
+   FUNCTION
+	Convenience wrapper: allocates a stack-local cc_Child, calls wb_exec with default tool/window fields, then wait_child to block until the child exits. Synchronous Workbench launch from the parent's context.
+
+   INPUTS
+	name - executable file name
+	stk - stack size (0 = default)
+	pri - process priority
+
+   RESULT
+	1 if launch and wait succeeded, 0 on failure.
+
+   SEE ALSO
+	wb_exec, wbAexec, exec, wait_child
+
+   (LVO bias -864)
+
+CClib.library/wbAexec                                    CClib.library/wbAexec
+   NAME
+	wbAexec -- launch Workbench child asynchronously
+
+   SYNOPSIS
+	APTR wbAexec(STRPTR name, LONG stk, LONG pri);
+
+	Registers: a0=name, d0=stk, d1=pri
+
+   FUNCTION
+	Like wbexec but allocates a cc_Child on the task's Children list and returns immediately without waiting. The returned Child pointer is used with wait_child, kill, or signal_child.
+
+   INPUTS
+	name - executable file name
+	stk - stack size (0 = default)
+	pri - process priority
+
+   RESULT
+	Pointer to cc_Child on success, or NULL on failure (errno may be ENOMEM).
+
+   NOTES
+	Child remains on ud->Children until wait_child or kill reaps it.
+
+   SEE ALSO
+	wb_exec, wbexec, wait_child, kill
+
+   (LVO bias -870)
+
+CClib.library/wait_child                              CClib.library/wait_child
+   NAME
+	wait_child -- wait for one child to exit
+
+   SYNOPSIS
+	LONG wait_child(APTR child);
+
+	Registers: a0=child
+
+   FUNCTION
+	Blocks until the given cc_Child completes. Waits on the per-task exeport for the WBStartup return message, then unloads the segment, releases locks, and removes the child from the Children list when linked.
+
+	When child is NULL, waits for all children (same as wait_children).
+
+   INPUTS
+	child - cc_Child pointer from wbAexec, or NULL for all
+
+   RESULT
+	1 when the child has exited, 0 on error.
+
+   NOTES
+	Also services DOS break signals via the abort handler while waiting.
+
+   SEE ALSO
+	wait_children, wbAexec, kill
+
+   (LVO bias -876)
+
+CClib.library/wait_children                        CClib.library/wait_children
+   NAME
+	wait_children -- wait for all async children
+
+   SYNOPSIS
+	LONG wait_children(void);
+
+   FUNCTION
+	Repeatedly waits until every cc_Child on task_UserData->Children has returned its WBStartup message and been reaped.
+
+   INPUTS
+	None.
+
+   RESULT
+	1 when all children have exited, 0 on error.
+
+   SEE ALSO
+	wait_child, wbAexec, kill_children
+
+   (LVO bias -882)
+
+CClib.library/signal_child                          CClib.library/signal_child
+   NAME
+	signal_child -- send an Exec signal to a child task
+
+   SYNOPSIS
+	LONG signal_child(APTR child, ULONG sig);
+
+	Registers: a0=child, d0=sig
+
+   FUNCTION
+	Calls Signal() on the child process task with the given signal mask. Used to notify an async child without terminating it.
+
+   INPUTS
+	child - cc_Child pointer
+	sig - signal mask (ULONG)
+
+   RESULT
+	1 if signalled, 0 if child or pid is NULL.
+
+   SEE ALSO
+	kill, wait_child, wbAexec
+
+   (LVO bias -888)
+
+CClib.library/kill                                          CClib.library/kill
+   NAME
+	kill -- break signal and wait for one child
+
+   SYNOPSIS
+	LONG kill(APTR child);
+
+	Registers: a0=child
+
+   FUNCTION
+	Sends the DOS break signal mask (Ctrl-C/D/E/F) to the child process, then waits for it to exit via wait_child. This is not the Unix kill(2) syscall; no signal number is supplied beyond the fixed break mask.
+
+   INPUTS
+	child - cc_Child pointer to terminate
+
+   RESULT
+	Result of wait_child after signalling.
+
+   NOTES
+	Sends SIGBREAKF_CTRL_* bits, not arbitrary Unix signals.
+
+   SEE ALSO
+	kill_children, signal_child, wait_child
+
+   (LVO bias -894)
+
+CClib.library/kill_children                        CClib.library/kill_children
+   NAME
+	kill_children -- break signal and wait for all children
+
+   SYNOPSIS
+	LONG kill_children(void);
+
+   FUNCTION
+	Sends the DOS break mask to every child on the Children list, then calls wait_children to reap them all.
+
+   INPUTS
+	None.
+
+   RESULT
+	Result of wait_children.
+
+   SEE ALSO
+	kill, wait_children, wbAexec
+
+   (LVO bias -900)
+
+CClib.library/cliexec                                    CClib.library/cliexec
+   NAME
+	cliexec -- run a CLI command via Execute
+
+   SYNOPSIS
+	LONG cliexec(STRPTR cmd);
+
+	Registers: a0=cmd
+
+   FUNCTION
+	Runs cmd through the AmigaDOS Execute() function using the current CLI process Input() and Output() handles. Only works when the caller is a CLI process (pr_CLI non-NULL).
+
+   INPUTS
+	cmd - command string to execute
+
+   RESULT
+	1 if Execute succeeded, 0 if not CLI or cmd is NULL.
+
+   NOTES
+	Does not wait for completion beyond Execute's own behaviour. Use exec or SystemTags for shell commands that must finish before returning.
+
+   SEE ALSO
+	exec, cli_parse
+
+   (LVO bias -906)
+
+CClib.library/exec                                          CClib.library/exec
+   NAME
+	exec -- run a command and wait for completion
+
+   SYNOPSIS
+	LONG exec(STRPTR cmd);
+
+	Registers: a0=cmd
+
+   FUNCTION
+	Runs cmd and blocks until it finishes. Behaviour depends on the parent process:
+
+	CLI parent: runs cmd via SystemTags with the shell Input/Output handles and waits for the system command to complete.
+
+	Workbench parent: extracts the first whitespace-delimited token as a file name and calls wbexec synchronously.
+
+   INPUTS
+	cmd - command line or program name
+
+   RESULT
+	1 on success, 0 on failure.
+
+   NOTES
+	CLI path uses SystemTags; WB path uses wbexec. Not a POSIX execve replacement.
+
+   SEE ALSO
+	cliexec, wbexec, wb_exec
+
+   (LVO bias -912)

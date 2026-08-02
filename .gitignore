@@ -1,0 +1,5 @@
+*.o
+*.uaem
+*.map
+*.debug
+Source/cclib.library

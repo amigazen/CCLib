@@ -1,0 +1,223 @@
+==id $VER: cclib_lib.sfd 4.0 (2.8.2026)
+*"cclib.library"
+*
+* Canonical LVO interface for CClib.library (V4.0 reimplementation of the
+* historic V3.0 jump table). Register-args LVO calling convention
+* Do not reorder or insert mid-table. Append new LVOs only at the end.
+* Opaque C objects (FILE, task_UserData, tm, …) are APTR.
+*
+* V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
+* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918.
+* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc,
+* aputc) remain as public LVOs.
+*
+==base _CCLibBase
+==basetype struct Library *
+==libname cclib.library
+==include <exec/types.h>
+==include <dos/dos.h>
+==bias 30
+==public
+*
+* Support / stdio setup (-30 .. -66)
+*
+LONG SetSTDIO() ()
+APTR GetSTDIO() ()
+VOID ClearSTDIO() ()
+VOID closeall() ()
+VOID SetAbortFunc(APTR abortfunc) (a0)
+VOID ClearAbortFunc() ()
+LONG SetupSTDIO(APTR stdin_p, APTR stdout_p, APTR stderr_p, APTR errno_p, APTR blocksize_p, APTR type_p, APTR mathbase, LONG alen, STRPTR aptr, APTR wbm, APTR exitfunc) (a0,a1,a2,a3,a4,a5,d0,d1,d2,d3,d4)
+*
+* Error strings (-72)
+*
+STRPTR strerror(LONG err) (d0)
+*
+* Low-level I/O (-78 .. -138)
+*
+LONG open(STRPTR name, ULONG mode, ULONG perms) (a0,d0,d1)
+LONG close(LONG fd) (d0)
+LONG remove(STRPTR name) (a0)
+==alias
+LONG unlink(STRPTR name) (a0)
+LONG stat(STRPTR name, APTR buf) (a0,a1)
+LONG rename(STRPTR oldname, STRPTR newname) (a0,a1)
+LONG read(LONG fd, APTR buf, LONG len) (d0,a0,d1)
+LONG write(LONG fd, APTR buf, LONG len) (d0,a0,d1)
+LONG creat(STRPTR name, ULONG perms) (a0,d0)
+LONG lseek(LONG fd, LONG offset, ULONG whence) (d0,d1,d2)
+LONG isatty(LONG fd) (d0)
+LONG access(STRPTR name, LONG mode) (a0,d0)
+*
+* Stream I/O (-144 .. -306)
+*
+APTR fopen(STRPTR name, STRPTR mode) (a0,a1)
+APTR freopen(STRPTR name, STRPTR mode, APTR stream) (a0,a1,a2)
+LONG fclose(APTR stream) (a0)
+APTR fdopen(LONG fd, STRPTR mode) (d0,a0)
+VOID getbuff(APTR stream) (a0)
+LONG setvbuf(APTR stream, STRPTR buf, LONG mode, ULONG size) (a0,a1,d0,d1)
+STRPTR mktemp(STRPTR template) (a0)
+STRPTR tmpnam(STRPTR s) (a0)
+APTR tmpfile() ()
+LONG putc(LONG c, APTR stream) (d0,a0)
+LONG aputc(LONG c, APTR stream) (d0,a0)
+LONG getc(APTR stream) (a0)
+LONG agetc(APTR stream) (a0)
+LONG getchar() ()
+LONG ungetc(LONG c, APTR stream) (d0,a0)
+LONG putw(ULONG w, APTR stream) (d0,a0)
+LONG puts(STRPTR s) (a0)
+LONG puterr(LONG c) (d0)
+ULONG fwrite(APTR ptr, ULONG size, ULONG nitems, APTR stream) (a0,d0,d1,a1)
+LONG perror(STRPTR s) (a0)
+LONG fseek(APTR stream, LONG offset, LONG whence) (a0,d0,d1)
+LONG ftell(APTR stream) (a0)
+LONG fflush(APTR stream) (a0)
+LONG getw(APTR stream) (a0)
+ULONG fread(APTR ptr, ULONG size, ULONG nitems, APTR stream) (a0,d0,d1,a1)
+STRPTR gets(STRPTR s) (a0)
+STRPTR fgets(STRPTR s, LONG n, APTR stream) (a0,d0,a1)
+LONG fputs(STRPTR s, APTR stream) (a0,a1)
+*
+* Formatted I/O (-312 .. -342)
+*
+LONG scanf(STRPTR format, APTR args) (a0,a1)
+LONG printf(STRPTR format, APTR args) (a0,a1)
+LONG fscanf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
+LONG fprintf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
+LONG sscanf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
+LONG sprintf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
+*
+* Heap / allocation (-348 .. -420)
+*
+APTR _alloc(APTR ud, LONG size, LONG flags) (a0,d0,d1)
+VOID _fre(APTR ud, APTR ptr) (a0,a1)
+VOID _freall(APTR ud) (a0)
+APTR sbrk(LONG incr) (d0)
+APTR heap_alloc(ULONG size) (d0)
+VOID heap_free(APTR ptr) (a0)
+APTR malloc(ULONG size) (d0)
+APTR calloc(ULONG nelem, ULONG elsize) (d0,d1)
+APTR realloc(APTR ptr, ULONG size) (a0,d0)
+VOID free(APTR ptr) (a0)
+VOID be_free(APTR ptr, ULONG size) (a0,d0)
+ULONG malloc_size(APTR ptr) (a0)
+VOID freeall() ()
+*
+* Linked lists (-426 .. -480)
+*
+APTR inst_node(LONG size) (d0)
+VOID put_head(APTR list, APTR node) (a0,a1)
+APTR add_head(APTR list, LONG size) (a0,d0)
+VOID put_tail(APTR list, APTR node) (a0,a1)
+APTR add_tail(APTR list, LONG size) (a0,d0)
+APTR remv_head(APTR list, APTR datap) (a0,a1)
+APTR remv_tail(APTR list, APTR datap) (a0,a1)
+VOID remv_list(APTR list) (a0)
+APTR r_node(APTR list, APTR node, APTR datap) (a0,a1,a2)
+APTR remv_node(APTR list, APTR data) (a0,a1)
+*
+* Format conversion (-486 .. -510)
+*
+LONG atoi(STRPTR s) (a0)
+LONG atol(STRPTR s) (a0)
+DOUBLE atof(STRPTR s) (a0)
+VOID ltoa(LONG n, STRPTR s) (d0,a0)
+VOID stoa(LONG n, STRPTR s) (d0,a0)
+*
+* Memory operations (-516 .. -564)
+*
+LONG bcmp(APTR b1, APTR b2, LONG len) (a0,a1,d0)
+VOID bcopy(APTR src, APTR dst, LONG len) (a0,a1,d0)
+VOID bzero(APTR b, LONG len) (a0,d0)
+APTR memccpy(APTR dst, APTR src, ULONG c, LONG n) (a0,a1,d0,d1)
+APTR memchr(APTR b, ULONG c, LONG n) (a0,d0,d1)
+LONG memcmp(APTR b1, APTR b2, LONG n) (a0,a1,d0)
+APTR memcpy(APTR dst, APTR src, LONG n) (a0,a1,d0)
+APTR memset(APTR b, ULONG c, LONG n) (a0,d0,d1)
+VOID memswap(APTR b1, APTR b2, LONG n) (a0,a1,d0)
+*
+* String operations (-570 .. -696)
+*
+STRPTR index(STRPTR s, LONG c) (a0,d0)
+STRPTR rindex(STRPTR s, LONG c) (a0,d0)
+STRPTR strupr(STRPTR s) (a0)
+STRPTR stpcrlf(STRPTR s) (a0)
+STRPTR strcat(STRPTR dst, STRPTR src) (a0,a1)
+STRPTR strchr(STRPTR s, LONG c) (a0,d0)
+LONG strcmp(STRPTR s1, STRPTR s2) (a0,a1)
+STRPTR strcpy(STRPTR dst, STRPTR src) (a0,a1)
+LONG strcspn(STRPTR s, STRPTR reject) (a0,a1)
+LONG strlen(STRPTR s) (a0)
+STRPTR strncat(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
+LONG strcasecmp(STRPTR s1, STRPTR s2) (a0,a1)
+==alias
+LONG strcmpa(STRPTR s1, STRPTR s2) (a0,a1)
+LONG strncmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
+STRPTR strncpy(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
+STRPTR strpbrk(STRPTR s, STRPTR accept) (a0,a1)
+STRPTR strrchr(STRPTR s, LONG c) (a0,d0)
+LONG strspn(STRPTR s, STRPTR accept) (a0,a1)
+STRPTR strstr(STRPTR haystack, STRPTR needle) (a0,a1)
+STRPTR strtok(STRPTR s, STRPTR delim) (a0,a1)
+STRPTR strrv(STRPTR s) (a0)
+STRPTR strnrv(STRPTR s, LONG n) (a0,d0)
+STRPTR bcpl_strcpy(STRPTR dst, BPTR src) (a0,a1)
+*
+* Sorting / ctype / CLI-WB parse (-702 .. -732)
+*
+VOID vquicksort(ULONG n, APTR cmp, APTR swap) (d0,a0,a1)
+LONG toupper(LONG c) (d0)
+VOID quicksort(ULONG n, APTR cmp, APTR swap, APTR arg) (d0,a0,a1,a2)
+VOID qsort(APTR base, ULONG nel, ULONG width, APTR compar) (a0,d0,d1,a1)
+VOID cli_parse(APTR ud, LONG alen, STRPTR aptr) (a0,d0,a1)
+LONG wb_parse(APTR ud, APTR wbm) (a0,a1)
+*
+* Varargs format helpers / file position (-738 .. -762)
+*
+LONG vprintf(STRPTR format, APTR args) (a0,a1)
+LONG vfprintf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
+LONG vsprintf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
+LONG fgetpos(APTR stream, APTR pos) (a0,a1)
+LONG fsetpos(APTR stream, APTR pos) (a0,a1)
+*
+* Time (-768 .. -816)
+*
+LONG time(APTR tloc) (a0)
+LONG clock() ()
+APTR gmtime(APTR timer) (a0)
+STRPTR asctime(APTR tm) (a0)
+STRPTR ctime(APTR timer) (a0)
+APTR localtime(APTR timer) (a0)
+LONG mktime(APTR tm) (a0)
+LONG difftime(LONG time1, LONG time0) (d0,d1)
+ULONG strftime(STRPTR s, ULONG maxsize, STRPTR format, APTR tm) (a0,d0,a1,a2)
+*
+* Directory scan / env / extended stat (-822 .. -852)
+*
+STRPTR scdir(STRPTR pattern) (a0)
+VOID scdir_clean() ()
+LONG tolower(LONG c) (d0)
+LONG setenv(STRPTR name, STRPTR value) (a0,a1)
+STRPTR getenv(STRPTR name) (a0)
+LONG stat_(STRPTR name, APTR buf) (a0,a1)
+*
+* Process control (-858 .. -912)
+*
+LONG wb_exec(STRPTR filename, STRPTR procname, STRPTR toolname, STRPTR toolwindow, BPTR curdir, APTR rport, LONG stk, LONG pri, APTR child) (a0,a1,a2,a3,a4,a5,d0,d1,d2)
+LONG wbexec(STRPTR name, LONG stk, LONG pri) (a0,d0,d1)
+APTR wbAexec(STRPTR name, LONG stk, LONG pri) (a0,d0,d1)
+LONG wait_child(APTR child) (a0)
+LONG wait_children() ()
+LONG signal_child(APTR child, ULONG sig) (a0,d0)
+LONG kill(APTR child) (a0)
+LONG kill_children() ()
+LONG cliexec(STRPTR cmd) (a0)
+LONG exec(STRPTR cmd) (a0)
+==version 4
+*
+* V4 append-only (-918 ..)
+*
+APTR memmove(APTR dst, APTR src, LONG n) (a0,a1,d0)
+==end

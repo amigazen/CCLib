@@ -1,0 +1,145 @@
+#
+# :ts=8
+#
+# CCTest — heir of archive Source/test.lmk for SAS/C 6 (Lattice lineage).
+#
+# Historic Lattice (CClib.Doc §IX / test.lmk):
+#   blink lib:cc.o, lcmain.o, test.o to test lib lcclib.lib,lcmieee.lib,...
+#
+# This port (NOSTARTUP — cc.o source was never redistributable):
+#   cc_entry.o  ≈ cc.o
+#   cc_crt.o    ≈ lcmain.o
+#   + stubs/math.o stubs/blocksize.o + cctest.o
+#   LIB lib:amiga.lib only — never sc:lib/c.o / sc.lib
+#
+# Requires CClib.library in LIBS: (parent smake install).
+# Run from Source/unittests.
+#
+
+NAME = CCTest
+
+###############################################################################
+
+OPTIMIZE = optimize opttime
+DEBUG = symbolflush noopt
+
+###############################################################################
+
+# CClib SDK headers first (historic Lattice note: ahead of compiler clib).
+# /include = Source/include; //SDK = CCLib/SDK
+CFLAGS = resopt idlen=64 comnest streq strmerge nostkchk \
+	includedir=/include includedir=//SDK/Include_H includedir=include: \
+	$(OPTIMIZE) debug=$(DEBUG) \
+	params=register strsect=code mccons \
+	unsignedchars nomultipleincludes structureequivalence \
+	optimizescheduler noversion noicons \
+	stringsconst CODE=FAR DATA=FAR nostartup
+
+LFLAGS = addsym noicons batch stripdebug NOSTARTUP 
+
+###############################################################################
+
+CRT_OBJS = \
+	/crt/cc_entry.o \
+	/crt/cc_crt.o \
+	/stubs/math.o \
+	/stubs/blocksize.o
+
+OBJS = \
+	cctest_util.o \
+	cctest_crt.o \
+	cctest_string.o \
+	cctest_mem.o \
+	cctest_conv.o \
+	cctest_ctype.o \
+	cctest_heap.o \
+	cctest_list.o \
+	cctest_fmt.o \
+	cctest_stdio.o \
+	cctest_io.o \
+	cctest_time.o \
+	cctest_env.o \
+	cctest_sort.o \
+	cctest_dir.o \
+	cctest.o
+
+LIBS = lib:amiga.lib
+
+###############################################################################
+
+all: $(NAME)
+
+$(NAME): $(CRT_OBJS) $(OBJS)
+	Sc $(LFLAGS) LINK TO $@ $(CRT_OBJS) $(OBJS) LIB $(LIBS)
+
+clean:
+	delete quiet $(NAME) $(NAME).map $(OBJS) \
+		/crt/cc_entry.o /crt/cc_crt.o \
+		/stubs/math.o /stubs/blocksize.o
+
+test: $(NAME)
+	$(NAME)
+
+###############################################################################
+
+/crt/cc_entry.o: /crt/cc_entry.c
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+/crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h
+	Sc $(CFLAGS) includedir=/ OBJNAME $@ $<
+
+/stubs/math.o: /stubs/math.c
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+/stubs/blocksize.o: /stubs/blocksize.c
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_util.o: cctest_util.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_crt.o: cctest_crt.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_string.o: cctest_string.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_mem.o: cctest_mem.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_conv.o: cctest_conv.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_ctype.o: cctest_ctype.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_heap.o: cctest_heap.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_list.o: cctest_list.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_fmt.o: cctest_fmt.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_stdio.o: cctest_stdio.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_io.o: cctest_io.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_time.o: cctest_time.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_env.o: cctest_env.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_sort.o: cctest_sort.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest_dir.o: cctest_dir.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+cctest.o: cctest.c cctest_util.h
+	Sc $(CFLAGS) OBJNAME $@ $<
+
+.PHONY: all clean test
