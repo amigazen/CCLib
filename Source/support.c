@@ -89,6 +89,8 @@ static cc_FILE *cc_make_std_stream(
 			return (cc_FILE *)NULL;
 		fd->fh = fh;
 		fd->mode = mode;
+		fd->pad = 0;
+		fd->magic = CC_FD_MAGIC;
 	}
 
 	fp = (cc_FILE *)add_tail((APTR)&ud->StreamFiles, (LONG)sizeof(cc_FILE));
@@ -103,6 +105,7 @@ static cc_FILE *cc_make_std_stream(
 	fp->_bytbuf = 0;
 	fp->_buflen = 0;
 	fp->_tmpname = (char *)NULL;
+	fp->magic = CC_FP_MAGIC;
 	return fp;
 }
 
@@ -119,6 +122,14 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud = (cc_task_UserData *)AllocMem(sizeof(cc_task_UserData), MEMF_CLEAR | MEMF_PUBLIC);
 	if (ud == (cc_task_UserData *)NULL)
 		return 0;
+
+	/* Per-session malloc pool (NDK 3.2R4 CreatePool). */
+	ud->heap_pool = CreatePool(MEMF_ANY, CC_HEAP_PUDDLE, CC_HEAP_THRESH);
+	if (ud->heap_pool == (APTR)NULL)
+	{
+		FreeMem(ud, sizeof(cc_task_UserData));
+		return 0;
+	}
 
 	old = task->tc_UserData;
 	ud->old_ud = old;
@@ -187,7 +198,8 @@ void __ASM__ __SAVE_DS__ ClearAbortFunc(void)
 }
 
 /*
- * Close every tracked stream and low-level file.  CLI Input/Output
+ * Close every tracked stream and low-level file.  Flush dirty buffers and
+ * delete tmpfile paths before releasing list nodes.  CLI Input/Output
  * handles (CC_O_STDIO) are not passed to dos Close().  List node
  * memory is released with the add_head/add_tail FreeMem layout.
  */
@@ -203,18 +215,30 @@ void __ASM__ __SAVE_DS__ closeall(void)
 	if (ud == (cc_task_UserData *)NULL)
 		return;
 
+	/* Flush and reap stream-owned resources while nodes are still linked. */
 	n = ud->StreamFiles.first;
 	while (n != (cc_node *)NULL) {
 		fp = (cc_FILE *)(n + 1);
-		if (fp->_buff != (char *)NULL
-		    && fp->_buff != &fp->_bytbuf
-		    && (fp->_flags & (char)CC_ALLBUF) != 0) {
-			FreeMem(fp->_buff, (ULONG)fp->_buflen);
-			fp->_buff = (char *)NULL;
+		if (fp->magic == CC_FP_MAGIC) {
+			if ((fp->_flags & (char)CC_DIRTY) != 0)
+				(void)fflush((APTR)fp);
+			if (fp->_tmpname != (char *)NULL) {
+				if ((fp->_flags & (char)CC_TEMP) != 0)
+					DeleteFile(fp->_tmpname);
+				FreeMem(fp->_tmpname, 32UL);
+				fp->_tmpname = (char *)NULL;
+			}
+			if (fp->_buff != (char *)NULL
+			    && fp->_buff != &fp->_bytbuf
+			    && (fp->_flags & (char)CC_ALLBUF) != 0) {
+				FreeMem(fp->_buff, (ULONG)fp->_buflen);
+				fp->_buff = (char *)NULL;
+			}
+			fp->_bp = (char *)NULL;
+			fp->_bend = (char *)NULL;
+			fp->_buflen = 0;
+			fp->magic = CC_FP_POISON;
 		}
-		fp->_bp = (char *)NULL;
-		fp->_bend = (char *)NULL;
-		fp->_buflen = 0;
 		n = n->next;
 	}
 
@@ -227,6 +251,7 @@ void __ASM__ __SAVE_DS__ closeall(void)
 			Close(fh);
 		}
 		fd->fh = (BPTR)NULL;
+		fd->magic = CC_FD_POISON;
 		n = n->next;
 	}
 
@@ -274,8 +299,19 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 		FreeMem(ud->getenv_mem, CC_GETENV_BUFLEN);
 		ud->getenv_mem = (APTR)NULL;
 	}
+	if (ud->exeport != (struct MsgPort *)NULL)
+	{
+		DeleteMsgPort(ud->exeport);
+		ud->exeport = (struct MsgPort *)NULL;
+	}
 	closeall();
 	freeall();
+
+	if (ud->heap_pool != (APTR)NULL)
+	{
+		DeletePool(ud->heap_pool);
+		ud->heap_pool = (APTR)NULL;
+	}
 
 	old = ud->old_ud;
 	if (task != (struct Task *)NULL)

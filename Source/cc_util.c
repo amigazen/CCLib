@@ -101,3 +101,108 @@ LONG cc_get_errno(void)
 		return *ud->errno_p;
 	return 0;
 }
+
+/* True if data payload pointer is a node on list (add_head layout). */
+static int
+cc_list_has_data(cc_list *list, APTR data)
+{
+	cc_node *n;
+
+	if (list == (cc_list *)NULL || data == (APTR)NULL)
+		return 0;
+	n = list->first;
+	while (n != (cc_node *)NULL)
+	{
+		if ((APTR)(n + 1) == data)
+			return 1;
+		n = n->next;
+	}
+	return 0;
+}
+
+/*
+ * Resolve an open() fd (pointer-as-capability) against OpenFiles.
+ * Does not call AmigaOS; sets EBADF on failure.
+ */
+cc_FileDesc *
+cc_fd_from_list(cc_task_UserData *ud, LONG fd)
+{
+	cc_FileDesc *desc;
+
+	if (ud == (cc_task_UserData *)NULL || fd == 0L || fd == -1L)
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_FileDesc *)NULL;
+	}
+	desc = (cc_FileDesc *)fd;
+	if (!cc_list_has_data(&ud->OpenFiles, (APTR)desc))
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_FileDesc *)NULL;
+	}
+	if (desc->magic != CC_FD_MAGIC)
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_FileDesc *)NULL;
+	}
+	return desc;
+}
+
+/*
+ * Resolve a FILE* against StreamFiles.  Sets EINVAL for NULL stream,
+ * EBADF if not a live session stream.
+ */
+cc_FILE *
+cc_file_from_list(cc_task_UserData *ud, APTR stream)
+{
+	cc_FILE *fp;
+
+	if (ud == (cc_task_UserData *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (cc_FILE *)NULL;
+	}
+	if (stream == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (cc_FILE *)NULL;
+	}
+	fp = (cc_FILE *)stream;
+	if (!cc_list_has_data(&ud->StreamFiles, (APTR)fp))
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_FILE *)NULL;
+	}
+	if (fp->magic != CC_FP_MAGIC)
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_FILE *)NULL;
+	}
+	return fp;
+}
+
+/*
+ * malloc user pointer -> MemBlk if that arena is on ud->RAM.
+ * Layout: [cc_MemBlk][ULONG nbytes][user...].
+ */
+cc_MemBlk *
+cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr)
+{
+	ULONG *hdr;
+	cc_MemBlk *blk;
+	cc_node *n;
+
+	if (ud == (cc_task_UserData *)NULL || ptr == (APTR)NULL)
+		return (cc_MemBlk *)NULL;
+
+	hdr = ((ULONG *)ptr) - 1;
+	blk = ((cc_MemBlk *)hdr) - 1;
+	n = ud->RAM.first;
+	while (n != (cc_node *)NULL)
+	{
+		if (n == &blk->n)
+			return blk;
+		n = n->next;
+	}
+	return (cc_MemBlk *)NULL;
+}

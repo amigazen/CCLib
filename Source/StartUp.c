@@ -195,7 +195,18 @@ APTR FuncTab[] = {
 	(APTR)kill_children,
 	(APTR)cliexec,
 	(APTR)exec,
+	/* V4: memory */
 	(APTR)memmove,
+	(APTR)memmem,
+	/* V4: string */
+	(APTR)strncasecmp,
+	(APTR)strdup,
+	(APTR)strndup,
+	(APTR)strnlen,
+	(APTR)stpcpy,
+	(APTR)stpncpy,
+	/* V4: environment */
+	(APTR)unsetenv,
 	(APTR)((LONG)-1)
 };
 
@@ -213,8 +224,8 @@ __ASM__ __SAVE_DS__ LibInit(
 {
 	SysBase = sysbase;
 
-	/* AmigaOS 3.2+ (utility V47 provides Strncpy/Strncat/VSNPrintf). */
-	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 37);
+	/* AmigaOS 3.2 / NDK 3.2R4 baseline (utility V47; dos matches Kick 3.2). */
+	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 47);
 	UtilityBase = OpenLibrary("utility.library", 47);
 
 	if (DOSBase != NULL && UtilityBase != NULL)

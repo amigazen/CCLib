@@ -20,7 +20,9 @@
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918. */
+/* strcasecmp is canonical (strcmpa ==alias). */
+/* V4 append-only (-918 ..): group by category (Memory, String, */
+/* Environment, …). Do not insert mid-table. */
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -224,5 +226,13 @@
 /* V4 append-only (-918 ..) */
 
 #pragma amicall(CCLibBase, 0x396, memmove(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x39C, memmem(a0,d0,a1,d1))
+#pragma amicall(CCLibBase, 0x3A2, strncasecmp(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3A8, strdup(a0))
+#pragma amicall(CCLibBase, 0x3AE, strndup(a0,d0))
+#pragma amicall(CCLibBase, 0x3B4, strnlen(a0,d0))
+#pragma amicall(CCLibBase, 0x3BA, stpcpy(a0,a1))
+#pragma amicall(CCLibBase, 0x3C0, stpncpy(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x3C6, unsetenv(a0))
 
 #endif /* PRAGMA_CCLIB_LIB_H */

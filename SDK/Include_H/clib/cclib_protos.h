@@ -27,7 +27,11 @@ extern "C" {
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR.*/
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias);*/
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918.*/
+/* strcasecmp is canonical (strcmpa ==alias).*/
+/* V4+ append-only at end: keep new LVOs in logical groups (memory,*/
+/* string, env, format, stdlib, …). Do not insert mid-table; within each*/
+/* append wave, batch by category before starting the next category.*/
+
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc,*/
 /* aputc) remain as public LVOs.*/
 
@@ -228,9 +232,22 @@ LONG cliexec(STRPTR cmd);
 LONG exec(STRPTR cmd);
 /*--- functions in V4 or higher ---*/
 
-/* V4 append-only (-918 ..)*/
+/* V4 append-only (-918 ..). Group by category when extending.*/
 
+/* Memory*/
 APTR memmove(APTR dst, APTR src, LONG n);
+APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen);
+
+/* String*/
+LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n);
+STRPTR strdup(STRPTR s);
+STRPTR strndup(STRPTR s, LONG n);
+LONG strnlen(STRPTR s, LONG maxlen);
+STRPTR stpcpy(STRPTR dst, STRPTR src);
+STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n);
+
+/* Environment*/
+LONG unsetenv(STRPTR name);
 
 #ifdef __cplusplus
 }

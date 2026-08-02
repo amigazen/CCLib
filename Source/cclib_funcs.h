@@ -607,4 +607,38 @@ APTR __ASM__ __SAVE_DS__ memmove(
 	__REG__(a1, APTR src),
 	__REG__(d0, LONG n));
 
+LONG __ASM__ __SAVE_DS__ strncasecmp(
+	__REG__(a0, STRPTR s1),
+	__REG__(a1, STRPTR s2),
+	__REG__(d0, LONG n));
+
+STRPTR __ASM__ __SAVE_DS__ strdup(
+	__REG__(a0, STRPTR s));
+
+STRPTR __ASM__ __SAVE_DS__ strndup(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG n));
+
+LONG __ASM__ __SAVE_DS__ unsetenv(
+	__REG__(a0, STRPTR name));
+
+LONG __ASM__ __SAVE_DS__ strnlen(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG maxlen));
+
+APTR __ASM__ __SAVE_DS__ memmem(
+	__REG__(a0, APTR haystack),
+	__REG__(d0, LONG hlen),
+	__REG__(a1, APTR needle),
+	__REG__(d1, LONG nlen));
+
+STRPTR __ASM__ __SAVE_DS__ stpcpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src));
+
+STRPTR __ASM__ __SAVE_DS__ stpncpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, LONG n));
+
 #endif /* CCLIB_FUNCS_H */

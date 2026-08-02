@@ -27,7 +27,9 @@ extern "C" {
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR.*/
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias);*/
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918.*/
+/* strcasecmp is canonical (strcmpa ==alias).*/
+/* V4 append-only (-918 ..): group by category (Memory, String,*/
+/* Environment, …). Do not insert mid-table.*/
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc,*/
 /* aputc) remain as public LVOs.*/
 
@@ -230,7 +232,18 @@ LONG exec(STRPTR cmd);
 
 /* V4 append-only (-918 ..)*/
 
+/* Memory */
 APTR memmove(APTR dst, APTR src, LONG n);
+APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen);
+/* String */
+LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n);
+STRPTR strdup(STRPTR s);
+STRPTR strndup(STRPTR s, LONG n);
+LONG strnlen(STRPTR s, LONG maxlen);
+STRPTR stpcpy(STRPTR dst, STRPTR src);
+STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n);
+/* Environment */
+LONG unsetenv(STRPTR name);
 
 #ifdef __cplusplus
 }

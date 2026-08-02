@@ -16,7 +16,11 @@
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918. */
+/* strcasecmp is canonical (strcmpa ==alias). */
+/* V4+ append-only at end: keep new LVOs in logical groups (memory, */
+/* string, env, format, stdlib, …). Do not insert mid-table; within each */
+/* append wave, batch by category before starting the next category. */
+
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -1505,8 +1509,9 @@
 
 /*--- functions in V4 or higher --- */
 
-/* V4 append-only (-918 ..) */
+/* V4 append-only (-918 ..). Group by category when extending. */
 
+/* Memory */
 #define memmove(dst, src, n)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1515,6 +1520,92 @@
 	register LONG p2 __asm("d0") = (n);   \
 	register APTR r __asm("d0");   \
 	__asm volatile ("jsr a6@(-918:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define memmem(haystack, hlen, needle, nlen)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register APTR p0 __asm("a0") = (haystack);   \
+	register LONG p1 __asm("d0") = (hlen);   \
+	register APTR p2 __asm("a1") = (needle);   \
+	register LONG p3 __asm("d1") = (nlen);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-924:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* String */
+#define strncasecmp(s1, s2, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s1);   \
+	register STRPTR p1 __asm("a1") = (s2);   \
+	register LONG p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-930:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strdup(s)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-936:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strndup(s, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register LONG p1 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-942:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define strnlen(s, maxlen)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (s);   \
+	register LONG p1 __asm("d0") = (maxlen);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-948:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define stpcpy(dst, src)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (dst);   \
+	register STRPTR p1 __asm("a1") = (src);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-954:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define stpncpy(dst, src, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (dst);   \
+	register STRPTR p1 __asm("a1") = (src);   \
+	register LONG p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-960:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+/* Environment */
+#define unsetenv(name)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register STRPTR p0 __asm("a0") = (name);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-966:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 

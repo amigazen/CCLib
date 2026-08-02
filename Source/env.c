@@ -146,6 +146,27 @@ LONG __ASM__ __SAVE_DS__ setenv(
 	return 0L;
 }
 
+LONG __ASM__ __SAVE_DS__ unsetenv(
+	__REG__(a0, STRPTR name))
+{
+	LONG ok;
+
+	/* POSIX unsetenv; maps to dos DeleteVar (same as setenv empty). */
+	if (name == NULL || name[0] == '\0')
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	ok = DeleteVar(name, GVF_GLOBAL_ONLY);
+	if (!ok)
+	{
+		cc_set_errno(CC_ENOENT);
+		return -1L;
+	}
+	return 0L;
+}
+
 STRPTR __ASM__ __SAVE_DS__ getenv(
 	__REG__(a0, STRPTR name))
 {

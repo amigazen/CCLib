@@ -330,6 +330,174 @@ LONG __ASM__ __SAVE_DS__ strcasecmp(
 	}
 }
 
+LONG __ASM__ __SAVE_DS__ strncasecmp(
+	__REG__(a0, STRPTR s1),
+	__REG__(a1, STRPTR s2),
+	__REG__(d0, LONG n))
+{
+	UBYTE *p1;
+	UBYTE *p2;
+	LONG c1;
+	LONG c2;
+	LONG i;
+
+	/* LIBC_TO_AMIGA: strncasecmp -> utility Strnicmp (Direct). */
+	if (UtilityBase != (struct Library *)NULL)
+		return (LONG)Strnicmp(s1, s2, n);
+
+	if (n <= 0L)
+		return 0L;
+	p1 = (UBYTE *)s1;
+	p2 = (UBYTE *)s2;
+	if (p1 == p2)
+		return 0L;
+	if (p1 == (UBYTE *)NULL)
+		return -1L;
+	if (p2 == (UBYTE *)NULL)
+		return 1L;
+	i = 0L;
+	while (i < n)
+	{
+		c1 = (LONG)p1[i];
+		c2 = (LONG)p2[i];
+		if (c1 >= (LONG)'A' && c1 <= (LONG)'Z')
+			c1 = c1 - (LONG)'A' + (LONG)'a';
+		if (c2 >= (LONG)'A' && c2 <= (LONG)'Z')
+			c2 = c2 - (LONG)'A' + (LONG)'a';
+		if (c1 != c2)
+			return c1 - c2;
+		if (c1 == 0)
+			return 0L;
+		i++;
+	}
+	return 0L;
+}
+
+STRPTR __ASM__ __SAVE_DS__ strdup(
+	__REG__(a0, STRPTR s))
+{
+	LONG len;
+	STRPTR d;
+
+	if (s == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	len = strlen(s);
+	d = (STRPTR)malloc((ULONG)(len + 1L));
+	if (d == (STRPTR)NULL)
+		return (STRPTR)NULL;
+	(void)strcpy(d, s);
+	return d;
+}
+
+STRPTR __ASM__ __SAVE_DS__ strndup(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG n))
+{
+	LONG i;
+	LONG len;
+	STRPTR d;
+
+	if (s == (STRPTR)NULL || n < 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	len = 0L;
+	while (len < n && s[len] != '\0')
+		len++;
+	d = (STRPTR)malloc((ULONG)(len + 1L));
+	if (d == (STRPTR)NULL)
+		return (STRPTR)NULL;
+	i = 0L;
+	while (i < len)
+	{
+		d[i] = s[i];
+		i++;
+	}
+	d[len] = '\0';
+	return d;
+}
+
+LONG __ASM__ __SAVE_DS__ strnlen(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, LONG maxlen))
+{
+	LONG i;
+
+	if (s == (STRPTR)NULL || maxlen <= 0L)
+		return 0L;
+	i = 0L;
+	while (i < maxlen && s[i] != '\0')
+		i++;
+	return i;
+}
+
+STRPTR __ASM__ __SAVE_DS__ stpcpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src))
+{
+	UBYTE *d;
+	UBYTE *s;
+
+	/* Like strcpy but returns pointer to the terminating NUL. */
+	if (dst == (STRPTR)NULL || src == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	d = (UBYTE *)dst;
+	s = (UBYTE *)src;
+	while (*s != 0)
+	{
+		*d = *s;
+		d++;
+		s++;
+	}
+	*d = 0;
+	return (STRPTR)d;
+}
+
+STRPTR __ASM__ __SAVE_DS__ stpncpy(
+	__REG__(a0, STRPTR dst),
+	__REG__(a1, STRPTR src),
+	__REG__(d0, LONG n))
+{
+	UBYTE *d;
+	UBYTE *s;
+	LONG i;
+
+	/*
+	 * Copy at most n bytes; pad with NULs like strncpy when src is
+	 * short.  Return pointer to the last written byte (NUL if padded
+	 * or if a terminator was stored within n).
+	 */
+	if (dst == (STRPTR)NULL || src == (STRPTR)NULL || n < 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	d = (UBYTE *)dst;
+	s = (UBYTE *)src;
+	i = 0L;
+	while (i < n && s[i] != 0)
+	{
+		d[i] = s[i];
+		i++;
+	}
+	while (i < n)
+	{
+		d[i] = 0;
+		i++;
+	}
+	if (n <= 0L)
+		return dst;
+	/* Point at the last byte written (index n-1). */
+	return (STRPTR)(d + (n - 1L));
+}
+
 LONG __ASM__ __SAVE_DS__ strncmp(
 	__REG__(a0, STRPTR s1),
 	__REG__(a1, STRPTR s2),

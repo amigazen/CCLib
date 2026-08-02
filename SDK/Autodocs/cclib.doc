@@ -308,11 +308,13 @@ CClib.library/ClearSTDIO                              CClib.library/ClearSTDIO
 	void ClearSTDIO(void);
 
    FUNCTION
-	Releases all resources owned by CClib for the current task. It first calls closeall to flush and close every tracked FILE stream and FileDesc, then freeall to return heap nodes allocated through the CClib allocator.
+	Ends the CClib process session started by SetupSTDIO (or SetSTDIO).
+	Tear-down order: scdir_clean, kill_children, free getenv scratch,
+	DeleteMsgPort(exeport) if present, closeall, freeall, restore
+	tc_UserData from old_ud, FreeMem the task_UserData block.
 
-	After lists are drained, the task's tc_UserData is restored from old_ud (the value present before SetSTDIO), and the task_UserData structure itself is FreeMem'd.
-
-	Applications should call ClearSTDIO from their CRT exit path (for example after main returns) so DOS handles, ENV scratch buffers, and heap bookkeeping do not leak across program runs.
+	CRT exit/abort paths call ClearSTDIO after atexit handlers. Use
+	exit/_exit (not AmigaDOS Exit alone) so the CRT can reach this.
 
    INPUTS
 	None.
@@ -321,7 +323,10 @@ CClib.library/ClearSTDIO                              CClib.library/ClearSTDIO
 	None.
 
    NOTES
-	Unlike closeall alone, ClearSTDIO also frees heap memory and restores tc_UserData. Use exit or _exit (not AmigaDOS Exit) so the CRT can reach ClearSTDIO.
+	Unlike closeall alone, ClearSTDIO also frees heap memory, child
+	process state, and restores tc_UserData. Future rename InitCCLib /
+	TermCCLib may alias SetupSTDIO / ClearSTDIO without changing this
+	session contract.
 
    SEE ALSO
 	SetSTDIO, GetSTDIO, closeall, SetupSTDIO, freeall
@@ -336,11 +341,10 @@ CClib.library/closeall                                  CClib.library/closeall
 	void closeall(void);
 
    FUNCTION
-	Walks the StreamFiles and OpenFiles lists in task_UserData, flushing buffer state and closing underlying DOS BPTRs. Stream buffer memory allocated by setvbuf or getbuff is freed when the CC_ALLBUF flag is set.
-
-	CLI standard Input/Output handles marked CC_O_STDIO are not passed to dos.library Close(); only the FILE wrapper nodes are removed. Workbench WINDOW streams opened by wb_parse are closed normally.
-
-	Pointers stored at stdin_p, stdout_p, and stderr_p in the application are cleared to NULL. List nodes allocated by add_head/add_tail are freed; the list headers inside task_UserData remain.
+	Walks StreamFiles then OpenFiles in task_UserData. For each FILE:
+	fflush if dirty, DeleteFile tmpfile paths (CC_TEMP), free library
+	buffers (CC_ALLBUF). For each FileDesc: Close BPTR unless CC_O_STDIO.
+	Clears application stdin/stdout/stderr pointers and frees list nodes.
 
    INPUTS
 	None.
@@ -349,7 +353,8 @@ CClib.library/closeall                                  CClib.library/closeall
 	None.
 
    NOTES
-	closeall does not free the task_UserData block or heap RAM from malloc/calloc. For full teardown use ClearSTDIO.
+	closeall does not free the task_UserData block or heap RAM from
+	malloc/calloc. For full session teardown use ClearSTDIO.
 
    SEE ALSO
 	ClearSTDIO, fclose, close, SetupSTDIO
@@ -426,7 +431,7 @@ CClib.library/SetupSTDIO                              CClib.library/SetupSTDIO
 		d2=aptr, d3=wbm, d4=exitfunc
 
    FUNCTION
-	Connects CClib to the application's global variables and prepares standard I/O for the task. If tc_UserData is not yet set, SetupSTDIO calls SetSTDIO first. It then records pointers to the application's stdin, stdout, stderr FILE pointers, errno, blocksize, and (optionally) ctype table pointer, and stores mathbase for IEEE double helpers.
+	Begins the CClib process session (CRT calls this before main). Connects CClib to the application's global variables and prepares standard I/O for the task. If tc_UserData is not yet set, SetupSTDIO calls SetSTDIO first. It then records pointers to the application's stdin, stdout, stderr FILE pointers, errno, blocksize, and (optionally) ctype table pointer, and stores mathbase for IEEE double helpers.
 
 	Command-line programs pass alen and aptr; SetupSTDIO calls cli_parse to build argc/argv from the CLI argument string and command name. Workbench programs pass wbm (struct WBStartup *); wb_parse builds argv from the tool's argument list and, when the icon has a WINDOW tooltype, opens a CON: (or similar) window for standard I/O.
 

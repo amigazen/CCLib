@@ -102,4 +102,20 @@ ct_suite_env(void)
 		(STRPTR)"getenv(\"CCTEST_VAR\") after clear",
 		(STRPTR)"getenv after clearing main test var must return NULL",
 		(APTR)v);
+
+	rc = setenv((STRPTR)"CCTEST_UNSET", (STRPTR)"bye");
+	ct_check_long((STRPTR)"env", (STRPTR)"setenv_for_unsetenv",
+		(STRPTR)"setenv(\"CCTEST_UNSET\",\"bye\")",
+		(STRPTR)"setenv before unsetenv must succeed",
+		0, rc);
+	rc = unsetenv((STRPTR)"CCTEST_UNSET");
+	ct_check_long((STRPTR)"env", (STRPTR)"unsetenv_ok",
+		(STRPTR)"unsetenv(\"CCTEST_UNSET\")",
+		(STRPTR)"unsetenv must delete the variable and return 0",
+		0, rc);
+	v = getenv((STRPTR)"CCTEST_UNSET");
+	ct_check_ptr_null((STRPTR)"env", (STRPTR)"getenv_after_unsetenv",
+		(STRPTR)"getenv after unsetenv",
+		(STRPTR)"getenv after unsetenv must return NULL",
+		(APTR)v);
 }

@@ -602,6 +602,63 @@ ct_suite_string(void)
 		strcmpa((STRPTR)"AmIgA", (STRPTR)"amiga")
 		== strcasecmp((STRPTR)"AmIgA", (STRPTR)"amiga"));
 
+	/* --- strncasecmp --- */
+	ct_check_long((STRPTR)"string", (STRPTR)"strncasecmp_prefix_equal",
+		(STRPTR)"strncasecmp(\"AmigaOS\", \"AMIGAxx\", 5)",
+		(STRPTR)"strncasecmp must compare only n characters case-insensitively",
+		0, strncasecmp((STRPTR)"AmigaOS", (STRPTR)"AMIGAxx", 5));
+
+	ct_check_true((STRPTR)"string", (STRPTR)"strncasecmp_diff_in_n",
+		(STRPTR)"strncasecmp(\"abc\", \"abd\", 3) != 0",
+		(STRPTR)"strncasecmp must detect a difference within n",
+		strncasecmp((STRPTR)"abc", (STRPTR)"abd", 3) != 0);
+
+	ct_check_long((STRPTR)"string", (STRPTR)"strncasecmp_n_zero",
+		(STRPTR)"strncasecmp(\"a\", \"b\", 0)",
+		(STRPTR)"strncasecmp with n=0 must return 0",
+		0, strncasecmp((STRPTR)"a", (STRPTR)"b", 0));
+
+	/* --- strdup / strndup --- */
+	p = strdup((STRPTR)"dupme");
+	ct_check_true((STRPTR)"string", (STRPTR)"strdup_content",
+		(STRPTR)"strdup(\"dupme\")",
+		(STRPTR)"strdup must return a heap copy of the source",
+		p != (STRPTR)NULL && strcmp(p, (STRPTR)"dupme") == 0);
+	if (p != (STRPTR)NULL)
+		free((APTR)p);
+
+	p = strndup((STRPTR)"ABCDEF", 3);
+	ct_check_true((STRPTR)"string", (STRPTR)"strndup_3",
+		(STRPTR)"strndup(\"ABCDEF\", 3)",
+		(STRPTR)"strndup must copy at most n chars and NUL-terminate",
+		p != (STRPTR)NULL && strcmp(p, (STRPTR)"ABC") == 0);
+	if (p != (STRPTR)NULL)
+		free((APTR)p);
+
+	/* --- strnlen / stpcpy / stpncpy --- */
+	ct_check_long((STRPTR)"string", (STRPTR)"strnlen_full",
+		(STRPTR)"strnlen(\"hello\", 10)",
+		(STRPTR)"strnlen must return strlen when shorter than maxlen",
+		5, strnlen((STRPTR)"hello", 10));
+
+	ct_check_long((STRPTR)"string", (STRPTR)"strnlen_capped",
+		(STRPTR)"strnlen(\"hello\", 3)",
+		(STRPTR)"strnlen must stop at maxlen when no NUL is found sooner",
+		3, strnlen((STRPTR)"hello", 3));
+
+	q = stpcpy(a, (STRPTR)"xy");
+	ct_check_true((STRPTR)"string", (STRPTR)"stpcpy_return",
+		(STRPTR)"stpcpy(a, \"xy\")",
+		(STRPTR)"stpcpy must return a pointer to the terminating NUL",
+		q != (STRPTR)NULL && q == a + 2 && strcmp(a, (STRPTR)"xy") == 0);
+
+	memset(a, 'Z', 8);
+	q = stpncpy(a, (STRPTR)"hi", 5);
+	ct_check_true((STRPTR)"string", (STRPTR)"stpncpy_pad",
+		(STRPTR)"stpncpy(a, \"hi\", 5)",
+		(STRPTR)"stpncpy must copy, pad with NULs, and return the last byte pointer",
+		q == a + 4 && a[0] == 'h' && a[1] == 'i' && a[2] == 0 && a[3] == 0 && a[4] == 0);
+
 	/* --- strtok --- */
 	strcpy(a, (STRPTR)"one two three");
 	p = strtok(a, (STRPTR)" ");

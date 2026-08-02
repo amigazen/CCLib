@@ -15,7 +15,10 @@
 ** Do not reorder or insert mid-table. Append new LVOs only at the end.
 ** Opaque C objects (FILE, task_UserData, tm, …) are APTR.
 ** V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
-** strcasecmp is canonical (strcmpa ==alias). memmove appended at -918.
+** strcasecmp is canonical (strcmpa ==alias).
+** V4+ append-only at end: keep new LVOs in logical groups (memory,
+** string, env, format, stdlib, …). Do not insert mid-table; within each
+** append wave, batch by category before starting the next category.
 ** Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc,
 ** aputc) remain as public LVOs.
 ** Support / stdio setup (-30 .. -66)
@@ -184,6 +187,17 @@ _LVOkill_children equ -900
 _LVOcliexec equ -906
 _LVOexec equ -912
 **--- functions in V4 or higher ---
-** V4 append-only (-918 ..)
+** V4 append-only (-918 ..). Group by category when extending.
+** Memory
 _LVOmemmove equ -918
+_LVOmemmem equ -924
+** String
+_LVOstrncasecmp equ -930
+_LVOstrdup equ -936
+_LVOstrndup equ -942
+_LVOstrnlen equ -948
+_LVOstpcpy equ -954
+_LVOstpncpy equ -960
+** Environment
+_LVOunsetenv equ -966
 

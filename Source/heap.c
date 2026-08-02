@@ -6,6 +6,9 @@
  * _alloc returns the address after cc_MemBlk.  malloc stores the
  * requested (8-rounded) size in the ULONG and returns the address
  * after that header.
+ *
+ * Backing store is exec CreatePool / AllocPooled / FreePooled
+ * (NDK 3.2R4) on the per-session ud->heap_pool from SetSTDIO.
  */
 
 #include <exec/types.h>
@@ -68,9 +71,9 @@ static void cc_heap_reset(cc_task_UserData *ud)
 }
 
 /*
- * Lowest-level allocator: AllocMem(size + sizeof(MemBlk)), bookkeep on
- * ud->RAM, return pointer to the payload after the MemBlk header.
- * Does not force MEMF_CLEAR; callers pass flags as needed.
+ * Lowest-level allocator: AllocPooled(size + sizeof(MemBlk)) from the
+ * session pool, bookkeep on ud->RAM, return payload after MemBlk.
+ * flags is retained for ABI; MEMF_CLEAR is applied with a byte clear.
  */
 APTR __ASM__ __SAVE_DS__ _alloc(
 	__REG__(a0, APTR ud),
@@ -80,15 +83,30 @@ APTR __ASM__ __SAVE_DS__ _alloc(
 	cc_task_UserData *u;
 	cc_MemBlk *blk;
 	ULONG total;
+	UBYTE *b;
+	ULONG i;
 
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL || size <= 0)
 		return (APTR)NULL;
+	if (u->heap_pool == (APTR)NULL)
+		return (APTR)NULL;
 
 	total = (ULONG)size + (ULONG)sizeof(cc_MemBlk);
-	blk = (cc_MemBlk *)AllocMem(total, (ULONG)flags);
+	blk = (cc_MemBlk *)AllocPooled(u->heap_pool, total);
 	if (blk == (cc_MemBlk *)NULL)
 		return (APTR)NULL;
+
+	if ((flags & (LONG)MEMF_CLEAR) != 0)
+	{
+		b = (UBYTE *)blk;
+		i = 0;
+		while (i < total)
+		{
+			b[i] = 0;
+			i++;
+		}
+	}
 
 	blk->n.prev = (cc_node *)NULL;
 	blk->n.next = (cc_node *)NULL;
@@ -110,14 +128,16 @@ void __ASM__ __SAVE_DS__ _fre(
 	u = (cc_task_UserData *)ud;
 	if (u == (cc_task_UserData *)NULL || ptr == (APTR)NULL)
 		return;
+	if (u->heap_pool == (APTR)NULL)
+		return;
 
 	blk = ((cc_MemBlk *)ptr) - 1;
 	total = blk->size;
 	cc_ram_unlink(u, blk);
-	FreeMem(blk, (ULONG)total);
+	FreePooled(u->heap_pool, blk, (ULONG)total);
 }
 
-/* Free every MemBlk on ud->RAM. Does not re-init the K&R free list. */
+/* Free every MemBlk on ud->RAM via FreePooled. Does not DeletePool. */
 void __ASM__ __SAVE_DS__ _freall(
 	__REG__(a0, APTR ud))
 {
@@ -136,7 +156,8 @@ void __ASM__ __SAVE_DS__ _freall(
 		next = n->next;
 		blk = (cc_MemBlk *)n;
 		total = blk->size;
-		FreeMem(blk, (ULONG)total);
+		if (u->heap_pool != (APTR)NULL)
+			FreePooled(u->heap_pool, blk, (ULONG)total);
 		n = next;
 	}
 	u->RAM.first = (cc_node *)NULL;
@@ -283,6 +304,7 @@ void __ASM__ __SAVE_DS__ free(
 {
 	cc_task_UserData *ud;
 	ULONG *hdr;
+	cc_MemBlk *blk;
 
 	if (ptr == (APTR)NULL)
 		return;
@@ -290,6 +312,14 @@ void __ASM__ __SAVE_DS__ free(
 	ud = cc_get_ud();
 	if (ud == (cc_task_UserData *)NULL)
 		return;
+
+	/* Reject pointers that are not live malloc blocks on this session. */
+	blk = cc_blk_from_malloc_ptr(ud, ptr);
+	if (blk == (cc_MemBlk *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return;
+	}
 
 	hdr = ((ULONG *)ptr) - 1;
 	_fre(ud, (APTR)hdr);
@@ -318,18 +348,24 @@ void __ASM__ __SAVE_DS__ be_free(
 ULONG __ASM__ __SAVE_DS__ malloc_size(
 	__REG__(a0, APTR ptr))
 {
+	cc_task_UserData *ud;
 	ULONG *hdr;
 
 	if (ptr == (APTR)NULL)
 		return 0;
+
+	ud = cc_get_ud();
+	if (cc_blk_from_malloc_ptr(ud, ptr) == (cc_MemBlk *)NULL)
+		return 0;
+
 	hdr = ((ULONG *)ptr) - 1;
 	return *hdr;
 }
 
 /*
- * Return all AllocMem arenas to the system and re-init heap state.
- * closeall should be called first so BPTRs are released while
- * FileDesc/FILE still exist.
+ * Return all pooled malloc arenas to the session pool and re-init heap
+ * state.  closeall should be called first so BPTRs are released while
+ * FileDesc/FILE still exist.  DeletePool happens in ClearSTDIO.
  */
 void __ASM__ __SAVE_DS__ freeall(void)
 {

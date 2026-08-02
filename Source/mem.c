@@ -150,6 +150,44 @@ APTR __ASM__ __SAVE_DS__ memcpy(
 	return dst;
 }
 
+APTR __ASM__ __SAVE_DS__ memmem(
+	__REG__(a0, APTR haystack),
+	__REG__(d0, LONG hlen),
+	__REG__(a1, APTR needle),
+	__REG__(d1, LONG nlen))
+{
+	UBYTE *h;
+	UBYTE *n;
+	LONG i;
+	LONG j;
+
+	/* Pure C byte search (like strstr over a counted region). */
+	if (haystack == (APTR)NULL || needle == (APTR)NULL
+	    || hlen < 0L || nlen < 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (APTR)NULL;
+	}
+	if (nlen == 0L)
+		return haystack;
+	if (nlen > hlen)
+		return (APTR)NULL;
+
+	h = (UBYTE *)haystack;
+	n = (UBYTE *)needle;
+	i = 0L;
+	while (i <= hlen - nlen)
+	{
+		j = 0L;
+		while (j < nlen && h[i + j] == n[j])
+			j++;
+		if (j == nlen)
+			return (APTR)(h + i);
+		i++;
+	}
+	return (APTR)NULL;
+}
+
 APTR __ASM__ __SAVE_DS__ memset(
 	__REG__(a0, APTR b),
 	__REG__(d0, ULONG c),

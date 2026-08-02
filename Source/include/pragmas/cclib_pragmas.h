@@ -20,7 +20,9 @@
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918. */
+/* strcasecmp is canonical (strcmpa ==alias). */
+/* V4 append-only (-918 ..): group by category (Memory, String, */
+/* Environment, …). Do not insert mid-table. */
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -224,5 +226,13 @@
 /* V4 append-only (-918 ..) */
 
 #pragma libcall CCLibBase memmove 396 09803
+#pragma libcall CCLibBase memmem 39C 190804
+#pragma libcall CCLibBase strncasecmp 3A2 09803
+#pragma libcall CCLibBase strdup 3A8 801
+#pragma libcall CCLibBase strndup 3AE 0802
+#pragma libcall CCLibBase strnlen 3B4 0802
+#pragma libcall CCLibBase stpcpy 3BA 9802
+#pragma libcall CCLibBase stpncpy 3C0 09803
+#pragma libcall CCLibBase unsetenv 3C6 801
 
 #endif /* PRAGMAS_CCLIB_PRAGMAS_H */

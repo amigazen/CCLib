@@ -101,6 +101,14 @@ LONG __ASM__ __SAVE_DS__ open(
 		Seek(fh, 0L, OFFSET_END);
 	}
 
+	/* Soft open-file cap before registering (EMFILE). */
+	if (ud->OpenFiles.length >= CC_MAX_OPEN_FILES)
+	{
+		Close(fh);
+		cc_set_errno(CC_EMFILE);
+		return -1L;
+	}
+
 	fd = (cc_FileDesc *)add_head((APTR)&ud->OpenFiles, (LONG)sizeof(cc_FileDesc));
 	if (fd == NULL)
 	{
@@ -111,6 +119,8 @@ LONG __ASM__ __SAVE_DS__ open(
 
 	fd->fh = fh;
 	fd->mode = (short)flags;
+	fd->pad = 0;
+	fd->magic = CC_FD_MAGIC;
 	return (LONG)fd;
 }
 
@@ -123,13 +133,10 @@ LONG __ASM__ __SAVE_DS__ close(
 	ULONG *hp;
 
 	ud = cc_get_ud();
-	if (ud == NULL || fd == 0L || fd == -1L)
-	{
-		cc_set_errno(CC_EBADF);
+	/* Validate membership before any dos Close (forged fd must not hit OS). */
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
 		return -1L;
-	}
-
-	desc = (cc_FileDesc *)fd;
 
 	/* Stdio handles that wrap Input()/Output() must not be Closed */
 	if (!(desc->mode & CC_O_STDIO))
@@ -138,6 +145,7 @@ LONG __ASM__ __SAVE_DS__ close(
 			Close(desc->fh);
 	}
 	desc->fh = NULL;
+	desc->magic = CC_FD_POISON;
 
 	/* remv_node unlinks only — free [ULONG][cc_node][data] block */
 	node = (cc_node *)remv_node((APTR)&ud->OpenFiles, (APTR)desc);
@@ -195,16 +203,20 @@ LONG __ASM__ __SAVE_DS__ read(
 	__REG__(a0, APTR buf),
 	__REG__(d1, LONG len))
 {
+	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG n;
 
-	if (fd == 0L || fd == -1L || buf == NULL || len < 0L)
+	if (buf == NULL || len < 0L)
 	{
 		cc_set_errno(CC_EINVAL);
 		return -1L;
 	}
 
-	desc = (cc_FileDesc *)fd;
+	ud = cc_get_ud();
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
+		return -1L;
 	if (desc->fh == NULL)
 	{
 		cc_set_errno(CC_EBADF);
@@ -225,16 +237,20 @@ LONG __ASM__ __SAVE_DS__ write(
 	__REG__(a0, APTR buf),
 	__REG__(d1, LONG len))
 {
+	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG n;
 
-	if (fd == 0L || fd == -1L || buf == NULL || len < 0L)
+	if (buf == NULL || len < 0L)
 	{
 		cc_set_errno(CC_EINVAL);
 		return -1L;
 	}
 
-	desc = (cc_FileDesc *)fd;
+	ud = cc_get_ud();
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
+		return -1L;
 	if (desc->fh == NULL)
 	{
 		cc_set_errno(CC_EBADF);
@@ -262,18 +278,16 @@ LONG __ASM__ __SAVE_DS__ lseek(
 	__REG__(d1, LONG offset),
 	__REG__(d2, ULONG whence))
 {
+	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG mode;
 	LONG oldpos;
 	LONG newpos;
 
-	if (fd == 0L || fd == -1L)
-	{
-		cc_set_errno(CC_EBADF);
+	ud = cc_get_ud();
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
 		return -1L;
-	}
-
-	desc = (cc_FileDesc *)fd;
 	if (desc->fh == NULL)
 	{
 		cc_set_errno(CC_EBADF);
@@ -312,15 +326,13 @@ LONG __ASM__ __SAVE_DS__ lseek(
 LONG __ASM__ __SAVE_DS__ isatty(
 	__REG__(d0, LONG fd))
 {
+	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 
-	if (fd == 0L || fd == -1L)
-	{
-		cc_set_errno(CC_EBADF);
+	ud = cc_get_ud();
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
 		return 0L;
-	}
-
-	desc = (cc_FileDesc *)fd;
 	if (desc->fh == NULL)
 	{
 		cc_set_errno(CC_EBADF);

@@ -308,4 +308,28 @@ ct_suite_heap(void)
 			(STRPTR)"free of a valid malloc block must complete without fault",
 			1);
 	}
+
+	/* Forged / stale pointers must not free random memory. */
+	sz = malloc_size((APTR)0x12345678L);
+	ct_check_long((STRPTR)"heap", (STRPTR)"malloc_size_forged",
+		(STRPTR)"malloc_size(forged)",
+		(STRPTR)"malloc_size of a non-heap pointer must return 0",
+		0L, (LONG)sz);
+
+	free((APTR)0x12345678L);
+	ct_check_true((STRPTR)"heap", (STRPTR)"free_forged_safe",
+		(STRPTR)"free(forged)",
+		(STRPTR)"free of a forged pointer must be a safe no-op",
+		1);
+
+	p = malloc(16);
+	if (p != (APTR)NULL)
+	{
+		free(p);
+		sz = malloc_size(p);
+		ct_check_long((STRPTR)"heap", (STRPTR)"malloc_size_after_free",
+			(STRPTR)"malloc_size after free",
+			(STRPTR)"malloc_size of a freed block must return 0",
+			0L, (LONG)sz);
+	}
 }

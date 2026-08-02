@@ -35,6 +35,7 @@ int atexit(void (*)(void));
 extern void (*exit_fcn)(void);
 void qsort(void *,unsigned long,unsigned long,long (*)(void *,void *));
 long setenv(char *name, char *value);
+long unsetenv(char *name);
 char *getenv(char *name);
 
 #else
@@ -52,6 +53,7 @@ int atexit();
 extern void (*exit_fcn)();
 void qsort();
 long setenv();
+long unsetenv();
 char *getenv();
 
 #endif

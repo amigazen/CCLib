@@ -25,6 +25,8 @@ extern char *type;
 #define isprint(X)  (type[(X)+1] & 0xc7)
 #define isgraph(X)  (type[(X)+1] & 0x47)
 #define isascii(X)  (!((X) & 0x80))
+/* C99: blank is space or horizontal tab only (not all of isspace). */
+#define isblank(X)  (((X) == ' ') || ((X) == '\t'))
 
 #define toascii(X)  ((X) & 127)
 #define _tolower(X) ((X) | 0x20)

@@ -310,6 +310,25 @@ ct_suite_mem(void)
 		(STRPTR)"memchr must not search beyond the specified length",
 		p);
 
+	/* --- memmem --- */
+	p = memmem((APTR)"abcdef", 6, (APTR)"cd", 2);
+	ct_check_true((STRPTR)"mem", (STRPTR)"memmem_found",
+		(STRPTR)"memmem(\"abcdef\", 6, \"cd\", 2)",
+		(STRPTR)"memmem must find a matching byte sequence",
+		p != (APTR)NULL && *((char *)p) == 'c');
+
+	p = memmem((APTR)"abcdef", 6, (APTR)"xy", 2);
+	ct_check_ptr_null((STRPTR)"mem", (STRPTR)"memmem_missing",
+		(STRPTR)"memmem(\"abcdef\", 6, \"xy\", 2)",
+		(STRPTR)"memmem must return NULL when the needle is absent",
+		p);
+
+	p = memmem((APTR)"abc", 3, (APTR)"", 0);
+	ct_check_true((STRPTR)"mem", (STRPTR)"memmem_empty_needle",
+		(STRPTR)"memmem(haystack, 3, \"\", 0)",
+		(STRPTR)"memmem with empty needle must return the haystack pointer",
+		p == (APTR)"abc");
+
 	/* --- memccpy --- */
 	memset(a, 0, sizeof(a));
 	memset(b, 0, sizeof(b));

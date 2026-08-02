@@ -16,7 +16,9 @@
 /* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
-/* strcasecmp is canonical (strcmpa ==alias). memmove appended at -918. */
+/* strcasecmp is canonical (strcmpa ==alias). */
+/* V4 append-only (-918 ..): group by category (Memory, String, */
+/* Environment, …). Do not insert mid-table. */
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -519,8 +521,35 @@ LONG __exec(__reg("a6") void *, __reg("a0") STRPTR cmd)="\tjsr\t-912(a6)";
 
 /* V4 append-only (-918 ..) */
 
+/* Memory */
 APTR __memmove(__reg("a6") void *, __reg("a0") APTR dst, __reg("a1") APTR src, __reg("d0") LONG n)="\tjsr\t-918(a6)";
 #define memmove(dst, src, n) __memmove(CCLibBase, (dst), (src), (n))
+
+APTR __memmem(__reg("a6") void *, __reg("a0") APTR haystack, __reg("d0") LONG hlen, __reg("a1") APTR needle, __reg("d1") LONG nlen)="\tjsr\t-924(a6)";
+#define memmem(haystack, hlen, needle, nlen) __memmem(CCLibBase, (haystack), (hlen), (needle), (nlen))
+
+/* String */
+LONG __strncasecmp(__reg("a6") void *, __reg("a0") STRPTR s1, __reg("a1") STRPTR s2, __reg("d0") LONG n)="\tjsr\t-930(a6)";
+#define strncasecmp(s1, s2, n) __strncasecmp(CCLibBase, (s1), (s2), (n))
+
+STRPTR __strdup(__reg("a6") void *, __reg("a0") STRPTR s)="\tjsr\t-936(a6)";
+#define strdup(s) __strdup(CCLibBase, (s))
+
+STRPTR __strndup(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") LONG n)="\tjsr\t-942(a6)";
+#define strndup(s, n) __strndup(CCLibBase, (s), (n))
+
+LONG __strnlen(__reg("a6") void *, __reg("a0") STRPTR s, __reg("d0") LONG maxlen)="\tjsr\t-948(a6)";
+#define strnlen(s, maxlen) __strnlen(CCLibBase, (s), (maxlen))
+
+STRPTR __stpcpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR src)="\tjsr\t-954(a6)";
+#define stpcpy(dst, src) __stpcpy(CCLibBase, (dst), (src))
+
+STRPTR __stpncpy(__reg("a6") void *, __reg("a0") STRPTR dst, __reg("a1") STRPTR src, __reg("d0") LONG n)="\tjsr\t-960(a6)";
+#define stpncpy(dst, src, n) __stpncpy(CCLibBase, (dst), (src), (n))
+
+/* Environment */
+LONG __unsetenv(__reg("a6") void *, __reg("a0") STRPTR name)="\tjsr\t-966(a6)";
+#define unsetenv(name) __unsetenv(CCLibBase, (name))
 
 
 #endif /* INLINE_CCLIB_PROTOS_H */

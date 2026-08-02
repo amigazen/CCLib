@@ -382,4 +382,32 @@ ct_suite_stdio(void)
 			(LONG)'!', c);
 		fclose(fp);
 	}
+
+	/* Forged FILE* must not reach dos. */
+	c = getc((APTR)0x12345678L);
+	ct_check_long((STRPTR)"stdio", (STRPTR)"getc_forged",
+		(STRPTR)"getc(forged)",
+		(STRPTR)"getc of a forged FILE* must return EOF",
+		(LONG)(-1), c);
+
+	n = fclose((APTR)0x12345678L);
+	ct_check_long((STRPTR)"stdio", (STRPTR)"fclose_forged",
+		(STRPTR)"fclose(forged)",
+		(STRPTR)"fclose of a forged FILE* must fail",
+		-1L, n);
+
+	fp = tmpfile();
+	if (fp != (APTR)NULL)
+	{
+		n = fclose(fp);
+		ct_check_long((STRPTR)"stdio", (STRPTR)"fclose_tmp_ok",
+			(STRPTR)"fclose(tmpfile)",
+			(STRPTR)"fclose of tmpfile must succeed",
+			0L, n);
+		n = fclose(fp);
+		ct_check_long((STRPTR)"stdio", (STRPTR)"fclose_twice",
+			(STRPTR)"fclose again",
+			(STRPTR)"second fclose of the same FILE* must fail",
+			-1L, n);
+	}
 }

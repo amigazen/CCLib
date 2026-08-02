@@ -124,6 +124,27 @@ typedef struct
 	LONG st_ctime;
 } cc_stat;
 
+/*
+ * Historic FILE / FileDesc field prefixes match libraries/cclib.h.
+ * Private magic lives after those fields (not part of the public typedef).
+ * Capability encoding today is still the object pointer; resolve only via
+ * cc_*_from_list (membership + magic) before touching OS resources.
+ */
+#define CC_FP_MAGIC   0x43434650UL /* 'CCFP' */
+#define CC_FD_MAGIC   0x43434644UL /* 'CCFD' */
+#define CC_FP_POISON  0xDEADF11EUL
+#define CC_FD_POISON  0xDEADF00DUL
+
+/* Soft cap on OpenFiles length; open() sets EMFILE when reached. */
+#define CC_MAX_OPEN_FILES 256L
+
+/* Memory class tags (documentation / future grant-ready seams). */
+#define CC_MEM_PRIVATE_HEAP   1
+#define CC_MEM_STDIO_BUF      2
+#define CC_MEM_CTRL_BLOCK     3
+#define CC_MEM_IPC            4
+#define CC_MEM_SCRATCH        5
+
 typedef struct
 {
 	LONG _unit;
@@ -134,12 +155,15 @@ typedef struct
 	char _bytbuf;
 	short _buflen;
 	char *_tmpname;
+	ULONG magic;
 } cc_FILE;
 
 typedef struct
 {
 	BPTR fh;
 	short mode;
+	UWORD pad;
+	ULONG magic;
 } cc_FileDesc;
 
 typedef struct
@@ -193,10 +217,16 @@ typedef struct
 	struct MsgPort *exeport;
 	cc_list Children;
 	APTR mathbase;
+	/* NDK 3.2R4 session heap pool (CreatePool); past public task_UserData ABI. */
+	APTR heap_pool;
 } cc_task_UserData;
 
 /* Default heap quantum: 256 * 8 = 2048 bytes when *blocksize == 0 */
 #define CC_DEFAULT_BLOCKSIZE 256L
+
+/* Per-session malloc pool puddle / threshold (exec CreatePool). */
+#define CC_HEAP_PUDDLE  8192UL
+#define CC_HEAP_THRESH  4096UL
 
 extern struct Library *CCLibBase;
 extern struct ExecBase *SysBase;
@@ -210,5 +240,10 @@ extern UBYTE cc_ctype_tab[257];
 cc_task_UserData *cc_get_ud(void);
 void cc_set_errno(LONG err);
 LONG cc_get_errno(void);
+
+/* Capability resolve: membership on session registries (+ magic). */
+cc_FileDesc *cc_fd_from_list(cc_task_UserData *ud, LONG fd);
+cc_FILE *cc_file_from_list(cc_task_UserData *ud, APTR stream);
+cc_MemBlk *cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr);
 
 #endif /* CCLIB_PRIVATE_CC_INTERNAL_H */

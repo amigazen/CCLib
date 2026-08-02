@@ -74,16 +74,19 @@ static cc_FILE *cc_alloc_file(cc_task_UserData *ud)
 	fp->_bytbuf = 0;
 	fp->_buflen = 0;
 	fp->_tmpname = NULL;
+	fp->magic = CC_FP_MAGIC;
 	return fp;
 }
 
 void __ASM__ __SAVE_DS__ getbuff(
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	char *buf;
 
-	fp = (cc_FILE *)stream;
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
 	if (fp == NULL)
 		return;
 	if (fp->_buff != NULL)
@@ -114,15 +117,14 @@ LONG __ASM__ __SAVE_DS__ setvbuf(
 	__REG__(d0, LONG mode),
 	__REG__(d1, ULONG size))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	char *nb;
 
-	fp = (cc_FILE *)stream;
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
 	if (fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
 		return -1L;
-	}
 
 	if (fp->_buff != NULL && (fp->_flags & CC_ALLBUF))
 	{
@@ -171,13 +173,19 @@ LONG __ASM__ __SAVE_DS__ setvbuf(
 LONG __ASM__ __SAVE_DS__ fflush(
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG n;
 	LONG len;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL)
+	/* fflush(NULL) is a no-op here (historic); ISO would flush all. */
+	if (stream == (APTR)NULL)
 		return 0L;
+
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
+		return (LONG)CC_EOF;
 
 	if (!(fp->_flags & CC_DIRTY))
 	{
@@ -218,15 +226,14 @@ APTR __ASM__ __SAVE_DS__ fdopen(
 {
 	cc_task_UserData *ud;
 	cc_FILE *fp;
+	cc_FileDesc *desc;
 
 	(void)mode;
 
 	ud = cc_get_ud();
-	if (ud == NULL || fd == 0L || fd == -1L)
-	{
-		cc_set_errno(CC_EINVAL);
-		return NULL;
-	}
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL)
+		return (APTR)NULL;
 
 	fp = cc_alloc_file(ud);
 	if (fp == NULL)
@@ -269,15 +276,18 @@ APTR __ASM__ __SAVE_DS__ freopen(
 	__REG__(a1, STRPTR mode),
 	__REG__(a2, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	ULONG flags;
 	LONG fd;
 	char *oldtmp;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL || name == NULL || mode == NULL)
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL || name == NULL || mode == NULL)
 	{
-		cc_set_errno(CC_EINVAL);
+		if (name == NULL || mode == NULL)
+			cc_set_errno(CC_EINVAL);
 		return NULL;
 	}
 
@@ -303,6 +313,7 @@ APTR __ASM__ __SAVE_DS__ freopen(
 	fp->_flags = 0;
 	fp->_buflen = 0;
 	fp->_unit = -1L;
+	fp->magic = CC_FP_MAGIC;
 
 	flags = cc_parse_fopen_mode(mode);
 	fd = open(name, flags, 0UL);
@@ -323,12 +334,9 @@ LONG __ASM__ __SAVE_DS__ fclose(
 	ULONG *hp;
 
 	ud = cc_get_ud();
-	fp = (cc_FILE *)stream;
-	if (ud == NULL || fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return -1L;
-	}
 
 	rc = fflush(fp);
 
@@ -350,6 +358,7 @@ LONG __ASM__ __SAVE_DS__ fclose(
 		fp->_tmpname = NULL;
 	}
 
+	fp->magic = CC_FP_POISON;
 	node = (cc_node *)remv_node((APTR)&ud->StreamFiles, (APTR)fp);
 	if (node != NULL)
 	{
@@ -362,16 +371,15 @@ LONG __ASM__ __SAVE_DS__ fclose(
 LONG __ASM__ __SAVE_DS__ getc(
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG n;
 	UBYTE ch;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
-	}
 
 	if (fp->_flags & CC_EOFBIT)
 		return (LONG)CC_EOF;
@@ -415,15 +423,14 @@ LONG __ASM__ __SAVE_DS__ putc(
 	__REG__(d0, LONG c),
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG leftover;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
-	}
 
 	if (fp->_buff == NULL)
 		getbuff(fp);
@@ -497,10 +504,15 @@ LONG __ASM__ __SAVE_DS__ ungetc(
 	__REG__(d0, LONG c),
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL || c == (LONG)CC_EOF)
+	if (c == (LONG)CC_EOF)
+		return (LONG)CC_EOF;
+
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
 
 	if (fp->_buff == NULL)
@@ -681,15 +693,14 @@ LONG __ASM__ __SAVE_DS__ fseek(
 	__REG__(d0, LONG offset),
 	__REG__(d1, LONG whence))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG pos;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return -1L;
-	}
 
 	if (fflush(fp) == (LONG)CC_EOF)
 		return -1L;
@@ -707,16 +718,15 @@ LONG __ASM__ __SAVE_DS__ fseek(
 LONG __ASM__ __SAVE_DS__ ftell(
 	__REG__(a0, APTR stream))
 {
+	cc_task_UserData *ud;
 	cc_FILE *fp;
 	LONG pos;
 	LONG adj;
 
-	fp = (cc_FILE *)stream;
-	if (fp == NULL)
-	{
-		cc_set_errno(CC_EINVAL);
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return -1L;
-	}
 
 	pos = lseek(fp->_unit, 0L, (ULONG)CC_SEEK_CUR);
 	if (pos < 0L)

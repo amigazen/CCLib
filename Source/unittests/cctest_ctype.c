@@ -5,6 +5,7 @@
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <ctype.h>
 #include "cctest_util.h"
 
 void
@@ -17,7 +18,24 @@ ct_suite_ctype(void)
 	char nbuf[24];
 	STRPTR name;
 
-	ct_suite_begin((STRPTR)"ctype", (STRPTR)"toupper / tolower");
+	ct_suite_begin((STRPTR)"ctype", (STRPTR)"toupper / tolower / isblank");
+
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isblank_space",
+		(STRPTR)"isblank(' ')",
+		(STRPTR)"isblank must be true for space",
+		isblank(' ') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isblank_tab",
+		(STRPTR)"isblank('\\t')",
+		(STRPTR)"isblank must be true for horizontal tab",
+		isblank('\t') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isblank_newline_false",
+		(STRPTR)"!isblank('\\n')",
+		(STRPTR)"isblank must be false for newline (unlike isspace)",
+		isblank('\n') == 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isblank_letter_false",
+		(STRPTR)"!isblank('a')",
+		(STRPTR)"isblank must be false for letters",
+		isblank('a') == 0);
 
 	c = 'a';
 	r = toupper(c);
