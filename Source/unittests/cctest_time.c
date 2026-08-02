@@ -140,6 +140,18 @@ ct_suite_time(void)
 		(STRPTR)"Combined strftime format must produce a non-empty timestamp",
 		n >= 19UL && buf[0] != '\0');
 
+	n = strftime(buf, (ULONG)sizeof(buf), (STRPTR)"%F", tm);
+	ct_check_true((STRPTR)"time", (STRPTR)"strftime_iso_F",
+		(STRPTR)"strftime(buf,80,\"%%F\",tm)",
+		(STRPTR)"strftime %%F must produce ISO 8601 YYYY-MM-DD (10 chars)",
+		n == 10UL && buf[4] == '-' && buf[7] == '-');
+
+	n = strftime(buf, (ULONG)sizeof(buf), (STRPTR)"%T", tm);
+	ct_check_true((STRPTR)"time", (STRPTR)"strftime_iso_T",
+		(STRPTR)"strftime(buf,80,\"%%T\",tm)",
+		(STRPTR)"strftime %%T must produce HH:MM:SS (8 chars)",
+		n == 8UL && buf[2] == ':' && buf[5] == ':');
+
 	{
 		char tbuf[40];
 		STRPTR end;

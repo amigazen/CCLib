@@ -343,11 +343,21 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 	LONG year;
 	LONG hour12;
 	char ch;
+	cc_task_UserData *ud;
+	ULONG loc_len;
 	cc_check_break();
 
 	t = (cc_tm *)tm;
 	if (s == NULL || format == NULL || t == NULL || maxsize == 0UL)
 		return 0UL;
+
+	/*
+	 * Non-"C" LC_TIME: locale.library/FormatDate (localized names and
+	 * preferred %c/%x/%X templates).  Fall back to Pure C on failure.
+	 */
+	ud = cc_get_ud();
+	if (cc_strftime_locale(ud, s, maxsize, format, tm, &loc_len))
+		return loc_len;
 
 	pos = 0UL;
 	fmt = format;
@@ -385,6 +395,7 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 				return 0UL;
 			break;
 		case 'b':
+		case 'h':
 			if (!sf_puts(s, &pos, maxsize, cc_mon_abbr[mon]))
 				return 0UL;
 			break;
@@ -420,7 +431,49 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 			if (!sf_putnum(s, &pos, maxsize, year, 4L))
 				return 0UL;
 			break;
+		case 'C':
+			if (!sf_putnum(s, &pos, maxsize, year / 100L, 2L))
+				return 0UL;
+			break;
 		case 'd':
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_mday, 2L))
+				return 0UL;
+			break;
+		case 'D':
+			/* %m/%d/%y */
+			if (!sf_putnum(s, &pos, maxsize, (LONG)mon + 1L, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, '/'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_mday, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, '/'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, year % 100L, 2L))
+				return 0UL;
+			break;
+		case 'e':
+			/* day with leading space ( 1-31) */
+			if (t->tm_mday < 10)
+			{
+				if (!sf_putc(s, &pos, maxsize, ' '))
+					return 0UL;
+				if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_mday, 1L))
+					return 0UL;
+			}
+			else if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_mday, 2L))
+				return 0UL;
+			break;
+		case 'F':
+			/* ISO 8601 %Y-%m-%d */
+			if (!sf_putnum(s, &pos, maxsize, year, 4L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, '-'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)mon + 1L, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, '-'))
+				return 0UL;
 			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_mday, 2L))
 				return 0UL;
 			break;
@@ -447,11 +500,61 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_min, 2L))
 				return 0UL;
 			break;
+		case 'n':
+			if (!sf_putc(s, &pos, maxsize, '\n'))
+				return 0UL;
+			break;
 		case 'p':
 			if (!sf_puts(s, &pos, maxsize, (t->tm_hour >= 12) ? "PM" : "AM"))
 				return 0UL;
 			break;
+		case 'r':
+			/* %I:%M:%S %p */
+			hour12 = (LONG)t->tm_hour % 12L;
+			if (hour12 == 0L)
+				hour12 = 12L;
+			if (!sf_putnum(s, &pos, maxsize, hour12, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ':'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_min, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ':'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_sec, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ' '))
+				return 0UL;
+			if (!sf_puts(s, &pos, maxsize, (t->tm_hour >= 12) ? "PM" : "AM"))
+				return 0UL;
+			break;
+		case 'R':
+			/* %H:%M */
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_hour, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ':'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_min, 2L))
+				return 0UL;
+			break;
 		case 'S':
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_sec, 2L))
+				return 0UL;
+			break;
+		case 't':
+			if (!sf_putc(s, &pos, maxsize, '\t'))
+				return 0UL;
+			break;
+		case 'T':
+			/* %H:%M:%S */
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_hour, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ':'))
+				return 0UL;
+			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_min, 2L))
+				return 0UL;
+			if (!sf_putc(s, &pos, maxsize, ':'))
+				return 0UL;
 			if (!sf_putnum(s, &pos, maxsize, (LONG)t->tm_sec, 2L))
 				return 0UL;
 			break;

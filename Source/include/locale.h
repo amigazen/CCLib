@@ -5,6 +5,7 @@
  * locale.h — POSIX locale surface for CClib.
  *
  * Wave 1: setlocale / localeconv / strcoll / strxfrm are LVOs.
+ * Wave 2–3: non-"C" LC_TIME strftime uses locale.library/FormatDate.
  * Default session locale is "C" (no OpenLocale).
  */
 

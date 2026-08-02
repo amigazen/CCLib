@@ -1,5 +1,5 @@
 /*
- * cctest_locale.c - setlocale / localeconv / strcoll / strxfrm ("C")
+ * cctest_locale.c - setlocale / localeconv / strcoll / strxfrm / FormatDate
  */
 
 #include <exec/types.h>
@@ -8,7 +8,8 @@
 #include "cctest_util.h"
 
 /* Category constants match <locale.h>; avoid including it beside pragmas. */
-#define CT_LC_ALL 0
+#define CT_LC_ALL  0
+#define CT_LC_TIME 5
 
 struct ct_lconv {
 	char *decimal_point;
@@ -36,11 +37,14 @@ ct_suite_locale(void)
 {
 	STRPTR name;
 	APTR lc;
-	char buf[32];
+	char buf[64];
 	ULONG n;
 	LONG c;
+	LONG tloc;
+	struct tm *tm;
 
-	ct_suite_begin((STRPTR)"locale", (STRPTR)"setlocale localeconv strcoll strxfrm");
+	ct_suite_begin((STRPTR)"locale",
+		(STRPTR)"setlocale localeconv strcoll strxfrm FormatDate");
 
 	name = setlocale(CT_LC_ALL, (STRPTR)NULL);
 	ct_check_string((STRPTR)"locale",
@@ -90,4 +94,43 @@ ct_suite_locale(void)
 		(STRPTR)"\"C\" strxfrm must copy the source",
 		(STRPTR)"hi",
 		buf);
+
+	/*
+	 * Optional system locale: setlocale("", …) opens the prefs locale.
+	 * Soft-skip if locale.library / OpenLocale unavailable.
+	 */
+	name = setlocale(CT_LC_TIME, (STRPTR)"");
+	if (name != (STRPTR)NULL
+	    && !(name[0] == 'C' && name[1] == '\0'))
+	{
+		tloc = time((APTR)NULL);
+		tm = localtime((APTR)&tloc);
+		ct_check_ptr_nonnull((STRPTR)"locale", (STRPTR)"localtime_for_fmt",
+			(STRPTR)"localtime(&t)",
+			(STRPTR)"Need a tm for FormatDate strftime check",
+			(APTR)tm);
+		if (tm != (struct tm *)NULL)
+		{
+			n = strftime(buf, (ULONG)sizeof(buf), (STRPTR)"%A", tm);
+			ct_check_true((STRPTR)"locale", (STRPTR)"strftime_locale_A",
+				(STRPTR)"strftime(\"%%A\") with system locale",
+				(STRPTR)"FormatDate path must write a non-empty weekday name",
+				n > 0UL && buf[0] != '\0');
+
+			n = strftime(buf, (ULONG)sizeof(buf), (STRPTR)"%c", tm);
+			ct_check_true((STRPTR)"locale", (STRPTR)"strftime_locale_c",
+				(STRPTR)"strftime(\"%%c\") with system locale",
+				(STRPTR)"%%c should use loc_DateTimeFormat via FormatDate",
+				n > 0UL && buf[0] != '\0');
+		}
+		(void)setlocale(CT_LC_ALL, (STRPTR)"C");
+	}
+	else
+	{
+		ct_check_true((STRPTR)"locale", (STRPTR)"strftime_locale_skip",
+			(STRPTR)"setlocale(LC_TIME, \"\")",
+			(STRPTR)"No non-C system locale — skip FormatDate checks",
+			1);
+		(void)setlocale(CT_LC_ALL, (STRPTR)"C");
+	}
 }

@@ -324,4 +324,12 @@ LONG cc_str_casecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
 LONG cc_str_ncasecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2, LONG n);
 LONG cc_strcoll(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
 
+/*
+ * Locale-aware strftime via locale.library/FormatDate when LC_TIME is
+ * active.  Returns 1 if the locale path was used (*out_len is the result
+ * length, or 0 on truncation).  Returns 0 to fall back to Pure C.
+ */
+LONG cc_strftime_locale(cc_task_UserData *ud, STRPTR s, ULONG maxsize,
+	STRPTR format, APTR tm, ULONG *out_len);
+
 #endif /* CCLIB_PRIVATE_CC_INTERNAL_H */

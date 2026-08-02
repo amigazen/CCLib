@@ -1,12 +1,16 @@
 /*
- * cc_locale.c - POSIX locale session (Wave 0 helpers + Wave 1 LVOs)
+ * cc_locale.c - POSIX locale session (Wave 0–1 LVOs + Wave 2–3 FormatDate)
  *
  * Default is "C" (locale NULL).  setlocale soft-opens locale.library on the
  * first non-"C" request; failure keeps "C" and returns NULL.
+ * Non-"C" LC_TIME strftime uses locale.library/FormatDate.
  */
 
 #include <exec/types.h>
 #include <exec/libraries.h>
+#include <dos/dos.h>
+#include <utility/date.h>
+#include <utility/hooks.h>
 #include <libraries/locale.h>
 
 #include <proto/exec.h>
@@ -505,4 +509,163 @@ ULONG __ASM__ __SAVE_DS__ strxfrm(
 	}
 	dest[i] = '\0';
 	return len;
+}
+
+/* ---- Wave 2–3: FormatDate-backed strftime --------------------------- */
+
+typedef struct
+{
+	STRPTR buf;
+	ULONG maxsize;
+	ULONG pos;
+	LONG overflow;
+} cc_sf_hook_data;
+
+/*
+ * FormatDate putCharFunc: A1 holds the character value (not a pointer),
+ * including a final NUL.  Keep collecting until NUL even after overflow
+ * so the device/library finishes the request cleanly.
+ */
+static ULONG __ASM__ __SAVE_DS__
+cc_sf_putchar(
+	__REG__(a0, struct Hook *hook),
+	__REG__(a2, APTR object),
+	__REG__(a1, ULONG ch))
+{
+	cc_sf_hook_data *ctx;
+
+	(void)object;
+	ctx = (cc_sf_hook_data *)hook->h_Data;
+	if (ctx == (cc_sf_hook_data *)NULL)
+		return 0UL;
+
+	if (ch == 0UL)
+	{
+		if (!ctx->overflow && ctx->pos < ctx->maxsize)
+			ctx->buf[ctx->pos] = '\0';
+		return 0UL;
+	}
+
+	if (ctx->overflow)
+		return 0UL;
+
+	/* Reserve room for the terminating NUL. */
+	if (ctx->pos + 1UL >= ctx->maxsize)
+	{
+		ctx->overflow = 1L;
+		return 0UL;
+	}
+
+	ctx->buf[ctx->pos] = (char)ch;
+	ctx->pos++;
+	return 0UL;
+}
+
+static LONG
+cc_tm_to_datestamp(cc_tm *t, struct DateStamp *ds)
+{
+	struct ClockData cd;
+	ULONG secs;
+	LONG year;
+	LONG mon;
+
+	if (t == (cc_tm *)NULL || ds == (struct DateStamp *)NULL)
+		return 0L;
+
+	year = (LONG)t->tm_year + 1900L;
+	mon = (LONG)t->tm_mon;
+	if (mon < 0L || mon > 11L || t->tm_mday < 1)
+		return 0L;
+
+	cd.sec = (UWORD)t->tm_sec;
+	cd.min = (UWORD)t->tm_min;
+	cd.hour = (UWORD)t->tm_hour;
+	cd.mday = (UWORD)t->tm_mday;
+	cd.month = (UWORD)(mon + 1L);
+	cd.year = (UWORD)year;
+	cd.wday = 0;
+
+	if (UtilityBase == (struct Library *)NULL)
+		return 0L;
+
+	secs = Date2Amiga(&cd);
+	ds->ds_Days = (LONG)(secs / 86400UL);
+	ds->ds_Minute = (LONG)((secs % 86400UL) / 60UL);
+	ds->ds_Tick = (LONG)((secs % 60UL) * 50UL);
+	return 1L;
+}
+
+LONG
+cc_strftime_locale(cc_task_UserData *ud, STRPTR s, ULONG maxsize,
+	STRPTR format, APTR tm, ULONG *out_len)
+{
+	struct Locale *loc;
+	struct DateStamp ds;
+	struct Hook hook;
+	cc_sf_hook_data ctx;
+	STRPTR tmpl;
+	cc_tm *t;
+
+	if (out_len != (ULONG *)NULL)
+		*out_len = 0UL;
+
+	if (ud == (cc_task_UserData *)NULL
+	    || (ud->lc_mask & CC_LC_TIME) == 0UL
+	    || ud->locale == (APTR)NULL
+	    || LocaleBase == (struct LocaleBase *)NULL
+	    || s == (STRPTR)NULL
+	    || format == (STRPTR)NULL
+	    || tm == (APTR)NULL
+	    || maxsize == 0UL)
+		return 0L;
+
+	loc = (struct Locale *)ud->locale;
+	t = (cc_tm *)tm;
+	if (!cc_tm_to_datestamp(t, &ds))
+		return 0L;
+
+	/*
+	 * Bare %c / %x / %X → locale preferred templates (POSIX "appropriate
+	 * date and time representation").  Other formats go straight to
+	 * FormatDate so %a/%A/%b/%B/%p pick up localized names.
+	 */
+	tmpl = format;
+	if (format[0] == '%' && format[1] != '\0' && format[2] == '\0')
+	{
+		if (format[1] == 'c'
+		    && loc->loc_DateTimeFormat != (STRPTR)NULL)
+			tmpl = loc->loc_DateTimeFormat;
+		else if (format[1] == 'x'
+			 && loc->loc_DateFormat != (STRPTR)NULL)
+			tmpl = loc->loc_DateFormat;
+		else if (format[1] == 'X'
+			 && loc->loc_TimeFormat != (STRPTR)NULL)
+			tmpl = loc->loc_TimeFormat;
+	}
+
+	ctx.buf = s;
+	ctx.maxsize = maxsize;
+	ctx.pos = 0UL;
+	ctx.overflow = 0L;
+
+	hook.h_Entry = (HOOKFUNC)cc_sf_putchar;
+	hook.h_SubEntry = (HOOKFUNC)NULL;
+	hook.h_Data = (APTR)&ctx;
+
+	FormatDate(loc, tmpl, &ds, &hook);
+
+	/*
+	 * We owned the FormatDate attempt.  Overflow → length 0 (strftime
+	 * returns 0); do not fall back to Pure C (would hide truncation).
+	 */
+	if (ctx.overflow || ctx.pos >= maxsize)
+	{
+		if (out_len != (ULONG *)NULL)
+			*out_len = 0UL;
+		return 1L;
+	}
+
+	if (out_len != (ULONG *)NULL)
+		*out_len = ctx.pos;
+	return 1L;
 }
