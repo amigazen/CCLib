@@ -8,8 +8,6 @@
 #include <errno.h>
 #include "cctest_util.h"
 
-extern LONG errno;
-
 #define CT_O_RDWR   2
 #define CT_O_CREAT  (1 << 8)
 #define CT_O_TRUNC  (1 << 9)

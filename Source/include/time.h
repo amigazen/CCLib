@@ -2,8 +2,7 @@
 #define TIME_H 1
 
 /*
- * time — calendar / clock routines for CClib.
- * struct tm, time_t, and clock_t come from <libraries/cclib.h>.
+ * time — calendar / clock for CClib (types in libraries/cclib.h; LVOs via proto).
  */
 
 #ifndef ANSIC
@@ -21,40 +20,10 @@
 #define CLK_TCK 1
 #define CLOCK_TCK CLK_TCK
 
-#ifdef ANSIC
-
-clock_t clock(void);
-time_t time(time_t *);
-long difftime(time_t,time_t);
-time_t mktime(struct tm *);
-char *asctime(struct tm *);
-char *ctime(time_t *);
-struct tm *gmtime(time_t *);
-struct tm *localtime(time_t *);
-size_t strftime(char *,size_t,char *,struct tm *);
-char *strptime(char *, char *, struct tm *);
-
-struct timespec {
-	long tv_sec;
-	long tv_nsec;
-};
-
-long nanosleep(struct timespec *req, struct timespec *rem);
-
-#else
-
-clock_t clock();
-time_t time();
-long difftime();
-time_t mktime();
-char *asctime();
-char *ctime();
-struct tm *gmtime();
-struct tm *localtime();
-size_t strftime();
-char *strptime();
-long nanosleep();
-
+#ifndef CCLIB_NO_PROTO
+#ifndef PROTO_CCLIB_H
+#include <proto/cclib.h>
+#endif
 #endif
 
-#endif
+#endif /* TIME_H */

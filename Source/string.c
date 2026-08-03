@@ -901,7 +901,7 @@ ULONG __ASM__ __SAVE_DS__ strlcat(
 STRPTR __ASM__ __SAVE_DS__ strtok_r(
 	__REG__(a0, STRPTR s),
 	__REG__(a1, STRPTR delim),
-	__REG__(a2, APTR saveptr))
+	__REG__(a2, char ** saveptr))
 {
 	char **sp;
 	UBYTE *p;
@@ -910,7 +910,7 @@ STRPTR __ASM__ __SAVE_DS__ strtok_r(
 	UBYTE found;
 	cc_check_break();
 
-	sp = (char **)saveptr;
+	sp = saveptr;
 	if (sp == (char **)NULL)
 		return (STRPTR)NULL;
 

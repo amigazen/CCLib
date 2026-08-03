@@ -24,7 +24,6 @@ ct_suite_stdio(void)
 	LONG iv;
 	LONG wv;
 	LONG rv;
-	APTR fargs[4];
 	STRPTR t;
 	LONG fd;
 
@@ -270,9 +269,7 @@ ct_suite_stdio(void)
 
 		iv = 0;
 		rv = 0;
-		fargs[0] = (APTR)&iv;
-		fargs[1] = (APTR)&rv;
-		n = fscanf(ofp, (STRPTR)"n=%ld k=%ld", (APTR)fargs);
+		n = fscanf(ofp, (STRPTR)"n=%ld k=%ld", &iv, &rv);
 		ct_check_long((STRPTR)"stdio", (STRPTR)"fscanf_count",
 		(STRPTR)"fscanf",
 			(STRPTR)"fscanf must assign two fields from \"n=42 k=7\"",

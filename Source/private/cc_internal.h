@@ -200,7 +200,7 @@ typedef struct
 	cc_FILE **stdin_p;
 	cc_FILE **stderr_p;
 	APTR scnfp;
-	LONG *errno_p;
+	int *errno_p;
 	cc_ABORT_FUNC abort_func;
 	APTR wbmsg;
 	short _argc;
@@ -237,8 +237,8 @@ typedef struct
 /* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */
 typedef struct
 {
-	LONG quot;
-	LONG rem;
+	int quot;
+	int rem;
 } cc_div_t;
 
 /* Opaque DIR payload (also exposed as DIR in <dirent.h>). */

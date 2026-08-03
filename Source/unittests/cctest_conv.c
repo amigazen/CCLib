@@ -385,8 +385,8 @@ ct_suite_conv(void)
 	/* --- strtol / strtoul / atoll / labs / div / rand --- */
 	{
 		char *endp;
-		struct { LONG quot; LONG rem; } dr;
-		struct { LONG quot; LONG rem; } lr;
+		div_t dr;
+		ldiv_t lr;
 		ULONG u;
 		LONG r1;
 		LONG r2;
@@ -427,7 +427,7 @@ ct_suite_conv(void)
 			(STRPTR)"labs must return the absolute value of a negative long",
 			5, labs(-5L));
 
-		div((APTR)&dr, 10L, 3L);
+		div(&dr, 10, 3);
 		ct_check_long((STRPTR)"conv", (STRPTR)"div_quot",
 			(STRPTR)"div(10,3).quot",
 			(STRPTR)"div must store toward-zero quotient",
@@ -437,7 +437,7 @@ ct_suite_conv(void)
 			(STRPTR)"div must store the corresponding remainder",
 			1, dr.rem);
 
-		ldiv((APTR)&lr, -10L, 3L);
+		ldiv(&lr, -10L, 3L);
 		ct_check_long((STRPTR)"conv", (STRPTR)"ldiv_quot",
 			(STRPTR)"ldiv(-10,3).quot",
 			(STRPTR)"ldiv toward-zero quotient for negative dividend",

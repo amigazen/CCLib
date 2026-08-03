@@ -23,7 +23,7 @@ long	wbexec(char *name, long stk, long pri);
 Child *wbAexec(char *name, long stk, long pri);
 long wait_child(Child *wt);
 long wait_children(void);
-long signal_child(Child *child,unsigned long sig);
+long signal_child(Child *child, unsigned sig);
 long kill(Child *child);
 long kill_children(void);
 long cliexec(char *cmd);

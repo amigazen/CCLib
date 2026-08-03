@@ -2,8 +2,7 @@
 #define STAT_H 1
 
 /*
- * stat — file status for CClib.
- * struct stat / time_t come from <libraries/cclib.h>.
+ * stat — file status (struct stat in libraries/cclib.h; LVOs via proto).
  */
 
 #ifndef ANSIC
@@ -18,32 +17,16 @@
 #include <stddef.h>
 #endif
 
-/* st_mtime member is in seconds since Jan 1, 1978 */
-
-/* st_attr member... */
-
-/* file is NOT deletable */
 #define ST_DELETE (1L<<0)
-/* file is NOT executable */
 #define ST_EXECUTE (1L<<1)
-/* file is NOT writeable */
 #define ST_WRITE (1L<<2)
-/* file is NOT readable */
 #define ST_READ (1L<<3)
-/* file has been archived */
 #define ST_ARCHIVE (1L<<4)
 
-/* bits for st_mode... */
-
- /* all file type bits */
 #define S_IFMT	0x16
- /* directory */
 #define S_IFDIR 0x04
- /* character special */
 #define S_IFCHR 0x02
- /* block special */
 #define S_IFBLK 0x06
- /* regular */
 #define S_IFREG 0x10
 
 /*
@@ -51,12 +34,10 @@
  * for compatibility with older cclib.library versions.
  */
 
-#ifdef ANSIC
-long stat(char *,struct stat *);
-long stat_(char *,struct stat *);
-#else
-long stat();
-long stat_();
+#ifndef CCLIB_NO_PROTO
+#ifndef PROTO_CCLIB_H
+#include <proto/cclib.h>
+#endif
 #endif
 
-#endif
+#endif /* STAT_H */

@@ -6,6 +6,7 @@
  */
 
 #include <exec/types.h>
+#include <sys/types.h>
 
 #include <proto/exec.h>
 
@@ -559,7 +560,7 @@ static void cc_parse_ulong(
 
 LONG __ASM__ __SAVE_DS__ strtol(
 	__REG__(a0, STRPTR s),
-	__REG__(a1, APTR endp),
+	__REG__(a1, STRPTR * endp),
 	__REG__(d0, LONG base))
 {
 	ULONG acc;
@@ -568,14 +569,12 @@ LONG __ASM__ __SAVE_DS__ strtol(
 	LONG any;
 	LONG neg;
 	LONG v;
-	STRPTR *ep;
 	cc_check_break();
 
-	ep = (STRPTR *)endp;
 	cc_parse_ulong(s, base, &acc, &end, &ov, &any, &neg);
 
-	if (ep != (STRPTR *)NULL)
-		*ep = any ? end : s;
+	if (endp != (STRPTR *)NULL)
+		*endp = any ? end : s;
 
 	if (!any)
 		return 0L;
@@ -605,7 +604,7 @@ LONG __ASM__ __SAVE_DS__ strtol(
 
 ULONG __ASM__ __SAVE_DS__ strtoul(
 	__REG__(a0, STRPTR s),
-	__REG__(a1, APTR endp),
+	__REG__(a1, STRPTR * endp),
 	__REG__(d0, LONG base))
 {
 	ULONG acc;
@@ -613,14 +612,12 @@ ULONG __ASM__ __SAVE_DS__ strtoul(
 	LONG ov;
 	LONG any;
 	LONG neg;
-	STRPTR *ep;
 	cc_check_break();
 
-	ep = (STRPTR *)endp;
 	cc_parse_ulong(s, base, &acc, &end, &ov, &any, &neg);
 
-	if (ep != (STRPTR *)NULL)
-		*ep = any ? end : s;
+	if (endp != (STRPTR *)NULL)
+		*endp = any ? end : s;
 
 	if (!any)
 		return 0UL;
@@ -638,20 +635,18 @@ ULONG __ASM__ __SAVE_DS__ strtoul(
 
 DOUBLE __ASM__ __SAVE_DS__ strtod(
 	__REG__(a0, STRPTR s),
-	__REG__(a1, APTR endp))
+	__REG__(a1, STRPTR * endp))
 {
 	STRPTR p;
 	STRPTR start;
 	LONG any;
 	DOUBLE v;
 	APTR base;
-	STRPTR *ep;
 	cc_check_break();
 
-	ep = (STRPTR *)endp;
 	if (s == (STRPTR)NULL) {
-		if (ep != (STRPTR *)NULL)
-			*ep = s;
+		if (endp != (STRPTR *)NULL)
+			*endp = s;
 		return cc_dp_zero();
 	}
 
@@ -685,8 +680,8 @@ DOUBLE __ASM__ __SAVE_DS__ strtod(
 		}
 	}
 
-	if (ep != (STRPTR *)NULL)
-		*ep = any ? p : s;
+	if (endp != (STRPTR *)NULL)
+		*endp = any ? p : s;
 
 	if (!any)
 		return cc_dp_zero();
@@ -738,23 +733,18 @@ LONG __ASM__ __SAVE_DS__ rand(void)
 	return (LONG)((s >> 16) & 0x7FFFUL);
 }
 
-void __ASM__ __SAVE_DS__ div(
-	__REG__(a0, APTR result),
-	__REG__(d0, LONG numer),
-	__REG__(d1, LONG denom))
+/*
+ * div/ldiv LVO: result via A0 (SAS/C libcall cannot return 8-byte structs).
+ */
+static void cc_div_body(LONG numer, LONG denom, LONG *q_out, LONG *rem_out)
 {
-	cc_div_t *r;
 	LONG q;
 	LONG rem;
-	cc_check_break();
 
-	r = (cc_div_t *)result;
-	if (r == (cc_div_t *)NULL)
-		return;
 	if (denom == 0L) {
 		cc_set_errno(CC_EDOM);
-		r->quot = 0L;
-		r->rem = 0L;
+		*q_out = 0L;
+		*rem_out = 0L;
 		return;
 	}
 
@@ -764,8 +754,26 @@ void __ASM__ __SAVE_DS__ div(
 	 */
 	q = numer / denom;
 	rem = numer % denom;
-	r->quot = q;
-	r->rem = rem;
+	*q_out = q;
+	*rem_out = rem;
+}
+
+void __ASM__ __SAVE_DS__ div(
+	__REG__(a0, APTR result),
+	__REG__(d0, LONG numer),
+	__REG__(d1, LONG denom))
+{
+	div_t *r;
+	LONG q;
+	LONG rem;
+	cc_check_break();
+
+	r = (div_t *)result;
+	if (r == (div_t *)NULL)
+		return;
+	cc_div_body(numer, denom, &q, &rem);
+	r->quot = (int)q;
+	r->rem = (int)rem;
 }
 
 void __ASM__ __SAVE_DS__ ldiv(
@@ -773,10 +781,17 @@ void __ASM__ __SAVE_DS__ ldiv(
 	__REG__(d0, LONG numer),
 	__REG__(d1, LONG denom))
 {
-	/* On Amiga, int and long are both 32-bit — same as div. */
+	ldiv_t *r;
+	LONG q;
+	LONG rem;
 	cc_check_break();
 
-	div(result, numer, denom);
+	r = (ldiv_t *)result;
+	if (r == (ldiv_t *)NULL)
+		return;
+	cc_div_body(numer, denom, &q, &rem);
+	r->quot = q;
+	r->rem = rem;
 }
 
 LONG __ASM__ __SAVE_DS__ labs(

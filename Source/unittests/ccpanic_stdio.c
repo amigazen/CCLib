@@ -8,8 +8,6 @@
 #include <errno.h>
 #include "cctest_util.h"
 
-extern LONG errno;
-
 void
 ct_suite_panic_stdio(void)
 {

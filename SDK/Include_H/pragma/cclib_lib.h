@@ -15,9 +15,16 @@
 /*"cclib.library" */
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention */
+/* historic V3.0 jump table). Register-args LVO calling convention. */
 /* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
-/* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
+
+/* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
+/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
+/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
+/* Amiga-specific APIs (BPTR, …). */
+
+/* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
@@ -93,12 +100,16 @@
 
 /* Formatted I/O (-312 .. -342) */
 
+/* printf/scanf and fprintf/fscanf/sprintf/sscanf: C varargs via tagcall */
+/* (last address reg = &first stack arg). Separate v* LVOs take va_list */
+/* at historic biases (-738 .. -750 / V4 vsnprintf block). */
+
 #pragma amicall(CCLibBase, 0x138, scanf(a0,a1))
-#pragma tagcall(CCLibBase, 0x13E, printf(a0,a1))
+#pragma amicall(CCLibBase, 0x13E, printf(a0,a1))
 #pragma amicall(CCLibBase, 0x144, fscanf(a0,a1,a2))
-#pragma tagcall(CCLibBase, 0x14A, fprintf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x14A, fprintf(a0,a1,a2))
 #pragma amicall(CCLibBase, 0x150, sscanf(a0,a1,a2))
-#pragma tagcall(CCLibBase, 0x156, sprintf(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x156, sprintf(a0,a1,a2))
 
 /* Heap / allocation (-348 .. -420) */
 
@@ -304,6 +315,8 @@
 #pragma amicall(CCLibBase, 0x4B0, strcoll(a0,a1))
 #pragma amicall(CCLibBase, 0x4B6, strxfrm(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x4BC, strptime(a0,a1,a2))
+
+/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
 #pragma amicall(CCLibBase, 0x4C2, isalnum(d0))
 #pragma amicall(CCLibBase, 0x4C8, isalpha(d0))
 #pragma amicall(CCLibBase, 0x4CE, iscntrl(d0))

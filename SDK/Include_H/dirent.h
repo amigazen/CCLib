@@ -2,32 +2,21 @@
 #define DIRENT_H 1
 
 /*
- * dirent — POSIX directory reading for CClib (opendir/readdir/closedir).
- * Historic scdir/scdir_clean remain available for pattern scans.
+ * dirent — opendir/readdir/closedir (DIR / struct dirent in libraries/cclib.h).
  */
 
 #ifndef ANSIC
 #define ANSIC 1
 #endif
 
-#ifndef NULL
-#define NULL ((void *)0)
+#ifndef LIBRARIES_CCLIB_H
+#include <libraries/cclib.h>
 #endif
 
-typedef struct cc_DIR DIR;
-
-struct dirent {
-	char d_name[108];
-};
-
-#ifdef ANSIC
-DIR *opendir(char *name);
-struct dirent *readdir(DIR *dir);
-long closedir(DIR *dir);
-#else
-DIR *opendir();
-struct dirent *readdir();
-long closedir();
+#ifndef CCLIB_NO_PROTO
+#ifndef PROTO_CCLIB_H
+#include <proto/cclib.h>
+#endif
 #endif
 
 #endif /* DIRENT_H */

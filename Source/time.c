@@ -14,6 +14,7 @@
 #include <proto/utility.h>
 
 #include "private/cc_internal.h"
+#include "private/cc_ieee.h"
 #include "cclib_funcs.h"
 
 static const char *cc_wday_abbr[] = {
@@ -249,12 +250,20 @@ LONG __ASM__ __SAVE_DS__ mktime(
 	}
 }
 
-LONG __ASM__ __SAVE_DS__ difftime(
+DOUBLE __ASM__ __SAVE_DS__ difftime(
 	__REG__(d0, LONG time1),
 	__REG__(d1, LONG time0))
 {
+	LONG delta;
+	APTR base;
 	cc_check_break();
-	return time1 - time0;
+
+	delta = time1 - time0;
+	base = cc_get_mathbase();
+	if (base != (APTR)NULL)
+		return cc_ieeedp_flt(base, delta);
+	/* No mathbase (non-CRT): return +0.0 — callers should SetupSTDIO. */
+	return cc_ieeedp_zero();
 }
 
 /* Append one character to strftime output if room remains */

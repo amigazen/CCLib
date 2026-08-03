@@ -149,7 +149,7 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud->lastfree.size = 0;
 
 	ud->blocksize = (LONG *)NULL;
-	ud->errno_p = (LONG *)NULL;
+	ud->errno_p = (int *)NULL;
 	ud->abort_func = (cc_ABORT_FUNC)NULL;
 	ud->wbmsg = (APTR)NULL;
 	ud->_argc = 0;
@@ -618,7 +618,7 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	ud->stdin_p = (cc_FILE **)stdin_p;
 	ud->stdout_p = (cc_FILE **)stdout_p;
 	ud->stderr_p = (cc_FILE **)stderr_p;
-	ud->errno_p = (LONG *)errno_p;
+	ud->errno_p = (int *)errno_p;
 	ud->blocksize = (LONG *)blocksize_p;
 	ud->mathbase = mathbase;
 	ud->abort_func = (cc_ABORT_FUNC)exitfunc;
@@ -627,7 +627,7 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	if (type_p != (APTR)NULL)
 		*((char **)type_p) = (char *)cc_ctype_tab;
 
-	if (ud->errno_p != (LONG *)NULL)
+	if (ud->errno_p != (int *)NULL)
 		*ud->errno_p = 0;
 
 	have_io = 1;

@@ -14,7 +14,6 @@ ct_suite_fmt(void)
 	char sbuf[64];
 	char cbuf[8];
 	LONG av[8];
-	APTR args[8];
 	LONG n;
 	LONG v;
 	LONG v2;
@@ -274,7 +273,7 @@ ct_suite_fmt(void)
 		7, n);
 
 	av[0] = 7;
-	n = vsnprintf(buf, 8UL, (STRPTR)"v=%ld", (APTR)av);
+	n = vsnprintf(buf, 8UL, (STRPTR)"v=%ld", (va_list)av);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"vsnprintf_ok",
 		(STRPTR)"vsnprintf",
@@ -287,8 +286,7 @@ ct_suite_fmt(void)
 		3, n);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"123", (STRPTR)"%ld", (APTR)args);
+	n = sscanf((STRPTR)"123", (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_ld_count",
 		(STRPTR)"sscanf(\"123\",\"%%ld\")",
 		(STRPTR)"sscanf(\"123\",\"%%ld\") must assign 1 field",
@@ -299,24 +297,21 @@ ct_suite_fmt(void)
 		123, v);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"  456", (STRPTR)"%ld", (APTR)args);
+	n = sscanf((STRPTR)"  456", (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_ld_ws",
 		(STRPTR)"sscanf",
 		(STRPTR)"sscanf must skip leading whitespace before %%ld",
 		456, v);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"-77", (STRPTR)"%ld", (APTR)args);
+	n = sscanf((STRPTR)"-77", (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_ld_neg",
 		(STRPTR)"sscanf",
 		(STRPTR)"sscanf must parse a negative long",
 		-77, v);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"321", (STRPTR)"%d", (APTR)args);
+	n = sscanf((STRPTR)"321", (STRPTR)"%d", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_d_count",
 		(STRPTR)"sscanf with %%d",
 		(STRPTR)"sscanf with %%d must assign one field",
@@ -327,8 +322,7 @@ ct_suite_fmt(void)
 		321, v);
 
 	uv = 0;
-	args[0] = (APTR)&uv;
-	n = sscanf((STRPTR)"88", (STRPTR)"%u", (APTR)args);
+	n = sscanf((STRPTR)"88", (STRPTR)"%u", &uv);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_u_count",
 		(STRPTR)"sscanf with %%u",
 		(STRPTR)"sscanf with %%u must assign one field",
@@ -339,8 +333,7 @@ ct_suite_fmt(void)
 		(ULONG)88, uv);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"ff", (STRPTR)"%x", (APTR)args);
+	n = sscanf((STRPTR)"ff", (STRPTR)"%x", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_x_count",
 		(STRPTR)"sscanf with %%x",
 		(STRPTR)"sscanf with %%x must assign one field",
@@ -351,24 +344,21 @@ ct_suite_fmt(void)
 		255, v);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"AB", (STRPTR)"%X", (APTR)args);
+	n = sscanf((STRPTR)"AB", (STRPTR)"%X", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_X_value",
 		(STRPTR)"sscanf %%X",
 		(STRPTR)"sscanf %%X must parse AB as 171",
 		171, v);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"17", (STRPTR)"%o", (APTR)args);
+	n = sscanf((STRPTR)"17", (STRPTR)"%o", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_o_value",
 		(STRPTR)"sscanf %%o",
 		(STRPTR)"sscanf %%o must parse octal 17 as 15",
 		15, v);
 
 	sbuf[0] = '\0';
-	args[0] = (APTR)sbuf;
-	n = sscanf((STRPTR)"hello", (STRPTR)"%s", (APTR)args);
+	n = sscanf((STRPTR)"hello", (STRPTR)"%s", sbuf);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_s_count",
 		(STRPTR)"sscanf %%s",
 		(STRPTR)"sscanf %%s must assign one field",
@@ -381,8 +371,7 @@ ct_suite_fmt(void)
 		sbuf);
 
 	cbuf[0] = '\0';
-	args[0] = (APTR)cbuf;
-	n = sscanf((STRPTR)"Z", (STRPTR)"%c", (APTR)args);
+	n = sscanf((STRPTR)"Z", (STRPTR)"%c", cbuf);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_c_count",
 		(STRPTR)"sscanf %%c",
 		(STRPTR)"sscanf %%c must assign one field",
@@ -394,9 +383,7 @@ ct_suite_fmt(void)
 
 	sbuf[0] = '\0';
 	v = 0;
-	args[0] = (APTR)sbuf;
-	args[1] = (APTR)&v;
-	n = sscanf((STRPTR)"hi 9", (STRPTR)"%s %ld", (APTR)args);
+	n = sscanf((STRPTR)"hi 9", (STRPTR)"%s %ld", sbuf, &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_two_count",
 		(STRPTR)"sscanf of \"hi 9\" with %%s %%ld",
 		(STRPTR)"sscanf of \"hi 9\" with %%s %%ld must assign 2 fields",
@@ -415,10 +402,7 @@ ct_suite_fmt(void)
 	v = 0;
 	v2 = 0;
 	v3 = 0;
-	args[0] = (APTR)&v;
-	args[1] = (APTR)&v2;
-	args[2] = (APTR)&v3;
-	n = sscanf((STRPTR)"1,2,3", (STRPTR)"%ld,%ld,%ld", (APTR)args);
+	n = sscanf((STRPTR)"1,2,3", (STRPTR)"%ld,%ld,%ld", &v, &v2, &v3);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_three_count",
 		(STRPTR)"sscanf with three %%ld fields",
 		(STRPTR)"sscanf with three %%ld fields must assign 3",
@@ -437,16 +421,14 @@ ct_suite_fmt(void)
 		3, v3);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"abc", (STRPTR)"%ld", (APTR)args);
+	n = sscanf((STRPTR)"abc", (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_no_match",
 		(STRPTR)"sscanf %%ld on non-digits",
 		(STRPTR)"sscanf %%ld on non-digits must assign 0 fields",
 		0, n);
 
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf((STRPTR)"x=5", (STRPTR)"x=%ld", (APTR)args);
+	n = sscanf((STRPTR)"x=5", (STRPTR)"x=%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_literal_match",
 		(STRPTR)"sscanf",
 		(STRPTR)"sscanf must match literal text before the field",
@@ -497,8 +479,7 @@ ct_suite_fmt(void)
 
 	sprintf(buf, (STRPTR)"%ld", 98765);
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf(buf, (STRPTR)"%ld", (APTR)args);
+	n = sscanf(buf, (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"roundtrip_ld_count",
 		(STRPTR)"sscanf after sprintf %%ld",
 		(STRPTR)"sscanf after sprintf %%ld must assign 1 field",
@@ -510,8 +491,7 @@ ct_suite_fmt(void)
 
 	sprintf(buf, (STRPTR)"%d", -4321);
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf(buf, (STRPTR)"%d", (APTR)args);
+	n = sscanf(buf, (STRPTR)"%d", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"roundtrip_d_count",
 		(STRPTR)"sscanf after sprintf %%d",
 		(STRPTR)"sscanf after sprintf %%d must assign 1 field",
@@ -523,8 +503,7 @@ ct_suite_fmt(void)
 
 	sprintf(buf, (STRPTR)"%u", 60000);
 	uv = 0;
-	args[0] = (APTR)&uv;
-	n = sscanf(buf, (STRPTR)"%u", (APTR)args);
+	n = sscanf(buf, (STRPTR)"%u", &uv);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"roundtrip_u_count",
 		(STRPTR)"sscanf after sprintf %%u",
 		(STRPTR)"sscanf after sprintf %%u must assign 1 field",
@@ -536,8 +515,7 @@ ct_suite_fmt(void)
 
 	sprintf(buf, (STRPTR)"%x", 4095);
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf(buf, (STRPTR)"%x", (APTR)args);
+	n = sscanf(buf, (STRPTR)"%x", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"roundtrip_x_count",
 		(STRPTR)"sscanf after sprintf %%x",
 		(STRPTR)"sscanf after sprintf %%x must assign 1 field",
@@ -549,8 +527,7 @@ ct_suite_fmt(void)
 
 	sprintf(buf, (STRPTR)"val=%ld", 1234);
 	v = 0;
-	args[0] = (APTR)&v;
-	n = sscanf(buf, (STRPTR)"val=%ld", (APTR)args);
+	n = sscanf(buf, (STRPTR)"val=%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"roundtrip_literal_count",
 		(STRPTR)"Round-trip with literal prefix",
 		(STRPTR)"Round-trip with literal prefix must assign 1 field",
@@ -561,15 +538,19 @@ ct_suite_fmt(void)
 		1234, v);
 
 	/* --- vsscanf --- */
-	v = 0;
-	args[0] = (APTR)&v;
-	n = vsscanf((STRPTR)"77", (STRPTR)"%ld", (APTR)args);
-	ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_count",
-		(STRPTR)"vsscanf(\"77\",\"%%ld\",args)",
-		(STRPTR)"vsscanf must assign like sscanf via APTR args",
-		1, n);
-	ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_value",
-		(STRPTR)"vsscanf parsed value",
-		(STRPTR)"vsscanf must store the scanned integer",
-		77, v);
+	{
+		void *vargs[1];
+
+		v = 0;
+		vargs[0] = (void *)&v;
+		n = vsscanf((STRPTR)"77", (STRPTR)"%ld", (va_list)vargs);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_count",
+			(STRPTR)"vsscanf(\"77\",\"%%ld\",va)",
+			(STRPTR)"vsscanf must assign like sscanf via va_list",
+			1, n);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsscanf_value",
+			(STRPTR)"vsscanf parsed value",
+			(STRPTR)"vsscanf must store the scanned integer",
+			77, v);
+	}
 }

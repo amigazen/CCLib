@@ -16,7 +16,8 @@ ct_suite_time(void)
 {
 	LONG t1;
 	LONG t2;
-	LONG dt;
+	DOUBLE dt;
+	char dbuf[32];
 	LONG clk;
 	struct tm *tm;
 	STRPTR s;
@@ -80,10 +81,13 @@ ct_suite_time(void)
 		t2 > 0);
 
 	dt = difftime(t1 + 10, t1);
-	ct_check_long((STRPTR)"time", (STRPTR)"difftime_10",
+	sprintf(dbuf, (STRPTR)"%.0f", dt);
+	ct_check_string((STRPTR)"time",
+		(STRPTR)"difftime_10",
 		(STRPTR)"difftime(t1+10,t1)",
 		(STRPTR)"difftime(t+10,t) must be 10 seconds",
-		10, dt);
+		(STRPTR)"10",
+		dbuf);
 
 	tm = localtime((APTR)&t1);
 

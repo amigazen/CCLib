@@ -680,7 +680,7 @@ ULONG __ASM__ __SAVE_DS__ fread(
 	return nitems;
 }
 
-LONG __ASM__ __SAVE_DS__ perror(
+void __ASM__ __SAVE_DS__ perror(
 	__REG__(a0, STRPTR s))
 {
 	cc_task_UserData *ud;
@@ -691,7 +691,7 @@ LONG __ASM__ __SAVE_DS__ perror(
 
 	ud = cc_get_ud();
 	if (ud == NULL || ud->stderr_p == NULL || *ud->stderr_p == NULL)
-		return -1L;
+		return;
 
 	err = *ud->stderr_p;
 	e = cc_get_errno();
@@ -707,7 +707,6 @@ LONG __ASM__ __SAVE_DS__ perror(
 	else
 		fputs((STRPTR)"Unknown error", (APTR)err);
 	putc((LONG)'\n', (APTR)err);
-	return 0L;
 }
 
 LONG __ASM__ __SAVE_DS__ fseek(

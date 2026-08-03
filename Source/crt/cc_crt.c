@@ -49,7 +49,7 @@ void (*exit_fcn)(void) = NULL;
 FILE *stdin = NULL;
 FILE *stdout = NULL;
 FILE *stderr = NULL;
-LONG errno = 0;
+int errno = 0;
 char *type = NULL;
 
 /* Aztec C stack / trap globals (archive _main.c) */

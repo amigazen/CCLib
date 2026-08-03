@@ -1,10 +1,19 @@
-==id $VER: cclib_lib.sfd 4.0 (2.8.2026)
+==id $VER: cclib_lib.sfd 4.0 (3.8.2026)
 *"cclib.library"
 *
 * Canonical LVO interface for cclib.library (V4.0 reimplementation of the
-* historic V3.0 jump table). Register-args LVO calling convention
+* historic V3.0 jump table). Register-args LVO calling convention.
 * V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.
-* Opaque C objects (FILE, task_UserData, tm, …) are APTR.
+*
+* Prototypes use C/POSIX types as single tokens LibDescConverter accepts
+* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd:
+*   u_long = unsigned long;  unsigned = unsigned int.
+* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for
+* Amiga-specific APIs (BPTR, …).
+*
+* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*.
+* div/ldiv take div_t */ldiv_t * out-params (SAS/C libcall cannot return
+* 8-byte structs by value).
 *
 * V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
 * strcasecmp is canonical (strcmpa ==alias).
@@ -20,310 +29,332 @@
 ==libname cclib.library
 ==include <exec/types.h>
 ==include <dos/dos.h>
+==include <stddef.h>
+==include <sys/types.h>
+==include <stdarg.h>
+==include <libraries/cclib.h>
+==typedef FILE
+==typedef DIR
+==typedef fpos_t
+==typedef time_t
+==typedef clock_t
+==typedef size_t
+==typedef ssize_t
+==typedef mode_t
+==typedef off_t
+==typedef useconds_t
+==typedef u_long
+==typedef unsigned
+==typedef int
+==typedef long
+==typedef char
+==typedef va_list
+==typedef div_t
+==typedef ldiv_t
+==typedef task_UserData
 ==bias 30
 ==public
 *
 * Support / stdio setup (-30 .. -66)
 *
-LONG SetSTDIO() ()
-APTR GetSTDIO() ()
-VOID ClearSTDIO() ()
-VOID closeall() ()
-VOID SetAbortFunc(APTR abortfunc) (a0)
-VOID ClearAbortFunc() ()
-LONG SetupSTDIO(APTR stdin_p, APTR stdout_p, APTR stderr_p, APTR errno_p, APTR blocksize_p, APTR type_p, APTR mathbase, LONG alen, STRPTR aptr, APTR wbm, APTR exitfunc) (a0,a1,a2,a3,a4,a5,d0,d1,d2,d3,d4)
+long SetSTDIO() ()
+task_UserData * GetSTDIO() ()
+void ClearSTDIO() ()
+void closeall() ()
+void SetAbortFunc(void * abortfunc) (a0)
+void ClearAbortFunc() ()
+long SetupSTDIO(FILE ** stdin_p, FILE ** stdout_p, FILE ** stderr_p, int * errno_p, long * blocksize_p, char ** type_p, void * mathbase, long alen, char * aptr, void * wbm, void * exitfunc) (a0,a1,a2,a3,a4,a5,d0,d1,d2,d3,d4)
 *
 * Error strings (-72)
 *
-STRPTR strerror(LONG err) (d0)
+char * strerror(int err) (d0)
 *
 * Low-level I/O (-78 .. -138)
 *
-LONG open(STRPTR name, ULONG mode, ULONG perms) (a0,d0,d1)
-LONG close(LONG fd) (d0)
-LONG remove(STRPTR name) (a0)
+int open(const char * name, int flags, mode_t perms) (a0,d0,d1)
+int close(int fd) (d0)
+int remove(const char * name) (a0)
 ==alias
-LONG unlink(STRPTR name) (a0)
-LONG stat(STRPTR name, APTR buf) (a0,a1)
-LONG rename(STRPTR oldname, STRPTR newname) (a0,a1)
-LONG read(LONG fd, APTR buf, LONG len) (d0,a0,d1)
-LONG write(LONG fd, APTR buf, LONG len) (d0,a0,d1)
-LONG creat(STRPTR name, ULONG perms) (a0,d0)
-LONG lseek(LONG fd, LONG offset, ULONG whence) (d0,d1,d2)
-LONG isatty(LONG fd) (d0)
-LONG access(STRPTR name, LONG mode) (a0,d0)
+int unlink(const char * name) (a0)
+int stat(const char * name, struct stat * buf) (a0,a1)
+int rename(const char * oldname, const char * newname) (a0,a1)
+ssize_t read(int fd, void * buf, size_t len) (d0,a0,d1)
+ssize_t write(int fd, const void * buf, size_t len) (d0,a0,d1)
+int creat(const char * name, mode_t perms) (a0,d0)
+off_t lseek(int fd, off_t offset, int whence) (d0,d1,d2)
+int isatty(int fd) (d0)
+int access(const char * name, int mode) (a0,d0)
 *
 * Stream I/O (-144 .. -306)
 *
-APTR fopen(STRPTR name, STRPTR mode) (a0,a1)
-APTR freopen(STRPTR name, STRPTR mode, APTR stream) (a0,a1,a2)
-LONG fclose(APTR stream) (a0)
-APTR fdopen(LONG fd, STRPTR mode) (d0,a0)
-VOID getbuff(APTR stream) (a0)
-LONG setvbuf(APTR stream, STRPTR buf, LONG mode, ULONG size) (a0,a1,d0,d1)
-STRPTR mktemp(STRPTR template) (a0)
-STRPTR tmpnam(STRPTR s) (a0)
-APTR tmpfile() ()
-LONG putc(LONG c, APTR stream) (d0,a0)
-LONG aputc(LONG c, APTR stream) (d0,a0)
+FILE * fopen(const char * name, const char * mode) (a0,a1)
+FILE * freopen(const char * name, const char * mode, FILE * stream) (a0,a1,a2)
+int fclose(FILE * stream) (a0)
+FILE * fdopen(int fd, const char * mode) (d0,a0)
+void getbuff(FILE * stream) (a0)
+int setvbuf(FILE * stream, char * buf, int mode, size_t size) (a0,a1,d0,d1)
+char * mktemp(char * template) (a0)
+char * tmpnam(char * s) (a0)
+FILE * tmpfile() ()
+int putc(int c, FILE * stream) (d0,a0)
+int aputc(int c, FILE * stream) (d0,a0)
 ==alias
-LONG fputc(LONG c, APTR stream) (d0,a0)
-LONG getc(APTR stream) (a0)
-LONG agetc(APTR stream) (a0)
+int fputc(int c, FILE * stream) (d0,a0)
+int getc(FILE * stream) (a0)
+int agetc(FILE * stream) (a0)
 ==alias
-LONG fgetc(APTR stream) (a0)
-LONG getchar() ()
-LONG ungetc(LONG c, APTR stream) (d0,a0)
-LONG putw(ULONG w, APTR stream) (d0,a0)
-LONG puts(STRPTR s) (a0)
-LONG puterr(LONG c) (d0)
-ULONG fwrite(APTR ptr, ULONG size, ULONG nitems, APTR stream) (a0,d0,d1,a1)
-LONG perror(STRPTR s) (a0)
-LONG fseek(APTR stream, LONG offset, LONG whence) (a0,d0,d1)
-LONG ftell(APTR stream) (a0)
-LONG fflush(APTR stream) (a0)
-LONG getw(APTR stream) (a0)
-ULONG fread(APTR ptr, ULONG size, ULONG nitems, APTR stream) (a0,d0,d1,a1)
-STRPTR gets(STRPTR s) (a0)
-STRPTR fgets(STRPTR s, LONG n, APTR stream) (a0,d0,a1)
-LONG fputs(STRPTR s, APTR stream) (a0,a1)
+int fgetc(FILE * stream) (a0)
+int getchar() ()
+int ungetc(int c, FILE * stream) (d0,a0)
+int putw(int w, FILE * stream) (d0,a0)
+int puts(const char * s) (a0)
+int puterr(int c) (d0)
+size_t fwrite(const void * ptr, size_t size, size_t nitems, FILE * stream) (a0,d0,d1,a1)
+void perror(const char * s) (a0)
+int fseek(FILE * stream, long offset, int whence) (a0,d0,d1)
+long ftell(FILE * stream) (a0)
+int fflush(FILE * stream) (a0)
+int getw(FILE * stream) (a0)
+size_t fread(void * ptr, size_t size, size_t nitems, FILE * stream) (a0,d0,d1,a1)
+char * gets(char * s) (a0)
+char * fgets(char * s, int n, FILE * stream) (a0,d0,a1)
+int fputs(const char * s, FILE * stream) (a0,a1)
 *
 * Formatted I/O (-312 .. -342)
 *
-* scanf/fscanf/sscanf remain APTR arg-block LVOs.
-* printf/fprintf/sprintf: same historic biases as V3; client convention is
-* C varargs via #pragma tagcall (last address reg = &first stack arg).
-* LVO bodies still receive that pointer as APTR. These are NOT ==varargs
-* aliases of vprintf/vfprintf/vsprintf — V3 kept separate biases for the
-* explicit APTR forms (-738 .. -750). Prefer v* when you already have an
-* arg array (e.g. library-internal RawDoFmt-style blocks).
+* printf/scanf and fprintf/fscanf/sprintf/sscanf: C varargs via tagcall
+* (last address reg = &first stack arg). Separate v* LVOs take va_list
+* at historic biases (-738 .. -750 / V4 vsnprintf block).
 *
-LONG scanf(STRPTR format, APTR args) (a0,a1)
-LONG printf(STRPTR format, ...) (a0,a1)
-LONG fscanf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
-LONG fprintf(APTR stream, STRPTR format, ...) (a0,a1,a2)
-LONG sscanf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
-LONG sprintf(STRPTR s, STRPTR format, ...) (a0,a1,a2)
+int scanf(const char * format, ...) (a0,a1)
+int printf(const char * format, ...) (a0,a1)
+int fscanf(FILE * stream, const char * format, ...) (a0,a1,a2)
+int fprintf(FILE * stream, const char * format, ...) (a0,a1,a2)
+int sscanf(const char * s, const char * format, ...) (a0,a1,a2)
+int sprintf(char * s, const char * format, ...) (a0,a1,a2)
 *
 * Heap / allocation (-348 .. -420)
 *
-APTR _alloc(APTR ud, LONG size, LONG flags) (a0,d0,d1)
-VOID _fre(APTR ud, APTR ptr) (a0,a1)
-VOID _freall(APTR ud) (a0)
-APTR sbrk(LONG incr) (d0)
-APTR heap_alloc(ULONG size) (d0)
-VOID heap_free(APTR ptr) (a0)
-APTR malloc(ULONG size) (d0)
-APTR calloc(ULONG nelem, ULONG elsize) (d0,d1)
-APTR realloc(APTR ptr, ULONG size) (a0,d0)
-VOID free(APTR ptr) (a0)
-VOID be_free(APTR ptr, ULONG size) (a0,d0)
-ULONG malloc_size(APTR ptr) (a0)
-VOID freeall() ()
+void * _alloc(void * ud, long size, long flags) (a0,d0,d1)
+void _fre(void * ud, void * ptr) (a0,a1)
+void _freall(void * ud) (a0)
+void * sbrk(long incr) (d0)
+void * heap_alloc(size_t size) (d0)
+void heap_free(void * ptr) (a0)
+void * malloc(size_t size) (d0)
+void * calloc(size_t nelem, size_t elsize) (d0,d1)
+void * realloc(void * ptr, size_t size) (a0,d0)
+void free(void * ptr) (a0)
+void be_free(void * ptr, size_t size) (a0,d0)
+size_t malloc_size(void * ptr) (a0)
+void freeall() ()
 *
 * Linked lists (-426 .. -480)
 *
-APTR inst_node(LONG size) (d0)
-VOID put_head(APTR list, APTR node) (a0,a1)
-APTR add_head(APTR list, LONG size) (a0,d0)
-VOID put_tail(APTR list, APTR node) (a0,a1)
-APTR add_tail(APTR list, LONG size) (a0,d0)
-APTR remv_head(APTR list, APTR datap) (a0,a1)
-APTR remv_tail(APTR list, APTR datap) (a0,a1)
-VOID remv_list(APTR list) (a0)
-APTR r_node(APTR list, APTR node, APTR datap) (a0,a1,a2)
-APTR remv_node(APTR list, APTR data) (a0,a1)
+void * inst_node(long size) (d0)
+void put_head(void * list, void * node) (a0,a1)
+void * add_head(void * list, long size) (a0,d0)
+void put_tail(void * list, void * node) (a0,a1)
+void * add_tail(void * list, long size) (a0,d0)
+void * remv_head(void * list, void * datap) (a0,a1)
+void * remv_tail(void * list, void * datap) (a0,a1)
+void remv_list(void * list) (a0)
+void * r_node(void * list, void * node, void * datap) (a0,a1,a2)
+void * remv_node(void * list, void * data) (a0,a1)
 *
 * Format conversion (-486 .. -510)
 *
-LONG atoi(STRPTR s) (a0)
-LONG atol(STRPTR s) (a0)
-DOUBLE atof(STRPTR s) (a0)
-VOID ltoa(LONG n, STRPTR s) (d0,a0)
-VOID stoa(LONG n, STRPTR s) (d0,a0)
+int atoi(const char * s) (a0)
+long atol(const char * s) (a0)
+double atof(const char * s) (a0)
+void ltoa(long n, char * s) (d0,a0)
+void stoa(long n, char * s) (d0,a0)
 *
 * Memory operations (-516 .. -564)
 *
-LONG bcmp(APTR b1, APTR b2, LONG len) (a0,a1,d0)
-VOID bcopy(APTR src, APTR dst, LONG len) (a0,a1,d0)
-VOID bzero(APTR b, LONG len) (a0,d0)
-APTR memccpy(APTR dst, APTR src, ULONG c, LONG n) (a0,a1,d0,d1)
-APTR memchr(APTR b, ULONG c, LONG n) (a0,d0,d1)
-LONG memcmp(APTR b1, APTR b2, LONG n) (a0,a1,d0)
-APTR memcpy(APTR dst, APTR src, LONG n) (a0,a1,d0)
-APTR memset(APTR b, ULONG c, LONG n) (a0,d0,d1)
-VOID memswap(APTR b1, APTR b2, LONG n) (a0,a1,d0)
+int bcmp(const void * b1, const void * b2, size_t len) (a0,a1,d0)
+void bcopy(const void * src, void * dst, size_t len) (a0,a1,d0)
+void bzero(void * b, size_t len) (a0,d0)
+void * memccpy(void * dst, const void * src, int c, size_t n) (a0,a1,d0,d1)
+void * memchr(const void * b, int c, size_t n) (a0,d0,d1)
+int memcmp(const void * b1, const void * b2, size_t n) (a0,a1,d0)
+void * memcpy(void * dst, const void * src, size_t n) (a0,a1,d0)
+void * memset(void * b, int c, size_t n) (a0,d0,d1)
+void memswap(void * b1, void * b2, size_t n) (a0,a1,d0)
 *
 * String operations (-570 .. -696)
 *
-STRPTR index(STRPTR s, LONG c) (a0,d0)
-STRPTR rindex(STRPTR s, LONG c) (a0,d0)
-STRPTR strupr(STRPTR s) (a0)
-STRPTR stpcrlf(STRPTR s) (a0)
-STRPTR strcat(STRPTR dst, STRPTR src) (a0,a1)
-STRPTR strchr(STRPTR s, LONG c) (a0,d0)
-LONG strcmp(STRPTR s1, STRPTR s2) (a0,a1)
-STRPTR strcpy(STRPTR dst, STRPTR src) (a0,a1)
-LONG strcspn(STRPTR s, STRPTR reject) (a0,a1)
-LONG strlen(STRPTR s) (a0)
-STRPTR strncat(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
-LONG strcasecmp(STRPTR s1, STRPTR s2) (a0,a1)
+char * index(const char * s, int c) (a0,d0)
+char * rindex(const char * s, int c) (a0,d0)
+char * strupr(char * s) (a0)
+char * stpcrlf(char * s) (a0)
+char * strcat(char * dst, const char * src) (a0,a1)
+char * strchr(const char * s, int c) (a0,d0)
+int strcmp(const char * s1, const char * s2) (a0,a1)
+char * strcpy(char * dst, const char * src) (a0,a1)
+size_t strcspn(const char * s, const char * reject) (a0,a1)
+size_t strlen(const char * s) (a0)
+char * strncat(char * dst, const char * src, size_t n) (a0,a1,d0)
+int strcasecmp(const char * s1, const char * s2) (a0,a1)
 ==alias
-LONG strcmpa(STRPTR s1, STRPTR s2) (a0,a1)
+int strcmpa(const char * s1, const char * s2) (a0,a1)
 ==alias
-LONG stricmp(STRPTR s1, STRPTR s2) (a0,a1)
-LONG strncmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
-STRPTR strncpy(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
-STRPTR strpbrk(STRPTR s, STRPTR accept) (a0,a1)
-STRPTR strrchr(STRPTR s, LONG c) (a0,d0)
-LONG strspn(STRPTR s, STRPTR accept) (a0,a1)
-STRPTR strstr(STRPTR haystack, STRPTR needle) (a0,a1)
-STRPTR strtok(STRPTR s, STRPTR delim) (a0,a1)
-STRPTR strrv(STRPTR s) (a0)
-STRPTR strnrv(STRPTR s, LONG n) (a0,d0)
-STRPTR bcpl_strcpy(STRPTR dst, BPTR src) (a0,a1)
+int stricmp(const char * s1, const char * s2) (a0,a1)
+int strncmp(const char * s1, const char * s2, size_t n) (a0,a1,d0)
+char * strncpy(char * dst, const char * src, size_t n) (a0,a1,d0)
+char * strpbrk(const char * s, const char * accept) (a0,a1)
+char * strrchr(const char * s, int c) (a0,d0)
+size_t strspn(const char * s, const char * accept) (a0,a1)
+char * strstr(const char * haystack, const char * needle) (a0,a1)
+char * strtok(char * s, const char * delim) (a0,a1)
+char * strrv(char * s) (a0)
+char * strnrv(char * s, size_t n) (a0,d0)
+char * bcpl_strcpy(char * dst, BPTR src) (a0,a1)
 *
 * Sorting / ctype / CLI-WB parse (-702 .. -732)
 *
-VOID vquicksort(ULONG n, APTR cmp, APTR swap) (d0,a0,a1)
-LONG toupper(LONG c) (d0)
-VOID quicksort(ULONG n, APTR cmp, APTR swap, APTR arg) (d0,a0,a1,a2)
-VOID qsort(APTR base, ULONG nel, ULONG width, APTR compar) (a0,d0,d1,a1)
-VOID cli_parse(APTR ud, LONG alen, STRPTR aptr) (a0,d0,a1)
-LONG wb_parse(APTR ud, APTR wbm) (a0,a1)
+void vquicksort(size_t n, void * cmp, void * swap) (d0,a0,a1)
+int toupper(int c) (d0)
+void quicksort(size_t n, void * cmp, void * swap, void * arg) (d0,a0,a1,a2)
+void qsort(void * base, size_t nel, size_t width, void * compar) (a0,d0,d1,a1)
+void cli_parse(void * ud, long alen, char * aptr) (a0,d0,a1)
+long wb_parse(void * ud, void * wbm) (a0,a1)
 *
 * Varargs format helpers / file position (-738 .. -762)
 *
-LONG vprintf(STRPTR format, APTR args) (a0,a1)
-LONG vfprintf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
-LONG vsprintf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
-LONG fgetpos(APTR stream, APTR pos) (a0,a1)
-LONG fsetpos(APTR stream, APTR pos) (a0,a1)
+int vprintf(const char * format, va_list args) (a0,a1)
+int vfprintf(FILE * stream, const char * format, va_list args) (a0,a1,a2)
+int vsprintf(char * s, const char * format, va_list args) (a0,a1,a2)
+int fgetpos(FILE * stream, fpos_t * pos) (a0,a1)
+int fsetpos(FILE * stream, const fpos_t * pos) (a0,a1)
 *
 * Time (-768 .. -816)
 *
-LONG time(APTR tloc) (a0)
-LONG clock() ()
-APTR gmtime(APTR timer) (a0)
-STRPTR asctime(APTR tm) (a0)
-STRPTR ctime(APTR timer) (a0)
-APTR localtime(APTR timer) (a0)
-LONG mktime(APTR tm) (a0)
-LONG difftime(LONG time1, LONG time0) (d0,d1)
-ULONG strftime(STRPTR s, ULONG maxsize, STRPTR format, APTR tm) (a0,d0,a1,a2)
+time_t time(time_t * tloc) (a0)
+clock_t clock() ()
+struct tm * gmtime(const time_t * timer) (a0)
+char * asctime(const struct tm * tm) (a0)
+char * ctime(const time_t * timer) (a0)
+struct tm * localtime(const time_t * timer) (a0)
+time_t mktime(struct tm * tm) (a0)
+double difftime(time_t time1, time_t time0) (d0,d1)
+size_t strftime(char * s, size_t maxsize, const char * format, const struct tm * tm) (a0,d0,a1,a2)
 *
 * Directory scan / env / extended stat (-822 .. -852)
 *
-STRPTR scdir(STRPTR pattern) (a0)
-VOID scdir_clean() ()
-LONG tolower(LONG c) (d0)
-LONG setenv(STRPTR name, STRPTR value) (a0,a1)
-STRPTR getenv(STRPTR name) (a0)
-LONG stat_(STRPTR name, APTR buf) (a0,a1)
+char * scdir(const char * pattern) (a0)
+void scdir_clean() ()
+int tolower(int c) (d0)
+int setenv(const char * name, const char * value) (a0,a1)
+char * getenv(const char * name) (a0)
+int stat_(const char * name, struct stat * buf) (a0,a1)
 *
 * Process control (-858 .. -912)
 *
-LONG wb_exec(STRPTR filename, STRPTR procname, STRPTR toolname, STRPTR toolwindow, BPTR curdir, APTR rport, LONG stk, LONG pri, APTR child) (a0,a1,a2,a3,a4,a5,d0,d1,d2)
-LONG wbexec(STRPTR name, LONG stk, LONG pri) (a0,d0,d1)
-APTR wbAexec(STRPTR name, LONG stk, LONG pri) (a0,d0,d1)
-LONG wait_child(APTR child) (a0)
-LONG wait_children() ()
-LONG signal_child(APTR child, ULONG sig) (a0,d0)
-LONG kill(APTR child) (a0)
-LONG kill_children() ()
-LONG cliexec(STRPTR cmd) (a0)
-LONG exec(STRPTR cmd) (a0)
+long wb_exec(char * filename, char * procname, char * toolname, char * toolwindow, BPTR curdir, void * rport, long stk, long pri, void * child) (a0,a1,a2,a3,a4,a5,d0,d1,d2)
+long wbexec(char * name, long stk, long pri) (a0,d0,d1)
+void * wbAexec(char * name, long stk, long pri) (a0,d0,d1)
+long wait_child(void * child) (a0)
+long wait_children() ()
+long signal_child(void * child, unsigned sig) (a0,d0)
+long kill(void * child) (a0)
+long kill_children() ()
+long cliexec(char * cmd) (a0)
+long exec(char * cmd) (a0)
 ==version 4
 *
 * V4 (-918 ..). Not frozen: grouped by category. timer.device (not
 * realtime.library) backs sleep/usleep/nanosleep.
 *
 * Memory
-APTR memmove(APTR dst, APTR src, LONG n) (a0,a1,d0)
-APTR memmem(APTR haystack, LONG hlen, APTR needle, LONG nlen) (a0,d0,a1,d1)
+void * memmove(void * dst, const void * src, size_t n) (a0,a1,d0)
+void * memmem(const void * haystack, size_t hlen, const void * needle, size_t nlen) (a0,d0,a1,d1)
 *
 * String
-LONG strncasecmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
+int strncasecmp(const char * s1, const char * s2, size_t n) (a0,a1,d0)
 ==alias
-LONG strnicmp(STRPTR s1, STRPTR s2, LONG n) (a0,a1,d0)
-STRPTR strdup(STRPTR s) (a0)
-STRPTR strndup(STRPTR s, LONG n) (a0,d0)
-LONG strnlen(STRPTR s, LONG maxlen) (a0,d0)
-STRPTR stpcpy(STRPTR dst, STRPTR src) (a0,a1)
-STRPTR stpncpy(STRPTR dst, STRPTR src, LONG n) (a0,a1,d0)
-ULONG strlcpy(STRPTR dst, STRPTR src, ULONG size) (a0,a1,d0)
-ULONG strlcat(STRPTR dst, STRPTR src, ULONG size) (a0,a1,d0)
-STRPTR strtok_r(STRPTR s, STRPTR delim, APTR saveptr) (a0,a1,a2)
-STRPTR strlwr(STRPTR s) (a0)
+int strnicmp(const char * s1, const char * s2, size_t n) (a0,a1,d0)
+char * strdup(const char * s) (a0)
+char * strndup(const char * s, size_t n) (a0,d0)
+size_t strnlen(const char * s, size_t maxlen) (a0,d0)
+char * stpcpy(char * dst, const char * src) (a0,a1)
+char * stpncpy(char * dst, const char * src, size_t n) (a0,a1,d0)
+size_t strlcpy(char * dst, const char * src, size_t size) (a0,a1,d0)
+size_t strlcat(char * dst, const char * src, size_t size) (a0,a1,d0)
+char * strtok_r(char * s, const char * delim, char ** saveptr) (a0,a1,a2)
+char * strlwr(char * s) (a0)
 *
 * Environment
-LONG unsetenv(STRPTR name) (a0)
+int unsetenv(const char * name) (a0)
 *
 * Format — vsnprintf LVO; snprintf is ==varargs at the same bias
-LONG vsnprintf(STRPTR s, ULONG n, STRPTR format, APTR args) (a0,d0,a1,a2)
+int vsnprintf(char * s, size_t n, const char * format, va_list args) (a0,d0,a1,a2)
 ==varargs
-LONG snprintf(STRPTR s, ULONG n, STRPTR format, ...) (a0,d0,a1,a2)
-LONG vscanf(STRPTR format, APTR args) (a0,a1)
-LONG vfscanf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
-LONG vsscanf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
-LONG getline(APTR lineptr, APTR n, APTR stream) (a0,a1,a2)
-LONG getdelim(APTR lineptr, APTR n, LONG delim, APTR stream) (a0,a1,d0,a2)
+int snprintf(char * s, size_t n, const char * format, ...) (a0,d0,a1,a2)
+int vscanf(const char * format, va_list args) (a0,a1)
+int vfscanf(FILE * stream, const char * format, va_list args) (a0,a1,a2)
+int vsscanf(const char * s, const char * format, va_list args) (a0,a1,a2)
+ssize_t getline(char ** lineptr, size_t * n, FILE * stream) (a0,a1,a2)
+ssize_t getdelim(char ** lineptr, size_t * n, int delim, FILE * stream) (a0,a1,d0,a2)
 *
 * Conversion
-LONG strtol(STRPTR s, APTR endp, LONG base) (a0,a1,d0)
-ULONG strtoul(STRPTR s, APTR endp, LONG base) (a0,a1,d0)
-DOUBLE strtod(STRPTR s, APTR endp) (a0,a1)
-LONG atoll(STRPTR s) (a0)
+long strtol(const char * s, char ** endp, int base) (a0,a1,d0)
+u_long strtoul(const char * s, char ** endp, int base) (a0,a1,d0)
+double strtod(const char * s, char ** endp) (a0,a1)
+long atoll(const char * s) (a0)
 *
 * Search / random / integer math
-APTR bsearch(APTR key, APTR base, ULONG nel, ULONG width, APTR compar) (a0,a1,d0,d1,a2)
-void srand(ULONG seed) (d0)
-LONG rand() ()
-void div(APTR result, LONG numer, LONG denom) (a0,d0,d1)
-void ldiv(APTR result, LONG numer, LONG denom) (a0,d0,d1)
-LONG labs(LONG n) (d0)
+* div/ldiv: SAS/C #pragma libcall cannot return 8-byte structs, so the LVO
+* takes an explicit result pointer (Amiga-typical). Call as div(&r, n, d).
+*
+void * bsearch(const void * key, const void * base, size_t nel, size_t width, void * compar) (a0,a1,d0,d1,a2)
+void srand(unsigned seed) (d0)
+int rand() ()
+void div(div_t * result, int numer, int denom) (a0,d0,d1)
+void ldiv(ldiv_t * result, long numer, long denom) (a0,d0,d1)
+long labs(long n) (d0)
 *
 * Path / filesystem (dos.library)
-LONG mkstemp(STRPTR template) (a0)
-STRPTR getcwd(STRPTR buf, LONG size) (a0,d0)
-LONG chdir(STRPTR path) (a0)
-STRPTR realpath(STRPTR path, STRPTR resolved) (a0,a1)
-LONG mkdir(STRPTR path, LONG mode) (a0,d0)
-LONG rmdir(STRPTR path) (a0)
-LONG chmod(STRPTR path, LONG mode) (a0,d0)
-LONG utime(STRPTR path, APTR times) (a0,a1)
-LONG symlink(STRPTR target, STRPTR linkpath) (a0,a1)
-LONG readlink(STRPTR path, STRPTR buf, LONG bufsiz) (a0,a1,d0)
+int mkstemp(char * template) (a0)
+char * getcwd(char * buf, size_t size) (a0,d0)
+int chdir(const char * path) (a0)
+char * realpath(const char * path, char * resolved) (a0,a1)
+int mkdir(const char * path, mode_t mode) (a0,d0)
+int rmdir(const char * path) (a0)
+int chmod(const char * path, mode_t mode) (a0,d0)
+int utime(const char * path, void * times) (a0,a1)
+int symlink(const char * target, const char * linkpath) (a0,a1)
+ssize_t readlink(const char * path, char * buf, size_t bufsiz) (a0,a1,d0)
 *
 * Directory (POSIX dirent beside historic scdir)
-APTR opendir(STRPTR name) (a0)
-APTR readdir(APTR dir) (a0)
-LONG closedir(APTR dir) (a0)
+DIR * opendir(const char * name) (a0)
+struct dirent * readdir(DIR * dir) (a0)
+int closedir(DIR * dir) (a0)
 *
 * Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay)
-ULONG sleep(ULONG seconds) (d0)
-LONG usleep(ULONG usec) (d0)
-LONG nanosleep(APTR req, APTR rem) (a0,a1)
+unsigned sleep(unsigned seconds) (d0)
+int usleep(useconds_t usec) (d0)
+int nanosleep(const struct timespec * req, struct timespec * rem) (a0,a1)
 *
 * Locale
-STRPTR setlocale(LONG category, STRPTR name) (d0,a0)
-APTR localeconv() ()
-LONG strcoll(STRPTR s1, STRPTR s2) (a0,a1)
-ULONG strxfrm(STRPTR dest, STRPTR src, ULONG n) (a0,a1,d0)
-STRPTR strptime(STRPTR s, STRPTR format, APTR tm) (a0,a1,a2)
+char * setlocale(int category, const char * name) (d0,a0)
+struct lconv * localeconv() ()
+int strcoll(const char * s1, const char * s2) (a0,a1)
+size_t strxfrm(char * dest, const char * src, size_t n) (a0,a1,d0)
+char * strptime(const char * s, const char * format, struct tm * tm) (a0,a1,a2)
 *
 * Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE)
-LONG isalnum(LONG c) (d0)
-LONG isalpha(LONG c) (d0)
-LONG iscntrl(LONG c) (d0)
-LONG isdigit(LONG c) (d0)
-LONG isgraph(LONG c) (d0)
-LONG islower(LONG c) (d0)
-LONG isprint(LONG c) (d0)
-LONG ispunct(LONG c) (d0)
-LONG isspace(LONG c) (d0)
-LONG isupper(LONG c) (d0)
-LONG isxdigit(LONG c) (d0)
-LONG isblank(LONG c) (d0)
-LONG isascii(LONG c) (d0)
+int isalnum(int c) (d0)
+int isalpha(int c) (d0)
+int iscntrl(int c) (d0)
+int isdigit(int c) (d0)
+int isgraph(int c) (d0)
+int islower(int c) (d0)
+int isprint(int c) (d0)
+int ispunct(int c) (d0)
+int isspace(int c) (d0)
+int isupper(int c) (d0)
+int isxdigit(int c) (d0)
+int isblank(int c) (d0)
+int isascii(int c) (d0)
 ==end

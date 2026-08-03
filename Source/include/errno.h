@@ -5,7 +5,7 @@
  * errno — CClib error codes (application errno lives in CRT _main).
  */
 
-extern long errno;
+extern int errno;
 
 /* Open() can't open the file */
 #define ENOENT 1

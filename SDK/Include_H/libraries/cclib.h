@@ -6,9 +6,12 @@
  *
  * Shared by the standard C headers in this SDK (stdio.h, iolib.h, …).
  * Prefer these over the SAS/C clib when building for the CClib target.
- * Open the library with OpenLibrary(CCLIBNAME, 4) and include
- * the CClib SDK headers. Clients either include <proto/cclib.h>
- * (define struct Library *CCLibBase in one .c) or link the auto/stub library.
+ * Open the library with OpenLibrary(CCLIBNAME, 4). Prefer including the
+ * standard C headers (<stdio.h>, <string.h>, …); they pull in
+ * <proto/cclib.h>. SFD and headers share one C/POSIX prototype face
+ * (int, size_t, ssize_t, mode_t, char *, FILE *, …; u_long for unsigned
+ * long). Amiga types only for Amiga-specific APIs. Define struct Library
+ * *CCLibBase in the CRT (or one .c) unless using an auto/stub library.
  */
 
 #ifndef EXEC_TYPES_H
@@ -81,6 +84,20 @@ typedef struct
 } FILE;
 #endif
 
+#ifndef CCLIB_DIR_TYPE
+#define CCLIB_DIR_TYPE 1
+/* Incomplete; definition is private to the library. */
+typedef struct cc_DIR DIR;
+#endif
+
+#ifndef CCLIB_DIRENT_TYPE
+#define CCLIB_DIRENT_TYPE 1
+struct dirent
+{
+	char d_name[108];
+};
+#endif
+
 #ifndef __TIME_T
 #define __TIME_T 1
 typedef long time_t;
@@ -105,6 +122,40 @@ struct tm
 	short tm_yday;
 	short tm_isdst;
 	short tm_hsec;
+};
+#endif
+
+#ifndef CCLIB_TIMESPEC_TYPE
+#define CCLIB_TIMESPEC_TYPE 1
+struct timespec
+{
+	long tv_sec;
+	long tv_nsec;
+};
+#endif
+
+#ifndef CCLIB_LCONV_TYPE
+#define CCLIB_LCONV_TYPE 1
+struct lconv
+{
+	char *decimal_point;
+	char *thousands_sep;
+	char *grouping;
+	char *int_curr_symbol;
+	char *currency_symbol;
+	char *mon_decimal_point;
+	char *mon_thousands_sep;
+	char *mon_grouping;
+	char *positive_sign;
+	char *negative_sign;
+	char int_frac_digits;
+	char frac_digits;
+	char p_cs_precedes;
+	char p_sep_by_space;
+	char n_cs_precedes;
+	char n_sep_by_space;
+	char p_sign_posn;
+	char n_sign_posn;
 };
 #endif
 
@@ -159,7 +210,7 @@ typedef struct
 	_list StreamFiles;
 	FILE **stdout, **stdin, **stderr;
 	void *scnfp;
-	long *errno;
+	int *errno;
 	ABORT_FUNC abort_func;
 	void *wbmsg;
 	short _argc, _arg_len;

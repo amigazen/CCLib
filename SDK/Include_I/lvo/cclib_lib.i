@@ -11,9 +11,14 @@
 
 **"cclib.library"
 ** Canonical LVO interface for cclib.library (V4.0 reimplementation of the
-** historic V3.0 jump table). Register-args LVO calling convention
+** historic V3.0 jump table). Register-args LVO calling convention.
 ** V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.
-** Opaque C objects (FILE, task_UserData, tm, …) are APTR.
+** Prototypes use C/POSIX types as single tokens LibDescConverter accepts
+** (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd:
+**   u_long = unsigned long;  unsigned = unsigned int.
+** Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for
+** Amiga-specific APIs (BPTR, …).
+** Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*.
 ** V4.0 vs historic V3.0: remove is canonical (unlink ==alias);
 ** strcasecmp is canonical (strcmpa ==alias).
 ** V4+ append-only at end: keep new LVOs in logical groups (memory,
@@ -76,6 +81,9 @@ _LVOgets equ -294
 _LVOfgets equ -300
 _LVOfputs equ -306
 ** Formatted I/O (-312 .. -342)
+** printf/scanf and fprintf/fscanf/sprintf/sscanf: C varargs via tagcall
+** (last address reg = &first stack arg). Separate v* LVOs take va_list
+** at historic biases (-738 .. -750 / V4 vsnprintf block).
 _LVOscanf equ -312
 _LVOprintf equ -318
 _LVOfscanf equ -324
@@ -253,8 +261,7 @@ _LVOlocaleconv equ -1194
 _LVOstrcoll equ -1200
 _LVOstrxfrm equ -1206
 _LVOstrptime equ -1212
-
-** Locale ctype (Is* / Waves 5-6)
+** Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE)
 _LVOisalnum equ -1218
 _LVOisalpha equ -1224
 _LVOiscntrl equ -1230
@@ -268,3 +275,4 @@ _LVOisupper equ -1272
 _LVOisxdigit equ -1278
 _LVOisblank equ -1284
 _LVOisascii equ -1290
+

@@ -15,9 +15,16 @@
 /*"cclib.library" */
 
 /* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention */
+/* historic V3.0 jump table). Register-args LVO calling convention. */
 /* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
-/* Opaque C objects (FILE, task_UserData, tm, …) are APTR. */
+
+/* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
+/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
+/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
+/* Amiga-specific APIs (BPTR, …). */
+
+/* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
@@ -93,13 +100,26 @@
 
 /* Formatted I/O (-312 .. -342) */
 
-#pragma libcall CCLibBase scanf 138 9802
-/* printf/fprintf/sprintf: tagcall at historic biases (not ==varargs of v*) */
+/* printf/scanf families: C varargs via tagcall (last address reg =
+ * &first stack arg). LibDescConverter only emits tagcall for ==varargs
+ * aliases; these are separate historic LVOs, so tagcall is maintained here.
+ * Matching v* LVOs below take va_list with ordinary libcall. */
+
+#if defined(__SASC_60)
+#pragma tagcall CCLibBase scanf 138 9802
 #pragma tagcall CCLibBase printf 13E 9802
-#pragma libcall CCLibBase fscanf 144 A9803
+#pragma tagcall CCLibBase fscanf 144 A9803
 #pragma tagcall CCLibBase fprintf 14A A9803
-#pragma libcall CCLibBase sscanf 150 A9803
+#pragma tagcall CCLibBase sscanf 150 A9803
 #pragma tagcall CCLibBase sprintf 156 A9803
+#else
+#pragma libcall CCLibBase scanf 138 9802
+#pragma libcall CCLibBase printf 13E 9802
+#pragma libcall CCLibBase fscanf 144 A9803
+#pragma libcall CCLibBase fprintf 14A A9803
+#pragma libcall CCLibBase sscanf 150 A9803
+#pragma libcall CCLibBase sprintf 156 A9803
+#endif
 
 /* Heap / allocation (-348 .. -420) */
 
@@ -305,6 +325,8 @@
 #pragma libcall CCLibBase strcoll 4B0 9802
 #pragma libcall CCLibBase strxfrm 4B6 09803
 #pragma libcall CCLibBase strptime 4BC A9803
+
+/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
 #pragma libcall CCLibBase isalnum 4C2 001
 #pragma libcall CCLibBase isalpha 4C8 001
 #pragma libcall CCLibBase iscntrl 4CE 001

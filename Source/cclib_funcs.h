@@ -9,6 +9,7 @@
 
 #include <exec/types.h>
 #include <dos/dos.h>
+#include <sys/types.h>
 #include <clib/compiler-specific.h>
 
 struct Library *__ASM__ __SAVE_DS__ LibInit(
@@ -166,7 +167,7 @@ ULONG __ASM__ __SAVE_DS__ fwrite(
 	__REG__(d1, ULONG nitems),
 	__REG__(a1, APTR stream));
 
-LONG __ASM__ __SAVE_DS__ perror(
+void __ASM__ __SAVE_DS__ perror(
 	__REG__(a0, STRPTR s));
 
 LONG __ASM__ __SAVE_DS__ fseek(
@@ -539,7 +540,7 @@ APTR __ASM__ __SAVE_DS__ localtime(
 LONG __ASM__ __SAVE_DS__ mktime(
 	__REG__(a0, APTR tm));
 
-LONG __ASM__ __SAVE_DS__ difftime(
+DOUBLE __ASM__ __SAVE_DS__ difftime(
 	__REG__(d0, LONG time1),
 	__REG__(d1, LONG time0));
 
