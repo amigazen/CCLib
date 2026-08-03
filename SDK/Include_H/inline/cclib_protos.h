@@ -192,20 +192,36 @@ LONG __fputs(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") APTR stream)=
 LONG __scanf(__reg("a6") void *, __reg("a0") STRPTR format, __reg("a1") APTR args)="\tjsr\t-312(a6)";
 #define scanf(format, args) __scanf(CCLibBase, (format), (args))
 
+/* printf/fprintf/sprintf: tagcall at historic biases (A1/A2 = &first stack arg) */
+#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)
+LONG __printf(__reg("a6") void *, __reg("a0") STRPTR format, ...)="\tmove.l\ta1,-(a7)\n\tlea\t4(a7),a1\n\tjsr\t-318(a6)\n\tmovea.l\t(a7)+,a1";
+#define printf(...) __printf(CCLibBase, __VA_ARGS__)
+#else
 LONG __printf(__reg("a6") void *, __reg("a0") STRPTR format, __reg("a1") APTR args)="\tjsr\t-318(a6)";
 #define printf(format, args) __printf(CCLibBase, (format), (args))
+#endif
 
 LONG __fscanf(__reg("a6") void *, __reg("a0") APTR stream, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-324(a6)";
 #define fscanf(stream, format, args) __fscanf(CCLibBase, (stream), (format), (args))
 
+#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)
+LONG __fprintf(__reg("a6") void *, __reg("a0") APTR stream, __reg("a1") STRPTR format, ...)="\tmove.l\ta2,-(a7)\n\tlea\t4(a7),a2\n\tjsr\t-330(a6)\n\tmovea.l\t(a7)+,a2";
+#define fprintf(...) __fprintf(CCLibBase, __VA_ARGS__)
+#else
 LONG __fprintf(__reg("a6") void *, __reg("a0") APTR stream, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-330(a6)";
 #define fprintf(stream, format, args) __fprintf(CCLibBase, (stream), (format), (args))
+#endif
 
 LONG __sscanf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-336(a6)";
 #define sscanf(s, format, args) __sscanf(CCLibBase, (s), (format), (args))
 
+#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)
+LONG __sprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, ...)="\tmove.l\ta2,-(a7)\n\tlea\t4(a7),a2\n\tjsr\t-342(a6)\n\tmovea.l\t(a7)+,a2";
+#define sprintf(...) __sprintf(CCLibBase, __VA_ARGS__)
+#else
 LONG __sprintf(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR args)="\tjsr\t-342(a6)";
 #define sprintf(s, format, args) __sprintf(CCLibBase, (s), (format), (args))
+#endif
 
 
 /* Heap / allocation (-348 .. -420) */
@@ -710,5 +726,44 @@ ULONG __strxfrm(__reg("a6") void *, __reg("a0") STRPTR dest, __reg("a1") STRPTR 
 STRPTR __strptime(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR tm)="\tjsr\t-1212(a6)";
 #define strptime(s, format, tm) __strptime(CCLibBase, (s), (format), (tm))
 
+
+LONG __isalnum(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1218(a6)";
+#define isalnum(c) __isalnum(CCLibBase, (c))
+
+LONG __isalpha(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1224(a6)";
+#define isalpha(c) __isalpha(CCLibBase, (c))
+
+LONG __iscntrl(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1230(a6)";
+#define iscntrl(c) __iscntrl(CCLibBase, (c))
+
+LONG __isdigit(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1236(a6)";
+#define isdigit(c) __isdigit(CCLibBase, (c))
+
+LONG __isgraph(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1242(a6)";
+#define isgraph(c) __isgraph(CCLibBase, (c))
+
+LONG __islower(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1248(a6)";
+#define islower(c) __islower(CCLibBase, (c))
+
+LONG __isprint(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1254(a6)";
+#define isprint(c) __isprint(CCLibBase, (c))
+
+LONG __ispunct(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1260(a6)";
+#define ispunct(c) __ispunct(CCLibBase, (c))
+
+LONG __isspace(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1266(a6)";
+#define isspace(c) __isspace(CCLibBase, (c))
+
+LONG __isupper(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1272(a6)";
+#define isupper(c) __isupper(CCLibBase, (c))
+
+LONG __isxdigit(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1278(a6)";
+#define isxdigit(c) __isxdigit(CCLibBase, (c))
+
+LONG __isblank(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1284(a6)";
+#define isblank(c) __isblank(CCLibBase, (c))
+
+LONG __isascii(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1290(a6)";
+#define isascii(c) __isascii(CCLibBase, (c))
 
 #endif /* INLINE_CCLIB_PROTOS_H */

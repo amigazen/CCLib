@@ -24,7 +24,6 @@ ct_suite_stdio(void)
 	LONG iv;
 	LONG wv;
 	LONG rv;
-	LONG fav[4];
 	APTR fargs[4];
 	STRPTR t;
 	LONG fd;
@@ -257,9 +256,7 @@ ct_suite_stdio(void)
 			(STRPTR)"setvbuf(_IONBF) on a T: file must return 0",
 			0, n);
 
-		fav[0] = 42;
-		fav[1] = 7;
-		n = fprintf(ofp, (STRPTR)"n=%ld k=%ld\n", (APTR)fav);
+		n = fprintf(ofp, (STRPTR)"n=%ld k=%ld\n", 42L, 7L);
 		ct_check_true((STRPTR)"stdio", (STRPTR)"fprintf_ok",
 		(STRPTR)"fprintf to T: file",
 			(STRPTR)"fprintf to T: file must return a positive character count",

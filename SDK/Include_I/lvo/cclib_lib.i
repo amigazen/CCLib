@@ -254,3 +254,17 @@ _LVOstrcoll equ -1200
 _LVOstrxfrm equ -1206
 _LVOstrptime equ -1212
 
+** Locale ctype (Is* / Waves 5-6)
+_LVOisalnum equ -1218
+_LVOisalpha equ -1224
+_LVOiscntrl equ -1230
+_LVOisdigit equ -1236
+_LVOisgraph equ -1242
+_LVOislower equ -1248
+_LVOisprint equ -1254
+_LVOispunct equ -1260
+_LVOisspace equ -1266
+_LVOisupper equ -1272
+_LVOisxdigit equ -1278
+_LVOisblank equ -1284
+_LVOisascii equ -1290

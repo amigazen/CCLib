@@ -94,11 +94,12 @@
 /* Formatted I/O (-312 .. -342) */
 
 #pragma libcall CCLibBase scanf 138 9802
-#pragma libcall CCLibBase printf 13E 9802
+/* printf/fprintf/sprintf: tagcall at historic biases (not ==varargs of v*) */
+#pragma tagcall CCLibBase printf 13E 9802
 #pragma libcall CCLibBase fscanf 144 A9803
-#pragma libcall CCLibBase fprintf 14A A9803
+#pragma tagcall CCLibBase fprintf 14A A9803
 #pragma libcall CCLibBase sscanf 150 A9803
-#pragma libcall CCLibBase sprintf 156 A9803
+#pragma tagcall CCLibBase sprintf 156 A9803
 
 /* Heap / allocation (-348 .. -420) */
 
@@ -304,5 +305,18 @@
 #pragma libcall CCLibBase strcoll 4B0 9802
 #pragma libcall CCLibBase strxfrm 4B6 09803
 #pragma libcall CCLibBase strptime 4BC A9803
+#pragma libcall CCLibBase isalnum 4C2 001
+#pragma libcall CCLibBase isalpha 4C8 001
+#pragma libcall CCLibBase iscntrl 4CE 001
+#pragma libcall CCLibBase isdigit 4D4 001
+#pragma libcall CCLibBase isgraph 4DA 001
+#pragma libcall CCLibBase islower 4E0 001
+#pragma libcall CCLibBase isprint 4E6 001
+#pragma libcall CCLibBase ispunct 4EC 001
+#pragma libcall CCLibBase isspace 4F2 001
+#pragma libcall CCLibBase isupper 4F8 001
+#pragma libcall CCLibBase isxdigit 4FE 001
+#pragma libcall CCLibBase isblank 504 001
+#pragma libcall CCLibBase isascii 50A 001
 
 #endif /* PRAGMAS_CCLIB_PRAGMAS_H */

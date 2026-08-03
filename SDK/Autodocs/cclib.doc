@@ -170,9 +170,11 @@ cclib.library/--background--                      cclib.library/--background--
 
     WARNING
 	Do not overwrite tc_UserData while CClib is active.
-	printf/scanf LVOs take a format string and an APTR argument array
-	(RawDoFmt style). C varargs "..." belongs in the stub/auto layer
-	or client wrappers, not in the raw LVO register signature.
+	printf/fprintf/sprintf are C varargs at the client face (#pragma
+	tagcall): the last address register holds &first stack arg. The LVO
+	body still reads that pointer as an APTR arg array (RawDoFmt layout).
+	vprintf/vfprintf/vsprintf take an explicit APTR array at separate
+	biases. scanf/fscanf/sscanf remain APTR (destination pointer arrays).
 	Opaque types (FILE *, task_UserData *, struct tm *, ...) are APTR at
 	the LVO boundary; client headers restore typed C declarations.
 	%e/%f/%g consume a DOUBLE as two consecutive LONGs in the arg array.
@@ -462,7 +464,7 @@ cclib.library/SetupSTDIO                              cclib.library/SetupSTDIO
 	LONG status. One is returned when initialization succeeded (including the case where WB has no WINDOW tooltype and stdio is deliberately absent). Zero is returned if SetSTDIO could not allocate task_UserData.
 
    NOTES
-	Workbench tools without a WINDOW tooltype get argc/argv but no stdin/stdout/stderr FILEs; writing to NULL streams can crash. printf, fprintf, fscanf, and scanf LVOs take a format string plus an APTR argument array (RawDoFmt style); varargs belong in stub/auto layers. %e/%f/%g consume a DOUBLE as two consecutive LONGs in that array when mathbase is non-NULL.
+	Workbench tools without a WINDOW tooltype get argc/argv but no stdin/stdout/stderr FILEs; writing to NULL streams can crash. printf/fprintf/sprintf use C varargs via tagcall (A1/A2 = &first stack arg); v* and scanf family take an explicit APTR array. %e/%f/%g consume a DOUBLE as two consecutive LONGs in that array when mathbase is non-NULL.
 
    SEE ALSO
 	SetSTDIO, GetSTDIO, ClearSTDIO, cli_parse, wb_parse, atof
@@ -1348,7 +1350,7 @@ cclib.library/fwrite                                      cclib.library/fwrite
 	Count of complete elements written (may be less than nitems).
 
    NOTES
-	For formatted text, fprintf LVO takes an APTR arg array (RawDoFmt style) instead of C varargs at the library boundary.
+	For formatted text, use fprintf (C varargs / tagcall) or vfprintf (APTR arg array).
 
    SEE ALSO
 	fread, aputc, fprintf
@@ -1608,7 +1610,7 @@ cclib.library/fputs                                        cclib.library/fputs
 	Non-negative character count on success, EOF on failure.
 
    NOTES
-	For formatted output use fprintf LVO (APTR arg array, RawDoFmt style) from client stubs.
+	For formatted output use fprintf (C varargs / tagcall) or vfprintf (APTR arg array).
 
    SEE ALSO
 	puts, aputc, fprintf, perror
@@ -1647,16 +1649,25 @@ cclib.library/printf                                      cclib.library/printf
 	printf -- write formatted output to stdout
 
    SYNOPSIS
-	LONG printf(STRPTR format, APTR args);
+	LONG printf(STRPTR format, ...);
 
-	Registers: a0=format, a1=args
+	Registers (tagcall): a0=format, a1=&first stack arg
 
    FUNCTION
-	Writes formatted output to the task's stdout stream. The LVO takes a format string and an APTR args array (RawDoFmt style), not a C varargs stack frame. Ordinary characters are copied. Each '%' conversion pulls the next value from the args array: pointers to LONG for %d, %u, %x and friends (32-bit default), pointers to two LONG words for %e, %f and %g DOUBLE values, and STRPTR for %s. Floating formats use mathieeedoubbas from the task mathbase set by SetupSTDIO; without mathbase, floating output is limited. Field width, precision, and justification flags follow the usual printf rules.
+	Writes formatted output to the task's stdout stream. Client code calls
+	printf with C varargs; #pragma tagcall loads A1 with the address of the
+	first stack argument. The LVO body treats that pointer as a RawDoFmt-style
+	arg array (same as vprintf). Ordinary characters are copied. Each '%'
+	conversion pulls the next value from the args array: LONG for %d, %u, %x
+	and friends (32-bit default), two LONG words for %e, %f and %g DOUBLE
+	values, and STRPTR for %s. Floating formats use mathieeedoubbas from the
+	task mathbase set by SetupSTDIO; without mathbase, floating output is
+	limited. Field width, precision, and justification flags follow the usual
+	printf rules. Prefer vprintf when you already have an APTR arg block.
 
    INPUTS
 	STRPTR format - output format string.
-	APTR args - pointer to an array of argument pointers.
+	... - conversion arguments (tagcall packs &first into A1).
 
    RESULT
 	LONG - number of characters written, or -1 on error.
@@ -1696,17 +1707,23 @@ cclib.library/fprintf                                    cclib.library/fprintf
 	fprintf -- write formatted output to a stream
 
    SYNOPSIS
-	LONG fprintf(APTR stream, STRPTR format, APTR args);
+	LONG fprintf(APTR stream, STRPTR format, ...);
 
-	Registers: a0=stream, a1=format, a2=args
+	Registers (tagcall): a0=stream, a1=format, a2=&first stack arg
 
    FUNCTION
-	Like printf but writes to the specified FILE stream. The LVO passes stream, format, and an APTR args array (RawDoFmt style). Each conversion consumes the next entry from args: LONG pointers for integers (32-bit by default, %h short, %ld long), two LONG words per DOUBLE for %e/%f/%g (requires SetupSTDIO mathbase), and strings for %s. Returns the number of characters written to the stream buffer (which may be flushed later).
+	Like printf but writes to the specified FILE stream. Client code uses C
+	varargs; #pragma tagcall loads A2 with &first stack arg. The LVO body is
+	identical to vfprintf (APTR arg array). Each conversion consumes the next
+	entry: LONG for integers (32-bit by default, %h short, %ld long), two LONG
+	words per DOUBLE for %e/%f/%g (requires SetupSTDIO mathbase), and strings
+	for %s. Returns the number of characters written to the stream buffer
+	(which may be flushed later). Prefer vfprintf for an explicit APTR block.
 
    INPUTS
 	APTR stream - destination FILE pointer.
 	STRPTR format - output format string.
-	APTR args - pointer to an array of argument pointers.
+	... - conversion arguments (tagcall packs &first into A2).
 
    RESULT
 	LONG - characters written, or -1 on error.
@@ -1746,17 +1763,23 @@ cclib.library/sprintf                                    cclib.library/sprintf
 	sprintf -- write formatted output to a string
 
    SYNOPSIS
-	LONG sprintf(STRPTR s, STRPTR format, APTR args);
+	LONG sprintf(STRPTR s, STRPTR format, ...);
 
-	Registers: a0=s, a1=format, a2=args
+	Registers (tagcall): a0=s, a1=format, a2=&first stack arg
 
    FUNCTION
-	Formats output into a caller-supplied character buffer and appends a NUL terminator. The LVO takes the destination buffer, format string, and APTR args array (RawDoFmt style). Conversions follow printf rules: LONG pointers for integers (32-bit default, %h short, %ld long), two LONG words per DOUBLE for %e/%f/%g using mathieeedoubbas when mathbase is set. The returned count excludes the terminating NUL.
+	Formats output into a caller-supplied character buffer and appends a NUL
+	terminator. Client code uses C varargs; #pragma tagcall loads A2 with
+	&first stack arg. The LVO body matches vsprintf. Conversions follow printf
+	rules: LONG for integers (32-bit default, %h short, %ld long), two LONG
+	words per DOUBLE for %e/%f/%g using mathieeedoubbas when mathbase is set.
+	The returned count excludes the terminating NUL. Prefer vsprintf when you
+	already have an APTR arg block (for example library-internal callers).
 
    INPUTS
 	STRPTR s - destination buffer; must be large enough for output plus NUL.
 	STRPTR format - output format string.
-	APTR args - pointer to an array of argument pointers.
+	... - conversion arguments (tagcall packs &first into A2).
 
    RESULT
 	LONG - number of characters written excluding the NUL terminator, or -1 on error.

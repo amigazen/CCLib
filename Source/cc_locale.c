@@ -361,6 +361,174 @@ cc_strcoll(cc_task_UserData *ud, STRPTR s1, STRPTR s2)
 	return (LONG)(UBYTE)*s1 - (LONG)(UBYTE)*s2;
 }
 
+/* ---- Wave 5–6: ctype via table or locale.library Is* ---------------- */
+
+/* Same bit masks as ctype.h / cc_ctype_tab. */
+#define CC_CT_U 0x01
+#define CC_CT_L 0x02
+#define CC_CT_D 0x04
+#define CC_CT_X 0x08
+#define CC_CT_S 0x10
+#define CC_CT_C 0x20
+#define CC_CT_P 0x40
+#define CC_CT_ALNUM (CC_CT_U | CC_CT_L | CC_CT_D)
+#define CC_CT_ALPHA (CC_CT_U | CC_CT_L)
+/* Historic ctype.h masks: print includes high bit used for space. */
+#define CC_CT_PRINT 0xc7
+#define CC_CT_GRAPH 0x47
+
+static LONG
+cc_ctype_use_locale(cc_task_UserData *ud)
+{
+	if (ud == (cc_task_UserData *)NULL)
+		return 0L;
+	if ((ud->lc_mask & CC_LC_CTYPE) == 0UL)
+		return 0L;
+	if (ud->locale == (APTR)NULL)
+		return 0L;
+	if (LocaleBase == (struct LocaleBase *)NULL)
+		return 0L;
+	return 1L;
+}
+
+static LONG
+cc_ctype_tab_test(LONG c, UBYTE mask)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	return (cc_ctype_tab[(ULONG)c + 1UL] & mask) ? 1L : 0L;
+}
+
+LONG
+cc_isalnum_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsAlNum((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_ALNUM);
+}
+
+LONG
+cc_isalpha_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsAlpha((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_ALPHA);
+}
+
+LONG
+cc_iscntrl_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsCntrl((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_C);
+}
+
+LONG
+cc_isdigit_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsDigit((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_D);
+}
+
+LONG
+cc_isgraph_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsGraph((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_GRAPH);
+}
+
+LONG
+cc_islower_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsLower((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_L);
+}
+
+LONG
+cc_isprint_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsPrint((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_PRINT);
+}
+
+LONG
+cc_ispunct_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsPunct((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_P);
+}
+
+LONG
+cc_isspace_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsSpace((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_S);
+}
+
+LONG
+cc_isupper_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsUpper((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_U);
+}
+
+LONG
+cc_isxdigit_ch(cc_task_UserData *ud, LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (cc_ctype_use_locale(ud))
+		return IsXDigit((struct Locale *)ud->locale, (ULONG)c) ? 1L : 0L;
+	return cc_ctype_tab_test(c, (UBYTE)CC_CT_X);
+}
+
+LONG
+cc_isblank_ch(cc_task_UserData *ud, LONG c)
+{
+	/* No IsBlank in locale.library — space/tab only (C99). */
+	(void)ud;
+	if (c < 0L || c > 255L)
+		return 0L;
+	if (c == (LONG)' ' || c == (LONG)'\t')
+		return 1L;
+	return 0L;
+}
+
+LONG
+cc_isascii_ch(LONG c)
+{
+	if (c < 0L || c > 255L)
+		return 0L;
+	return (c & 0x80L) ? 0L : 1L;
+}
+
 STRPTR __ASM__ __SAVE_DS__ setlocale(
 	__REG__(d0, LONG category),
 	__REG__(a0, STRPTR name))

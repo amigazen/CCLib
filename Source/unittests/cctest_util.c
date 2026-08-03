@@ -57,7 +57,7 @@ ct_out(STRPTR fmt, APTR args)
 		dummy[0] = 0;
 		args = (APTR)dummy;
 	}
-	fprintf(stdout, fmt, args);
+	vfprintf(stdout, fmt, args);
 	fflush(stdout);
 }
 
@@ -183,12 +183,9 @@ ct_check_long(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 {
 	char ebuf[96];
 	char abuf[96];
-	LONG av[1];
 
-	av[0] = expected;
-	sprintf(ebuf, (STRPTR)"signed long integer %ld", (APTR)av);
-	av[0] = actual;
-	sprintf(abuf, (STRPTR)"signed long integer %ld", (APTR)av);
+	sprintf(ebuf, (STRPTR)"signed long integer %ld", expected);
+	sprintf(abuf, (STRPTR)"signed long integer %ld", actual);
 	ct_check(group, name, ctcall, desc, ebuf, abuf,
 		(expected == actual) ? 1L : 0L);
 }
@@ -199,12 +196,9 @@ ct_check_ulong(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 {
 	char ebuf[96];
 	char abuf[96];
-	LONG av[1];
 
-	av[0] = (LONG)expected;
-	sprintf(ebuf, (STRPTR)"unsigned long integer %lu", (APTR)av);
-	av[0] = (LONG)actual;
-	sprintf(abuf, (STRPTR)"unsigned long integer %lu", (APTR)av);
+	sprintf(ebuf, (STRPTR)"unsigned long integer %lu", (ULONG)expected);
+	sprintf(abuf, (STRPTR)"unsigned long integer %lu", (ULONG)actual);
 	ct_check(group, name, ctcall, desc, ebuf, abuf,
 		(expected == actual) ? 1L : 0L);
 }
@@ -215,7 +209,6 @@ ct_check_string(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 {
 	char ebuf[160];
 	char abuf[160];
-	LONG av[1];
 	STRPTR e;
 	STRPTR a;
 	LONG pass;
@@ -227,10 +220,8 @@ ct_check_string(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	if (a == (STRPTR)NULL)
 		a = (STRPTR)"(null)";
 
-	av[0] = (LONG)e;
-	sprintf(ebuf, (STRPTR)"NUL-terminated string \"%s\"", (APTR)av);
-	av[0] = (LONG)a;
-	sprintf(abuf, (STRPTR)"NUL-terminated string \"%s\"", (APTR)av);
+	sprintf(ebuf, (STRPTR)"NUL-terminated string \"%s\"", e);
+	sprintf(abuf, (STRPTR)"NUL-terminated string \"%s\"", a);
 
 	pass = 0;
 	if (expected != (STRPTR)NULL && actual != (STRPTR)NULL
@@ -271,7 +262,6 @@ ct_check_ptr_nonnull(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	APTR p)
 {
 	char abuf[48];
-	LONG av[1];
 
 	if (p == (APTR)NULL)
 	{
@@ -282,8 +272,7 @@ ct_check_ptr_nonnull(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	}
 	else
 	{
-		av[0] = (LONG)p;
-		sprintf(abuf, (STRPTR)"non-NULL pointer 0x%08lx", (APTR)av);
+		sprintf(abuf, (STRPTR)"non-NULL pointer 0x%08lx", (ULONG)p);
 		ct_check(group, name, ctcall, desc,
 			(STRPTR)"a non-NULL pointer (allocation or lookup succeeded)",
 			abuf, 1L);
@@ -295,7 +284,6 @@ ct_check_ptr_null(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	APTR p)
 {
 	char abuf[48];
-	LONG av[1];
 
 	if (p == (APTR)NULL)
 	{
@@ -306,10 +294,9 @@ ct_check_ptr_null(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	}
 	else
 	{
-		av[0] = (LONG)p;
 		sprintf(abuf,
 			(STRPTR)"non-NULL pointer 0x%08lx (expected NULL)",
-			(APTR)av);
+			(ULONG)p);
 		ct_check(group, name, ctcall, desc,
 			(STRPTR)"NULL pointer (not found / empty result)",
 			abuf, 0L);
@@ -322,12 +309,9 @@ ct_check_ptr_eq(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 {
 	char ebuf[48];
 	char abuf[48];
-	LONG av[1];
 
-	av[0] = (LONG)expected;
-	sprintf(ebuf, (STRPTR)"pointer value 0x%08lx", (APTR)av);
-	av[0] = (LONG)actual;
-	sprintf(abuf, (STRPTR)"pointer value 0x%08lx", (APTR)av);
+	sprintf(ebuf, (STRPTR)"pointer value 0x%08lx", (ULONG)expected);
+	sprintf(abuf, (STRPTR)"pointer value 0x%08lx", (ULONG)actual);
 	ct_check(group, name, ctcall, desc, ebuf, abuf,
 		(expected == actual) ? 1L : 0L);
 }

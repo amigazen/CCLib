@@ -170,4 +170,43 @@ ULONG __strxfrm(__reg("a6") void *, __reg("a0") STRPTR dest, __reg("a1") STRPTR 
 STRPTR __strptime(__reg("a6") void *, __reg("a0") STRPTR s, __reg("a1") STRPTR format, __reg("a2") APTR tm)="\tjsr\t-1212(a6)";
 #define strptime(s, format, tm) __strptime(CCLibBase, (s), (format), (tm))
 
+LONG __isalnum(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1218(a6)";
+#define isalnum(c) __isalnum(CCLibBase, (c))
+
+LONG __isalpha(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1224(a6)";
+#define isalpha(c) __isalpha(CCLibBase, (c))
+
+LONG __iscntrl(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1230(a6)";
+#define iscntrl(c) __iscntrl(CCLibBase, (c))
+
+LONG __isdigit(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1236(a6)";
+#define isdigit(c) __isdigit(CCLibBase, (c))
+
+LONG __isgraph(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1242(a6)";
+#define isgraph(c) __isgraph(CCLibBase, (c))
+
+LONG __islower(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1248(a6)";
+#define islower(c) __islower(CCLibBase, (c))
+
+LONG __isprint(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1254(a6)";
+#define isprint(c) __isprint(CCLibBase, (c))
+
+LONG __ispunct(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1260(a6)";
+#define ispunct(c) __ispunct(CCLibBase, (c))
+
+LONG __isspace(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1266(a6)";
+#define isspace(c) __isspace(CCLibBase, (c))
+
+LONG __isupper(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1272(a6)";
+#define isupper(c) __isupper(CCLibBase, (c))
+
+LONG __isxdigit(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1278(a6)";
+#define isxdigit(c) __isxdigit(CCLibBase, (c))
+
+LONG __isblank(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1284(a6)";
+#define isblank(c) __isblank(CCLibBase, (c))
+
+LONG __isascii(__reg("a6") void *, __reg("d0") LONG c)="\tjsr\t-1290(a6)";
+#define isascii(c) __isascii(CCLibBase, (c))
+
 #endif /* INLINE_CCLIB_PROTOS_H */

@@ -1,10 +1,11 @@
 /*
- * cctest_ctype.c - toupper / tolower
+ * cctest_ctype.c - toupper / tolower / is* LVOs
  */
 
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#define CC_CTYPE_FUNCS 1
 #include <ctype.h>
 #include "cctest_util.h"
 
@@ -14,11 +15,11 @@ ct_suite_ctype(void)
 	LONG c;
 	LONG r;
 	LONG i;
-	LONG av[1];
 	char nbuf[24];
 	STRPTR name;
 
-	ct_suite_begin((STRPTR)"ctype", (STRPTR)"toupper / tolower / isblank");
+	ct_suite_begin((STRPTR)"ctype",
+		(STRPTR)"toupper / tolower / is* LVOs");
 
 	ct_check_true((STRPTR)"ctype", (STRPTR)"isblank_space",
 		(STRPTR)"isblank(' ')",
@@ -36,6 +37,31 @@ ct_suite_ctype(void)
 		(STRPTR)"!isblank('a')",
 		(STRPTR)"isblank must be false for letters",
 		isblank('a') == 0);
+
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isalpha_a",
+		(STRPTR)"isalpha('a')",
+		(STRPTR)"isalpha LVO must be true for 'a' in \"C\"",
+		isalpha((LONG)'a') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isdigit_5",
+		(STRPTR)"isdigit('5')",
+		(STRPTR)"isdigit LVO must be true for '5'",
+		isdigit((LONG)'5') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isdigit_a_false",
+		(STRPTR)"!isdigit('a')",
+		(STRPTR)"isdigit LVO must be false for letters",
+		isdigit((LONG)'a') == 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isspace_space",
+		(STRPTR)"isspace(' ')",
+		(STRPTR)"isspace LVO must be true for space",
+		isspace((LONG)' ') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isascii_A",
+		(STRPTR)"isascii('A')",
+		(STRPTR)"isascii LVO must be true for 7-bit 'A'",
+		isascii((LONG)'A') != 0);
+	ct_check_true((STRPTR)"ctype", (STRPTR)"isascii_eof_false",
+		(STRPTR)"!isascii(-1)",
+		(STRPTR)"isascii/is* LVOs must treat EOF as false",
+		isascii(-1L) == 0 && isalpha(-1L) == 0);
 
 	c = 'a';
 	r = toupper(c);
@@ -127,11 +153,9 @@ ct_suite_ctype(void)
 		char callbuf[40];
 
 		c = 'a' + i;
-		av[0] = i;
-		sprintf(nbuf, (STRPTR)"toupper_lc_%ld", (APTR)av);
+		sprintf(nbuf, (STRPTR)"toupper_lc_%ld", i);
 		name = nbuf;
-		av[0] = c;
-		sprintf(callbuf, (STRPTR)"toupper('%c')", (APTR)av);
+		sprintf(callbuf, (STRPTR)"toupper('%c')", c);
 		r = toupper(c);
 		ct_check_long((STRPTR)"ctype", name, callbuf,
 			(STRPTR)"Each lowercase a-z must map to the matching uppercase A-Z",
@@ -145,11 +169,9 @@ ct_suite_ctype(void)
 		char callbuf[40];
 
 		c = 'A' + i;
-		av[0] = i;
-		sprintf(nbuf, (STRPTR)"tolower_uc_%ld", (APTR)av);
+		sprintf(nbuf, (STRPTR)"tolower_uc_%ld", i);
 		name = nbuf;
-		av[0] = c;
-		sprintf(callbuf, (STRPTR)"tolower('%c')", (APTR)av);
+		sprintf(callbuf, (STRPTR)"tolower('%c')", c);
 		r = tolower(c);
 		ct_check_long((STRPTR)"ctype", name, callbuf,
 			(STRPTR)"Each uppercase A-Z must map to the matching lowercase a-z",

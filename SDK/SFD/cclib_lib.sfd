@@ -90,12 +90,20 @@ LONG fputs(STRPTR s, APTR stream) (a0,a1)
 *
 * Formatted I/O (-312 .. -342)
 *
+* scanf/fscanf/sscanf remain APTR arg-block LVOs.
+* printf/fprintf/sprintf: same historic biases as V3; client convention is
+* C varargs via #pragma tagcall (last address reg = &first stack arg).
+* LVO bodies still receive that pointer as APTR. These are NOT ==varargs
+* aliases of vprintf/vfprintf/vsprintf — V3 kept separate biases for the
+* explicit APTR forms (-738 .. -750). Prefer v* when you already have an
+* arg array (e.g. library-internal RawDoFmt-style blocks).
+*
 LONG scanf(STRPTR format, APTR args) (a0,a1)
-LONG printf(STRPTR format, APTR args) (a0,a1)
+LONG printf(STRPTR format, ...) (a0,a1)
 LONG fscanf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
-LONG fprintf(APTR stream, STRPTR format, APTR args) (a0,a1,a2)
+LONG fprintf(APTR stream, STRPTR format, ...) (a0,a1,a2)
 LONG sscanf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
-LONG sprintf(STRPTR s, STRPTR format, APTR args) (a0,a1,a2)
+LONG sprintf(STRPTR s, STRPTR format, ...) (a0,a1,a2)
 *
 * Heap / allocation (-348 .. -420)
 *
@@ -303,4 +311,19 @@ APTR localeconv() ()
 LONG strcoll(STRPTR s1, STRPTR s2) (a0,a1)
 ULONG strxfrm(STRPTR dest, STRPTR src, ULONG n) (a0,a1,d0)
 STRPTR strptime(STRPTR s, STRPTR format, APTR tm) (a0,a1,a2)
+*
+* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE)
+LONG isalnum(LONG c) (d0)
+LONG isalpha(LONG c) (d0)
+LONG iscntrl(LONG c) (d0)
+LONG isdigit(LONG c) (d0)
+LONG isgraph(LONG c) (d0)
+LONG islower(LONG c) (d0)
+LONG isprint(LONG c) (d0)
+LONG ispunct(LONG c) (d0)
+LONG isspace(LONG c) (d0)
+LONG isupper(LONG c) (d0)
+LONG isxdigit(LONG c) (d0)
+LONG isblank(LONG c) (d0)
+LONG isascii(LONG c) (d0)
 ==end

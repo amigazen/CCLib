@@ -13,11 +13,6 @@ ct_suite_conv(void)
 	char buf[40];
 	char buf2[40];
 	DOUBLE d;
-	union {
-		DOUBLE d;
-		ULONG w[2];
-	} u;
-	LONG fav[2];
 	LONG n;
 	LONG v;
 	LONG parsed;
@@ -312,10 +307,7 @@ ct_suite_conv(void)
 
 	/* --- atof with sprintf roundtrips --- */
 	d = atof((STRPTR)"0");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_zero",
 		(STRPTR)"sprintf(\"%%.1f\", atof(\"0\"))",
@@ -324,10 +316,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"1");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_one",
 		(STRPTR)"sprintf(\"%%.1f\", atof(\"1\"))",
@@ -336,10 +325,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"-1");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_neg_one",
 		(STRPTR)"sprintf(\"%%.1f\", atof(\"-1\"))",
@@ -348,10 +334,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"12.5");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	n = sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	n = sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_true((STRPTR)"conv", (STRPTR)"atof_12_5_len",
 		(STRPTR)"sprintf length for atof(\"12.5\")",
 		(STRPTR)"sprintf of atof(\"12.5\") with %.1f must produce a non-empty string",
@@ -364,10 +347,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"-3.25");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.2f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.2f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_neg_frac",
 		(STRPTR)"sprintf(\"%%.2f\", atof(\"-3.25\"))",
@@ -376,10 +356,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"1e3");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.0f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.0f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_scientific",
 		(STRPTR)"sprintf(\"%%.0f\", atof(\"1e3\"))",
@@ -388,10 +365,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"0.5");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_half",
 		(STRPTR)"sprintf(\"%%.1f\", atof(\"0.5\"))",
@@ -400,10 +374,7 @@ ct_suite_conv(void)
 		buf);
 
 	d = atof((STRPTR)"0.5");
-	u.d = d;
-	fav[0] = (LONG)u.w[0];
-	fav[1] = (LONG)u.w[1];
-	sprintf(buf, (STRPTR)"%.2f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.2f", d);
 	ct_check_string((STRPTR)"conv",
 		(STRPTR)"atof_half_two_digits",
 		(STRPTR)"sprintf(\"%%.2f\", atof(\"0.5\"))",

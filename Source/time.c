@@ -165,7 +165,7 @@ STRPTR __ASM__ __SAVE_DS__ asctime(
 		mon = 0;
 	year = (LONG)t->tm_year + 1900L;
 
-	/* "Sun Jan 1 12:00:00 1989\n" — args array for RawDoFmt via sprintf */
+	/* "Sun Jan 1 12:00:00 1989\n" — APTR arg block via vsprintf (not tagcall) */
 	args[0] = (APTR)cc_wday_abbr[wday];
 	args[1] = (APTR)cc_mon_abbr[mon];
 	args[2] = (APTR)(LONG)t->tm_mday;
@@ -173,7 +173,7 @@ STRPTR __ASM__ __SAVE_DS__ asctime(
 	args[4] = (APTR)(LONG)t->tm_min;
 	args[5] = (APTR)(LONG)t->tm_sec;
 	args[6] = (APTR)year;
-	sprintf(ud->buffer, (STRPTR)"%s %s %2ld %02ld:%02ld:%02ld %ld\n", (APTR)args);
+	vsprintf(ud->buffer, (STRPTR)"%s %s %2ld %02ld:%02ld:%02ld %ld\n", (APTR)args);
 	return ud->buffer;
 }
 

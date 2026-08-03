@@ -246,6 +246,19 @@ APTR FuncTab[] = {
 	(APTR)strcoll,
 	(APTR)strxfrm,
 	(APTR)strptime,
+	(APTR)isalnum,
+	(APTR)isalpha,
+	(APTR)iscntrl,
+	(APTR)isdigit,
+	(APTR)isgraph,
+	(APTR)islower,
+	(APTR)isprint,
+	(APTR)ispunct,
+	(APTR)isspace,
+	(APTR)isupper,
+	(APTR)isxdigit,
+	(APTR)isblank,
+	(APTR)isascii,
 	(APTR)((LONG)-1)
 };
 

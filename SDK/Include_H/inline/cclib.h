@@ -527,15 +527,14 @@
 	r;   \
 })
 
-#define printf(format, args)    \
+/* printf/fprintf/sprintf: C varargs → arg array → v* (same bias as LVO) */
+#ifndef NO_INLINE_STDARG
+#define printf(format, vargs...)    \
 ({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register STRPTR p0 __asm("a0") = (format);   \
-	register APTR p1 __asm("a1") = (args);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-318:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
+	ULONG _argarray[] = { vargs };   \
+	vprintf((format), _argarray);   \
 })
+#endif
 
 #define fscanf(stream, format, args)    \
 ({  \
@@ -548,16 +547,13 @@
 	r;   \
 })
 
-#define fprintf(stream, format, args)    \
+#ifndef NO_INLINE_STDARG
+#define fprintf(stream, format, vargs...)    \
 ({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register APTR p0 __asm("a0") = (stream);   \
-	register STRPTR p1 __asm("a1") = (format);   \
-	register APTR p2 __asm("a2") = (args);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-330:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
+	ULONG _argarray[] = { vargs };   \
+	vfprintf((stream), (format), _argarray);   \
 })
+#endif
 
 #define sscanf(s, format, args)    \
 ({  \
@@ -570,16 +566,13 @@
 	r;   \
 })
 
-#define sprintf(s, format, args)    \
+#ifndef NO_INLINE_STDARG
+#define sprintf(s, format, vargs...)    \
 ({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register STRPTR p0 __asm("a0") = (s);   \
-	register STRPTR p1 __asm("a1") = (format);   \
-	register APTR p2 __asm("a2") = (args);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-342:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
+	ULONG _argarray[] = { vargs };   \
+	vsprintf((s), (format), _argarray);   \
 })
+#endif
 
 
 /* Heap / allocation (-348 .. -420) */
@@ -2083,3 +2076,133 @@
 
 
 #endif /* INLINE_CCLIB_H */
+
+#define isalnum(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1218:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isalpha(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1224:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define iscntrl(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1230:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isdigit(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1236:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isgraph(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1242:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define islower(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1248:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isprint(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1254:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define ispunct(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1260:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isspace(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1266:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isupper(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1272:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isxdigit(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1278:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isblank(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1284:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
+#define isascii(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register LONG p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1290:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+

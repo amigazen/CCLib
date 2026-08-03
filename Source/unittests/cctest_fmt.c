@@ -14,7 +14,6 @@ ct_suite_fmt(void)
 	char sbuf[64];
 	char cbuf[8];
 	LONG av[8];
-	LONG fav[4];
 	APTR args[8];
 	LONG n;
 	LONG v;
@@ -22,15 +21,11 @@ ct_suite_fmt(void)
 	LONG v3;
 	ULONG uv;
 	DOUBLE d;
-	union {
-		DOUBLE d;
-		ULONG w[2];
-	} fu;
 
 	ct_suite_begin((STRPTR)"fmt", (STRPTR)"sprintf / snprintf / sscanf");
 
 	buf[0] = '\0';
-	n = sprintf(buf, (STRPTR)"", (APTR)av);
+	n = sprintf(buf, (STRPTR)"");
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_empty_len",
 		(STRPTR)"sprintf with empty format",
 		(STRPTR)"sprintf with empty format must return 0",
@@ -43,7 +38,7 @@ ct_suite_fmt(void)
 		buf);
 
 	strcpy(buf, (STRPTR)"xy");
-	n = sprintf(buf, (STRPTR)"literal", (APTR)av);
+	n = sprintf(buf, (STRPTR)"literal");
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_literal",
 		(STRPTR)"sprintf with literal-only format",
@@ -55,8 +50,7 @@ ct_suite_fmt(void)
 		(STRPTR)"sprintf literal must return length 7",
 		7, n);
 
-	av[0] = 7;
-	n = sprintf(buf, (STRPTR)"n=%ld", (APTR)av);
+	n = sprintf(buf, (STRPTR)"n=%ld", 7);
 	ct_check_true((STRPTR)"fmt", (STRPTR)"sprintf_ld_len",
 		(STRPTR)"sprintf(\"n=%%ld\", 7)",
 		(STRPTR)"sprintf(\"n=%%ld\", 7) must return a positive length",
@@ -68,8 +62,7 @@ ct_suite_fmt(void)
 		(STRPTR)"n=7",
 		buf);
 
-	av[0] = -123;
-	sprintf(buf, (STRPTR)"%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%ld", -123);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_ld_neg",
 		(STRPTR)"sprintf %%ld",
@@ -77,8 +70,7 @@ ct_suite_fmt(void)
 		(STRPTR)"-123",
 		buf);
 
-	av[0] = 0;
-	sprintf(buf, (STRPTR)"%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%ld", 0);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_ld_zero",
 		(STRPTR)"sprintf %%ld of zero",
@@ -86,8 +78,7 @@ ct_suite_fmt(void)
 		(STRPTR)"0",
 		buf);
 
-	av[0] = 456;
-	sprintf(buf, (STRPTR)"%d", (APTR)av);
+	sprintf(buf, (STRPTR)"%d", 456);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_d",
 		(STRPTR)"sprintf with %%d",
@@ -95,8 +86,7 @@ ct_suite_fmt(void)
 		(STRPTR)"456",
 		buf);
 
-	av[0] = -9;
-	sprintf(buf, (STRPTR)"%d", (APTR)av);
+	sprintf(buf, (STRPTR)"%d", -9);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_d_neg",
 		(STRPTR)"sprintf with %%d",
@@ -104,8 +94,7 @@ ct_suite_fmt(void)
 		(STRPTR)"-9",
 		buf);
 
-	av[0] = (LONG)"world";
-	sprintf(buf, (STRPTR)"hello %s", (APTR)av);
+	sprintf(buf, (STRPTR)"hello %s", (STRPTR)"world");
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_s",
 		(STRPTR)"sprintf with %%s",
@@ -113,8 +102,7 @@ ct_suite_fmt(void)
 		(STRPTR)"hello world",
 		buf);
 
-	av[0] = (LONG)"ab";
-	sprintf(buf, (STRPTR)"|%5s|", (APTR)av);
+	sprintf(buf, (STRPTR)"|%5s|", (STRPTR)"ab");
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_s_width",
 		(STRPTR)"sprintf %%5s",
@@ -122,8 +110,7 @@ ct_suite_fmt(void)
 		(STRPTR)"|   ab|",
 		buf);
 
-	av[0] = (LONG)"ab";
-	sprintf(buf, (STRPTR)"|%-5s|", (APTR)av);
+	sprintf(buf, (STRPTR)"|%-5s|", (STRPTR)"ab");
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_s_left",
 		(STRPTR)"sprintf %%-5s",
@@ -131,8 +118,7 @@ ct_suite_fmt(void)
 		(STRPTR)"|ab   |",
 		buf);
 
-	av[0] = (LONG)'Q';
-	sprintf(buf, (STRPTR)"%c", (APTR)av);
+	sprintf(buf, (STRPTR)"%c", (LONG)'Q');
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_c",
 		(STRPTR)"sprintf with %%c",
@@ -140,8 +126,7 @@ ct_suite_fmt(void)
 		(STRPTR)"Q",
 		buf);
 
-	av[0] = 255;
-	sprintf(buf, (STRPTR)"%x", (APTR)av);
+	sprintf(buf, (STRPTR)"%x", 255);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_x",
 		(STRPTR)"sprintf with %%x",
@@ -149,8 +134,7 @@ ct_suite_fmt(void)
 		(STRPTR)"ff",
 		buf);
 
-	av[0] = 255;
-	sprintf(buf, (STRPTR)"%X", (APTR)av);
+	sprintf(buf, (STRPTR)"%X", 255);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_X",
 		(STRPTR)"sprintf with %%X",
@@ -158,8 +142,7 @@ ct_suite_fmt(void)
 		(STRPTR)"FF",
 		buf);
 
-	av[0] = 8;
-	sprintf(buf, (STRPTR)"%o", (APTR)av);
+	sprintf(buf, (STRPTR)"%o", 8);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_o",
 		(STRPTR)"sprintf with %%o",
@@ -167,8 +150,7 @@ ct_suite_fmt(void)
 		(STRPTR)"10",
 		buf);
 
-	av[0] = 42;
-	sprintf(buf, (STRPTR)"%u", (APTR)av);
+	sprintf(buf, (STRPTR)"%u", 42);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_u",
 		(STRPTR)"sprintf with %%u",
@@ -176,8 +158,7 @@ ct_suite_fmt(void)
 		(STRPTR)"42",
 		buf);
 
-	av[0] = 42;
-	sprintf(buf, (STRPTR)"|%5ld|", (APTR)av);
+	sprintf(buf, (STRPTR)"|%5ld|", 42);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_width",
 		(STRPTR)"sprintf with width 5",
@@ -185,8 +166,7 @@ ct_suite_fmt(void)
 		(STRPTR)"|   42|",
 		buf);
 
-	av[0] = 42;
-	sprintf(buf, (STRPTR)"|%-5ld|", (APTR)av);
+	sprintf(buf, (STRPTR)"|%-5ld|", 42);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_left",
 		(STRPTR)"sprintf with %%-5ld",
@@ -194,8 +174,7 @@ ct_suite_fmt(void)
 		(STRPTR)"|42   |",
 		buf);
 
-	av[0] = 7;
-	sprintf(buf, (STRPTR)"%05ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%05ld", 7);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_zpad",
 		(STRPTR)"sprintf %%05ld",
@@ -203,9 +182,7 @@ ct_suite_fmt(void)
 		(STRPTR)"00007",
 		buf);
 
-	av[0] = 3;
-	av[1] = 4;
-	sprintf(buf, (STRPTR)"%ld+%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%ld+%ld", 3, 4);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_two_args",
 		(STRPTR)"sprintf",
@@ -213,10 +190,7 @@ ct_suite_fmt(void)
 		(STRPTR)"3+4",
 		buf);
 
-	av[0] = 1;
-	av[1] = 2;
-	av[2] = 3;
-	sprintf(buf, (STRPTR)"%ld/%ld/%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%ld/%ld/%ld", 1, 2, 3);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_three_args",
 		(STRPTR)"sprintf",
@@ -224,9 +198,7 @@ ct_suite_fmt(void)
 		(STRPTR)"1/2/3",
 		buf);
 
-	av[0] = (LONG)"A";
-	av[1] = 99;
-	sprintf(buf, (STRPTR)"%s=%d", (APTR)av);
+	sprintf(buf, (STRPTR)"%s=%d", (STRPTR)"A", 99);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_mixed_args",
 		(STRPTR)"sprintf",
@@ -234,7 +206,7 @@ ct_suite_fmt(void)
 		(STRPTR)"A=99",
 		buf);
 
-	sprintf(buf, (STRPTR)"100%% done", (APTR)av);
+	sprintf(buf, (STRPTR)"100%% done");
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_percent",
 		(STRPTR)"%%%% in the format",
@@ -255,7 +227,7 @@ ct_suite_fmt(void)
 		(STRPTR)"vsprintf must return the number of characters written",
 		n >= 5);
 
-	av[0] = (LONG)"ok";
+	av[0] = (LONG)(STRPTR)"ok";
 	av[1] = 5;
 	n = vsprintf(buf, (STRPTR)"%s:%ld", (APTR)av);
 	ct_check_string((STRPTR)"fmt",
@@ -485,10 +457,7 @@ ct_suite_fmt(void)
 		5, v);
 
 	d = atof((STRPTR)"1.5");
-	fu.d = d;
-	fav[0] = (LONG)fu.w[0];
-	fav[1] = (LONG)fu.w[1];
-	sprintf(buf, (STRPTR)"%.1f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.1f", d);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_f_1",
 		(STRPTR)"sprintf %%.1f of atof(\"1.5\")",
@@ -497,10 +466,7 @@ ct_suite_fmt(void)
 		buf);
 
 	d = atof((STRPTR)"-3.25");
-	fu.d = d;
-	fav[0] = (LONG)fu.w[0];
-	fav[1] = (LONG)fu.w[1];
-	sprintf(buf, (STRPTR)"%.2f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.2f", d);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_f_2",
 		(STRPTR)"sprintf %%.2f of atof(\"-3.25\")",
@@ -509,10 +475,7 @@ ct_suite_fmt(void)
 		buf);
 
 	d = atof((STRPTR)"1e3");
-	fu.d = d;
-	fav[0] = (LONG)fu.w[0];
-	fav[1] = (LONG)fu.w[1];
-	sprintf(buf, (STRPTR)"%.0f", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.0f", d);
 	ct_check_string((STRPTR)"fmt",
 		(STRPTR)"sprintf_f_0",
 		(STRPTR)"sprintf %%.0f of atof(\"1e3\")",
@@ -521,10 +484,7 @@ ct_suite_fmt(void)
 		buf);
 
 	d = atof((STRPTR)"12.5");
-	fu.d = d;
-	fav[0] = (LONG)fu.w[0];
-	fav[1] = (LONG)fu.w[1];
-	sprintf(buf, (STRPTR)"%.2e", (APTR)fav);
+	sprintf(buf, (STRPTR)"%.2e", d);
 	ct_check_true((STRPTR)"fmt", (STRPTR)"sprintf_e_nonempty",
 		(STRPTR)"sprintf %%.2e",
 		(STRPTR)"sprintf %%.2e must produce a non-empty scientific string",
@@ -535,8 +495,7 @@ ct_suite_fmt(void)
 		strchr(buf, (LONG)'e') != (STRPTR)NULL ||
 		strchr(buf, (LONG)'E') != (STRPTR)NULL);
 
-	av[0] = 98765;
-	sprintf(buf, (STRPTR)"%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"%ld", 98765);
 	v = 0;
 	args[0] = (APTR)&v;
 	n = sscanf(buf, (STRPTR)"%ld", (APTR)args);
@@ -549,8 +508,7 @@ ct_suite_fmt(void)
 		(STRPTR)"Round-tripped long must equal 98765",
 		98765, v);
 
-	av[0] = -4321;
-	sprintf(buf, (STRPTR)"%d", (APTR)av);
+	sprintf(buf, (STRPTR)"%d", -4321);
 	v = 0;
 	args[0] = (APTR)&v;
 	n = sscanf(buf, (STRPTR)"%d", (APTR)args);
@@ -563,8 +521,7 @@ ct_suite_fmt(void)
 		(STRPTR)"Round-tripped int must equal -4321",
 		-4321, v);
 
-	av[0] = 60000;
-	sprintf(buf, (STRPTR)"%u", (APTR)av);
+	sprintf(buf, (STRPTR)"%u", 60000);
 	uv = 0;
 	args[0] = (APTR)&uv;
 	n = sscanf(buf, (STRPTR)"%u", (APTR)args);
@@ -577,8 +534,7 @@ ct_suite_fmt(void)
 		(STRPTR)"Round-tripped unsigned must equal 60000",
 		(ULONG)60000, uv);
 
-	av[0] = 4095;
-	sprintf(buf, (STRPTR)"%x", (APTR)av);
+	sprintf(buf, (STRPTR)"%x", 4095);
 	v = 0;
 	args[0] = (APTR)&v;
 	n = sscanf(buf, (STRPTR)"%x", (APTR)args);
@@ -591,8 +547,7 @@ ct_suite_fmt(void)
 		(STRPTR)"Round-tripped hex must equal 4095",
 		4095, v);
 
-	av[0] = 1234;
-	sprintf(buf, (STRPTR)"val=%ld", (APTR)av);
+	sprintf(buf, (STRPTR)"val=%ld", 1234);
 	v = 0;
 	args[0] = (APTR)&v;
 	n = sscanf(buf, (STRPTR)"val=%ld", (APTR)args);

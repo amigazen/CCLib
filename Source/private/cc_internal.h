@@ -324,6 +324,21 @@ LONG cc_str_casecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
 LONG cc_str_ncasecmp(cc_task_UserData *ud, STRPTR s1, STRPTR s2, LONG n);
 LONG cc_strcoll(cc_task_UserData *ud, STRPTR s1, STRPTR s2);
 
+/* ctype classification: "C" table or locale.library Is* when LC_CTYPE. */
+LONG cc_isalnum_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isalpha_ch(cc_task_UserData *ud, LONG c);
+LONG cc_iscntrl_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isdigit_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isgraph_ch(cc_task_UserData *ud, LONG c);
+LONG cc_islower_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isprint_ch(cc_task_UserData *ud, LONG c);
+LONG cc_ispunct_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isspace_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isupper_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isxdigit_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isblank_ch(cc_task_UserData *ud, LONG c);
+LONG cc_isascii_ch(LONG c);
+
 /*
  * Locale-aware strftime via locale.library/FormatDate when LC_TIME is
  * active.  Returns 1 if the locale path was used (*out_len is the result

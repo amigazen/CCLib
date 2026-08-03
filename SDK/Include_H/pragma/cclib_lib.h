@@ -94,11 +94,11 @@
 /* Formatted I/O (-312 .. -342) */
 
 #pragma amicall(CCLibBase, 0x138, scanf(a0,a1))
-#pragma amicall(CCLibBase, 0x13E, printf(a0,a1))
+#pragma tagcall(CCLibBase, 0x13E, printf(a0,a1))
 #pragma amicall(CCLibBase, 0x144, fscanf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x14A, fprintf(a0,a1,a2))
+#pragma tagcall(CCLibBase, 0x14A, fprintf(a0,a1,a2))
 #pragma amicall(CCLibBase, 0x150, sscanf(a0,a1,a2))
-#pragma amicall(CCLibBase, 0x156, sprintf(a0,a1,a2))
+#pragma tagcall(CCLibBase, 0x156, sprintf(a0,a1,a2))
 
 /* Heap / allocation (-348 .. -420) */
 
@@ -304,5 +304,18 @@
 #pragma amicall(CCLibBase, 0x4B0, strcoll(a0,a1))
 #pragma amicall(CCLibBase, 0x4B6, strxfrm(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x4BC, strptime(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x4C2, isalnum(d0))
+#pragma amicall(CCLibBase, 0x4C8, isalpha(d0))
+#pragma amicall(CCLibBase, 0x4CE, iscntrl(d0))
+#pragma amicall(CCLibBase, 0x4D4, isdigit(d0))
+#pragma amicall(CCLibBase, 0x4DA, isgraph(d0))
+#pragma amicall(CCLibBase, 0x4E0, islower(d0))
+#pragma amicall(CCLibBase, 0x4E6, isprint(d0))
+#pragma amicall(CCLibBase, 0x4EC, ispunct(d0))
+#pragma amicall(CCLibBase, 0x4F2, isspace(d0))
+#pragma amicall(CCLibBase, 0x4F8, isupper(d0))
+#pragma amicall(CCLibBase, 0x4FE, isxdigit(d0))
+#pragma amicall(CCLibBase, 0x504, isblank(d0))
+#pragma amicall(CCLibBase, 0x50A, isascii(d0))
 
 #endif /* PRAGMA_CCLIB_LIB_H */

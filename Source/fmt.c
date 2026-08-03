@@ -433,6 +433,10 @@ LONG __ASM__ __SAVE_DS__ vsprintf(
 	return ctx.count;
 }
 
+/*
+ * Client tagcall puts &first stack vararg in A2; body is identical to
+ * vsprintf. Prefer vsprintf when the caller already has an APTR arg block.
+ */
 LONG __ASM__ __SAVE_DS__ sprintf(
 	__REG__(a0, STRPTR s),
 	__REG__(a1, STRPTR format),
@@ -505,6 +509,7 @@ LONG __ASM__ __SAVE_DS__ fprintf(
 	__REG__(a1, STRPTR format),
 	__REG__(a2, APTR args))
 {
+	/* Client tagcall: A2 = &first stack vararg. */
 	cc_check_break();
 	return vfprintf(stream, format, args);
 }
@@ -528,6 +533,7 @@ LONG __ASM__ __SAVE_DS__ printf(
 	__REG__(a0, STRPTR format),
 	__REG__(a1, APTR args))
 {
+	/* Client tagcall: A1 = &first stack vararg. */
 	cc_check_break();
 	return vprintf(format, args);
 }

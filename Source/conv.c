@@ -355,6 +355,97 @@ LONG __ASM__ __SAVE_DS__ tolower(
 	return cc_tolower_ch(cc_get_ud(), c);
 }
 
+LONG __ASM__ __SAVE_DS__ isalnum(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isalnum_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isalpha(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isalpha_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ iscntrl(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_iscntrl_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isdigit(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isdigit_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isgraph(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isgraph_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ islower(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_islower_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isprint(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isprint_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ ispunct(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_ispunct_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isspace(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isspace_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isupper(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isupper_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isxdigit(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isxdigit_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isblank(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isblank_ch(cc_get_ud(), c);
+}
+
+LONG __ASM__ __SAVE_DS__ isascii(
+	__REG__(d0, LONG c))
+{
+	cc_check_break();
+	return cc_isascii_ch(c);
+}
+
 /* Digit value for bases 2..36; -1 if not a digit in that base. */
 static LONG cc_digit_val(LONG ch, LONG base)
 {

@@ -864,4 +864,56 @@ STRPTR __ASM__ __SAVE_DS__ strptime(
 	__REG__(a2, APTR tm)
 );
 
+LONG __ASM__ __SAVE_DS__ isalnum(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isalpha(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iscntrl(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isdigit(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isgraph(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ islower(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isprint(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ ispunct(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isspace(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isupper(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isxdigit(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isblank(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ isascii(
+	__REG__(d0, LONG c)
+);
+
 #endif /* CCLIB_FUNCS_H */
