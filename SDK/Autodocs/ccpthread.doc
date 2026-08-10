@@ -1,0 +1,757 @@
+TABLE OF CONTENTS
+
+ccpthread.lib/--background--
+ccpthread.lib/pthread_attr_init
+ccpthread.lib/pthread_attr_destroy
+ccpthread.lib/pthread_attr_setdetachstate
+ccpthread.lib/pthread_attr_getdetachstate
+ccpthread.lib/pthread_attr_setstacksize
+ccpthread.lib/pthread_attr_getstacksize
+ccpthread.lib/pthread_create
+ccpthread.lib/pthread_join
+ccpthread.lib/pthread_detach
+ccpthread.lib/pthread_exit
+ccpthread.lib/pthread_self
+ccpthread.lib/pthread_equal
+ccpthread.lib/pthread_mutex_init
+ccpthread.lib/pthread_mutex_destroy
+ccpthread.lib/pthread_mutex_lock
+ccpthread.lib/pthread_mutex_trylock
+ccpthread.lib/pthread_mutex_timedlock
+ccpthread.lib/pthread_mutex_unlock
+ccpthread.lib/pthread_cond_init
+ccpthread.lib/pthread_cond_destroy
+ccpthread.lib/pthread_cond_wait
+ccpthread.lib/pthread_cond_timedwait
+ccpthread.lib/pthread_cond_signal
+ccpthread.lib/pthread_cond_broadcast
+ccpthread.lib/pthread_once
+ccpthread.lib/sem_init
+ccpthread.lib/sem_destroy
+ccpthread.lib/sem_wait
+ccpthread.lib/sem_trywait
+ccpthread.lib/sem_timedwait
+ccpthread.lib/sem_post
+ccpthread.lib/sem_getvalue
+
+ccpthread.lib/--background--                      ccpthread.lib/--background--
+
+    ccpthread.lib is a static companion to cclib.library: POSIX threads,
+    mutexes, condition variables, pthread_once, and unnamed POSIX
+    semaphores.  
+
+    Process model
+	Each pthread is an Amiga Process (CreateNewProc).  Parent and child
+	handshake through the child's MsgPort Signal bit.
+	Asm entry _cc_pthread_startup reloads A4 from _LinkerDB, then calls
+	_cc_thread_entry; workers return via rts (no dos Exit — no CLI).
+
+    CClib session
+	Workers call SetupSTDIO with FILE* slots on the ThreadPair so CRT
+	globals stdin/stdout/stderr (parent) are not overwritten.  Session
+	thr_ctx / thr_teardown run from ClearSTDIO.  Main ensures a
+	ThreadPair via thr_ctx when first using pthread_self / create.
+	Never leave a ThreadPair in tc_UserData across CClib LVOs.
+
+    Stdio
+	Workers inherit the parent's Input/Output (NP_Close* FALSE) so
+	printf goes to the same console.  Use printf / puts (session
+	stdout_p).  Do not pass CRT globals stdin/stdout/stderr into
+	fflush / fclose / etc. on a worker — those FILE* belong to the
+	parent session and will panic (code 20).  Avoid concurrent
+	printf/fflush from multiple threads on the shared console;
+	dos.library Write is not safely reentrant on one CON:.
+
+    Sync waits
+	Condition and semaphore waits use AllocSignal, not pr_MsgPort
+	(shared with DOS / create handshake).
+
+    Limits / not implemented
+	PTHREAD_THREADS_MAX 64, PTHREAD_STACK_MIN 8192.  No pthread_key_*,
+	rwlock, cancel (beyond abort/Ctrl-C RemTask), scheduling attrs,
+	named sem_open, or SysV semget/semop.  Mutex kind NORMAL rejects
+	same-task relock (EBUSY/EDEADLK); RECURSIVE uses Exec nest count.
+
+    SEE ALSO
+	pthread.h, semaphore.h, cclib.library/--background--
+
+ccpthread.lib/pthread_attr_init                ccpthread.lib/pthread_attr_init
+   NAME
+	pthread_attr_init -- initialize thread attributes
+
+   SYNOPSIS
+	int pthread_attr_init(pthread_attr_t *attr);
+
+   FUNCTION
+	Fills attr with defaults: joinable, stack size PTHREAD_STACK_MIN.
+
+   INPUTS
+	attr - attribute object to initialize
+
+   RESULT
+	0 on success, EINVAL if attr is NULL.
+
+   SEE ALSO
+	pthread_attr_destroy, pthread_create
+
+ccpthread.lib/pthread_attr_destroy          ccpthread.lib/pthread_attr_destroy
+   NAME
+	pthread_attr_destroy -- destroy thread attributes
+
+   SYNOPSIS
+	int pthread_attr_destroy(pthread_attr_t *attr);
+
+   FUNCTION
+	Marks the attribute object unused.  Safe to call after create.
+
+   INPUTS
+	attr - attribute object
+
+   RESULT
+	0 on success, EINVAL if attr is NULL.
+
+   SEE ALSO
+	pthread_attr_init
+
+ccpthread.lib/pthread_attr_setdetachstate
+				  ccpthread.lib/pthread_attr_setdetachstate
+   NAME
+	pthread_attr_setdetachstate -- joinable or detached create
+
+   SYNOPSIS
+	int pthread_attr_setdetachstate(pthread_attr_t *attr, int state);
+
+   FUNCTION
+	Sets PTHREAD_CREATE_JOINABLE (0) or PTHREAD_CREATE_DETACHED (1).
+	Detached threads free their ThreadPair when finished; joinable
+	threads require pthread_join (or detach later).
+
+   INPUTS
+	attr  - attribute object
+	state - PTHREAD_CREATE_JOINABLE or PTHREAD_CREATE_DETACHED
+
+   RESULT
+	0 on success, EINVAL on bad attr or state.
+
+   SEE ALSO
+	pthread_attr_getdetachstate, pthread_detach, pthread_join
+
+ccpthread.lib/pthread_attr_getdetachstate
+				  ccpthread.lib/pthread_attr_getdetachstate
+   NAME
+	pthread_attr_getdetachstate -- read detach state
+
+   SYNOPSIS
+	int pthread_attr_getdetachstate(const pthread_attr_t *attr,
+	    int *state);
+
+   FUNCTION
+	Stores the current detach state in *state.
+
+   INPUTS
+	attr  - attribute object
+	state - out: detach state
+
+   RESULT
+	0 on success, EINVAL if attr or state is NULL.
+
+   SEE ALSO
+	pthread_attr_setdetachstate
+
+ccpthread.lib/pthread_attr_setstacksize    ccpthread.lib/pthread_attr_setstacksize
+   NAME
+	pthread_attr_setstacksize -- set CreateNewProc stack size
+
+   SYNOPSIS
+	int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+
+   FUNCTION
+	Sets NP_StackSize for the worker Process.  Values below
+	PTHREAD_STACK_MIN are raised to the minimum at create time.
+
+   INPUTS
+	attr      - attribute object
+	stacksize - bytes of stack
+
+   RESULT
+	0 on success, EINVAL if attr is NULL.
+
+   SEE ALSO
+	pthread_attr_getstacksize, pthread_create
+
+ccpthread.lib/pthread_attr_getstacksize    ccpthread.lib/pthread_attr_getstacksize
+   NAME
+	pthread_attr_getstacksize -- read stack size attribute
+
+   SYNOPSIS
+	int pthread_attr_getstacksize(const pthread_attr_t *attr,
+	    size_t *stacksize);
+
+   FUNCTION
+	Stores the configured stack size in *stacksize.
+
+   INPUTS
+	attr      - attribute object
+	stacksize - out: stack size
+
+   RESULT
+	0 on success, EINVAL if attr or stacksize is NULL.
+
+   SEE ALSO
+	pthread_attr_setstacksize
+
+ccpthread.lib/pthread_create                      ccpthread.lib/pthread_create
+   NAME
+	pthread_create -- start a worker Process as a pthread
+
+   SYNOPSIS
+	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+	    void *(*start_routine)(void *), void *arg);
+
+   FUNCTION
+	Allocates a ThreadPair, CreateNewProc with entry
+	_cc_pthread_startup, inherits parent Input/Output, Signals the
+	child to run.  The worker clears the pair from tc_UserData,
+	SetupSTDIO, installs thr_ctx / abort, then calls start_routine.
+	On normal return or pthread_exit, ClearSTDIO runs and joiners
+	are Signal'd.  Abort / panic / Ctrl-C on the worker RemTask after
+	waking joiners (result PTHREAD_CANCELED).
+
+   INPUTS
+	thread        - out: new pthread_t id
+	attr          - optional attributes (NULL = joinable, min stack)
+	start_routine - thread entry
+	arg           - argument to start_routine
+
+   RESULT
+	0 on success.  EAGAIN if AllocMem / AllocSignal / CreateNewProc
+	fails.  EINVAL if thread or start_routine is NULL.
+
+   NOTES
+	Caller must already have an active CClib session (CRT SetupSTDIO).
+	start_routine near-BSS needs A4; the lib invokes via a __saveds
+	trampoline after SetupSTDIO (which leaves A4 trashed).
+
+   SEE ALSO
+	pthread_join, pthread_detach, pthread_exit, SetupSTDIO
+
+ccpthread.lib/pthread_join                          ccpthread.lib/pthread_join
+   NAME
+	pthread_join -- wait for a joinable thread to finish
+
+   SYNOPSIS
+	int pthread_join(pthread_t thread, void **retval);
+
+   FUNCTION
+	Blocks until the target ThreadPair sets finished, then optionally
+	stores the exit value in *retval and frees the pair.  Uses the
+	parent_sig allocated at create.
+
+   INPUTS
+	thread - id from pthread_create
+	retval - optional out: start_routine / pthread_exit value
+
+   RESULT
+	0 on success.  ESRCH if unknown id.  EINVAL if detached or
+	self-join.  EDEADLK if joining self.
+
+   SEE ALSO
+	pthread_create, pthread_detach, pthread_exit
+
+ccpthread.lib/pthread_detach                      ccpthread.lib/pthread_detach
+   NAME
+	pthread_detach -- mark a thread for automatic cleanup
+
+   SYNOPSIS
+	int pthread_detach(pthread_t thread);
+
+   FUNCTION
+	Marks the ThreadPair detached.  If already finished, frees it
+	immediately; otherwise the worker frees itself on exit.
+
+   INPUTS
+	thread - id from pthread_create
+
+   RESULT
+	0 on success.  ESRCH / EINVAL on bad or already-detached id.
+
+   SEE ALSO
+	pthread_join, pthread_attr_setdetachstate
+
+ccpthread.lib/pthread_exit                          ccpthread.lib/pthread_exit
+   NAME
+	pthread_exit -- terminate the calling thread
+
+   SYNOPSIS
+	void pthread_exit(void *retval);
+
+   FUNCTION
+	On a worker: stores retval, ClearSTDIO, Signals the joiner,
+	frees if detached, then returns to asm (RemTask via process
+	exit).  On the main thread: sets result and returns (does not
+	exit the process).
+
+   INPUTS
+	retval - value visible to pthread_join
+
+   RESULT
+	Does not return on a worker Process.
+
+   SEE ALSO
+	pthread_join, ClearSTDIO
+
+ccpthread.lib/pthread_self                          ccpthread.lib/pthread_self
+   NAME
+	pthread_self -- id of the calling thread
+
+   SYNOPSIS
+	pthread_t pthread_self(void);
+
+   FUNCTION
+	Returns the ThreadPair id for the current session (thr_ctx),
+	creating a main-thread pair if needed.
+
+   INPUTS
+	None.
+
+   RESULT
+	pthread_t id (never zero for a live pair in this implementation).
+
+   SEE ALSO
+	pthread_equal, pthread_create
+
+ccpthread.lib/pthread_equal                        ccpthread.lib/pthread_equal
+   NAME
+	pthread_equal -- compare thread ids
+
+   SYNOPSIS
+	int pthread_equal(pthread_t t1, pthread_t t2);
+
+   FUNCTION
+	Returns non-zero if t1 and t2 are the same id.
+
+   INPUTS
+	t1, t2 - thread ids
+
+   RESULT
+	Non-zero if equal, zero otherwise.
+
+   SEE ALSO
+	pthread_self
+
+ccpthread.lib/pthread_mutex_init              ccpthread.lib/pthread_mutex_init
+   NAME
+	pthread_mutex_init -- initialize a mutex
+
+   SYNOPSIS
+	int pthread_mutex_init(pthread_mutex_t *mutex,
+	    const pthread_mutexattr_t *attr);
+
+   FUNCTION
+	InitSemaphore on the embedded SignalSemaphore.  attr may be NULL;
+	kind defaults to PTHREAD_MUTEX_NORMAL (RECURSIVE reserved).
+
+   INPUTS
+	mutex - mutex object
+	attr  - optional attributes (kind)
+
+   RESULT
+	0 on success, EINVAL if mutex is NULL.
+
+   NOTES
+	PTHREAD_MUTEX_INITIALIZER is also supported for static init.
+
+   SEE ALSO
+	pthread_mutex_destroy, pthread_mutex_lock
+
+ccpthread.lib/pthread_mutex_destroy        ccpthread.lib/pthread_mutex_destroy
+   NAME
+	pthread_mutex_destroy -- destroy a mutex
+
+   SYNOPSIS
+	int pthread_mutex_destroy(pthread_mutex_t *mutex);
+
+   FUNCTION
+	Fails with EBUSY if waiters are present.  Otherwise leaves the
+	object inert.
+
+   INPUTS
+	mutex - mutex object
+
+   RESULT
+	0, EINVAL, or EBUSY.
+
+   SEE ALSO
+	pthread_mutex_init
+
+ccpthread.lib/pthread_mutex_lock              ccpthread.lib/pthread_mutex_lock
+   NAME
+	pthread_mutex_lock -- lock a mutex
+
+   SYNOPSIS
+	int pthread_mutex_lock(pthread_mutex_t *mutex);
+
+   FUNCTION
+	ObtainSemaphore on the embedded SignalSemaphore.
+
+   INPUTS
+	mutex - mutex object
+
+   RESULT
+	0 on success, EINVAL if mutex is NULL.
+
+   SEE ALSO
+	pthread_mutex_trylock, pthread_mutex_unlock
+
+ccpthread.lib/pthread_mutex_trylock        ccpthread.lib/pthread_mutex_trylock
+   NAME
+	pthread_mutex_trylock -- non-blocking lock
+
+   SYNOPSIS
+	int pthread_mutex_trylock(pthread_mutex_t *mutex);
+
+   FUNCTION
+	AttemptSemaphore; returns EBUSY if the mutex is held.
+
+   INPUTS
+	mutex - mutex object
+
+   RESULT
+	0, EBUSY, or EINVAL.
+
+   SEE ALSO
+	pthread_mutex_lock
+
+ccpthread.lib/pthread_mutex_timedlock    ccpthread.lib/pthread_mutex_timedlock
+   NAME
+	pthread_mutex_timedlock -- lock with absolute timeout
+
+   SYNOPSIS
+	int pthread_mutex_timedlock(pthread_mutex_t *mutex,
+	    const struct timespec *abstime);
+
+   FUNCTION
+	Polls AttemptSemaphore until success or abstime (CLOCK wall via
+	time()).  Returns ETIMEDOUT on expiry.
+
+   INPUTS
+	mutex   - mutex object
+	abstime - absolute timeout
+
+   RESULT
+	0, ETIMEDOUT, EINVAL, or EAGAIN.
+
+   SEE ALSO
+	pthread_mutex_lock, pthread_cond_timedwait
+
+ccpthread.lib/pthread_mutex_unlock          ccpthread.lib/pthread_mutex_unlock
+   NAME
+	pthread_mutex_unlock -- unlock a mutex
+
+   SYNOPSIS
+	int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+   FUNCTION
+	ReleaseSemaphore on the embedded SignalSemaphore.
+
+   INPUTS
+	mutex - mutex object
+
+   RESULT
+	0 on success, EINVAL if mutex is NULL.
+
+   SEE ALSO
+	pthread_mutex_lock
+
+ccpthread.lib/pthread_cond_init                ccpthread.lib/pthread_cond_init
+   NAME
+	pthread_cond_init -- initialize a condition variable
+
+   SYNOPSIS
+	int pthread_cond_init(pthread_cond_t *cond,
+	    const pthread_condattr_t *attr);
+
+   FUNCTION
+	InitSemaphore and empty waiter list.  attr is ignored (reserved).
+
+   INPUTS
+	cond - condition object
+	attr - optional (may be NULL)
+
+   RESULT
+	0 on success, EINVAL if cond is NULL.
+
+   NOTES
+	PTHREAD_COND_INITIALIZER is supported for static init.
+
+   SEE ALSO
+	pthread_cond_wait, pthread_cond_signal
+
+ccpthread.lib/pthread_cond_destroy          ccpthread.lib/pthread_cond_destroy
+   NAME
+	pthread_cond_destroy -- destroy a condition variable
+
+   SYNOPSIS
+	int pthread_cond_destroy(pthread_cond_t *cond);
+
+   FUNCTION
+	Fails with EBUSY if waiters remain.
+
+   INPUTS
+	cond - condition object
+
+   RESULT
+	0, EINVAL, or EBUSY.
+
+   SEE ALSO
+	pthread_cond_init
+
+ccpthread.lib/pthread_cond_wait                ccpthread.lib/pthread_cond_wait
+   NAME
+	pthread_cond_wait -- wait on a condition variable
+
+   SYNOPSIS
+	int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+   FUNCTION
+	Atomically releases mutex and waits on an AllocSignal bit until
+	signal/broadcast.  Re-acquires mutex before return.  Spurious
+	wakeups are possible; callers must re-check the predicate.
+
+   INPUTS
+	cond  - condition object
+	mutex - mutex held by the caller
+
+   RESULT
+	0 on success, EINVAL on bad args, EAGAIN if AllocSignal fails.
+
+   SEE ALSO
+	pthread_cond_timedwait, pthread_cond_signal, pthread_cond_broadcast
+
+ccpthread.lib/pthread_cond_timedwait      ccpthread.lib/pthread_cond_timedwait
+   NAME
+	pthread_cond_timedwait -- timed condition wait
+
+   SYNOPSIS
+	int pthread_cond_timedwait(pthread_cond_t *cond,
+	    pthread_mutex_t *mutex, const struct timespec *abstime);
+
+   FUNCTION
+	Like pthread_cond_wait with absolute timeout via timer.device
+	UNIT_VBLANK.  Mutex is held again on return (including timeout).
+
+   INPUTS
+	cond    - condition object
+	mutex   - mutex held by the caller
+	abstime - absolute timeout
+
+   RESULT
+	0, ETIMEDOUT, EINVAL, or EAGAIN.
+
+   SEE ALSO
+	pthread_cond_wait
+
+ccpthread.lib/pthread_cond_signal            ccpthread.lib/pthread_cond_signal
+   NAME
+	pthread_cond_signal -- wake one waiter
+
+   SYNOPSIS
+	int pthread_cond_signal(pthread_cond_t *cond);
+
+   FUNCTION
+	Signals one waiter on the condition list, if any.
+
+   INPUTS
+	cond - condition object
+
+   RESULT
+	0 on success, EINVAL if cond is NULL.
+
+   SEE ALSO
+	pthread_cond_broadcast, pthread_cond_wait
+
+ccpthread.lib/pthread_cond_broadcast      ccpthread.lib/pthread_cond_broadcast
+   NAME
+	pthread_cond_broadcast -- wake all waiters
+
+   SYNOPSIS
+	int pthread_cond_broadcast(pthread_cond_t *cond);
+
+   FUNCTION
+	Signals every waiter currently on the condition list.
+
+   INPUTS
+	cond - condition object
+
+   RESULT
+	0 on success, EINVAL if cond is NULL.
+
+   SEE ALSO
+	pthread_cond_signal
+
+ccpthread.lib/pthread_once                          ccpthread.lib/pthread_once
+   NAME
+	pthread_once -- one-time initialization
+
+   SYNOPSIS
+	int pthread_once(pthread_once_t *once_control,
+	    void (*init_routine)(void));
+
+   FUNCTION
+	Calls init_routine exactly once across all threads for a given
+	once_control (PTHREAD_ONCE_INIT).  Concurrent callers serialize
+	on an internal SignalSemaphore.
+
+   INPUTS
+	once_control - once object
+	init_routine - function to run once
+
+   RESULT
+	0 on success, EINVAL if once_control or init_routine is NULL.
+
+   SEE ALSO
+	pthread_create
+
+ccpthread.lib/sem_init                                  ccpthread.lib/sem_init
+   NAME
+	sem_init -- initialize an unnamed semaphore
+
+   SYNOPSIS
+	int sem_init(sem_t *sem, int pshared, unsigned int value);
+
+   FUNCTION
+	Creates an unnamed counting semaphore (SignalSemaphore + waiter
+	list).  pshared must be 0 (process-shared not supported).  value
+	must be <= SEM_VALUE_MAX.
+
+   INPUTS
+	sem     - semaphore object
+	pshared - must be 0
+	value   - initial count
+
+   RESULT
+	0 on success.  On failure returns -1 and sets errno (EINVAL,
+	ENOSYS for pshared != 0).
+
+   SEE ALSO
+	sem_destroy, sem_wait, sem_post
+
+ccpthread.lib/sem_destroy                            ccpthread.lib/sem_destroy
+   NAME
+	sem_destroy -- destroy an unnamed semaphore
+
+   SYNOPSIS
+	int sem_destroy(sem_t *sem);
+
+   FUNCTION
+	Fails if waiters are present (EBUSY).
+
+   INPUTS
+	sem - semaphore object
+
+   RESULT
+	0 on success, -1 with errno on failure.
+
+   SEE ALSO
+	sem_init
+
+ccpthread.lib/sem_wait                                  ccpthread.lib/sem_wait
+   NAME
+	sem_wait -- decrement semaphore (block)
+
+   SYNOPSIS
+	int sem_wait(sem_t *sem);
+
+   FUNCTION
+	If value > 0, decrements and returns.  Otherwise waits on an
+	AllocSignal bit until sem_post.
+
+   INPUTS
+	sem - semaphore object
+
+   RESULT
+	0 on success, -1 with errno on failure.
+
+   SEE ALSO
+	sem_trywait, sem_timedwait, sem_post
+
+ccpthread.lib/sem_trywait                            ccpthread.lib/sem_trywait
+   NAME
+	sem_trywait -- non-blocking decrement
+
+   SYNOPSIS
+	int sem_trywait(sem_t *sem);
+
+   FUNCTION
+	Decrements if value > 0; otherwise fails with EAGAIN.
+
+   INPUTS
+	sem - semaphore object
+
+   RESULT
+	0 on success, -1 with errno (EAGAIN / EINVAL).
+
+   SEE ALSO
+	sem_wait
+
+ccpthread.lib/sem_timedwait                        ccpthread.lib/sem_timedwait
+   NAME
+	sem_timedwait -- decrement with absolute timeout
+
+   SYNOPSIS
+	int sem_timedwait(sem_t *sem, const struct timespec *abstime);
+
+   FUNCTION
+	Like sem_wait with absolute timeout (timer.device).
+
+   INPUTS
+	sem     - semaphore object
+	abstime - absolute timeout
+
+   RESULT
+	0 on success, -1 with errno (ETIMEDOUT / EINVAL / EAGAIN).
+
+   SEE ALSO
+	sem_wait
+
+ccpthread.lib/sem_post                                  ccpthread.lib/sem_post
+   NAME
+	sem_post -- increment semaphore / wake one waiter
+
+   SYNOPSIS
+	int sem_post(sem_t *sem);
+
+   FUNCTION
+	Increments value or wakes one waiter.  Fails with EOVERFLOW if
+	value would exceed SEM_VALUE_MAX.
+
+   INPUTS
+	sem - semaphore object
+
+   RESULT
+	0 on success, -1 with errno on failure.
+
+   SEE ALSO
+	sem_wait
+
+ccpthread.lib/sem_getvalue                          ccpthread.lib/sem_getvalue
+   NAME
+	sem_getvalue -- read current count
+
+   SYNOPSIS
+	int sem_getvalue(sem_t *sem, int *sval);
+
+   FUNCTION
+	Stores the current value in *sval (non-negative; waiters do not
+	make the count negative in this implementation).
+
+   INPUTS
+	sem  - semaphore object
+	sval - out: current value
+
+   RESULT
+	0 on success, -1 with errno on failure.
+
+   SEE ALSO
+	sem_init, sem_post
+

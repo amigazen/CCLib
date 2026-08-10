@@ -29,6 +29,40 @@ typedef struct
 } cc_CondWaiter;
 
 /*
+ * PTHREAD_MUTEX_INITIALIZER is zeroed BSS.  InitSemaphore sets
+ * ss_QueueCount to -1; a still-zero QueueCount means never inited.
+ */
+static void
+cc_mutex_ready(pthread_mutex_t *mutex)
+{
+	if (mutex->semaphore.ss_QueueCount == 0
+	    && mutex->semaphore.ss_Owner == (struct Task *)NULL)
+	{
+		Forbid();
+		if (mutex->semaphore.ss_QueueCount == 0
+		    && mutex->semaphore.ss_Owner == (struct Task *)NULL)
+			InitSemaphore(&mutex->semaphore);
+		Permit();
+	}
+}
+
+/* PTHREAD_COND_INITIALIZER: empty list head is NULL until NewList. */
+static void
+cc_cond_ready(pthread_cond_t *cond)
+{
+	if (cond->waiters.lh_Head == (struct Node *)NULL)
+	{
+		Forbid();
+		if (cond->waiters.lh_Head == (struct Node *)NULL)
+		{
+			InitSemaphore(&cond->semaphore);
+			cc_thr_newlist(&cond->waiters);
+		}
+		Permit();
+	}
+}
+
+/*
  * Wait until sigmask or absolute timeout.  Returns 0, ETIMEDOUT, or EAGAIN.
  */
 int
@@ -130,6 +164,7 @@ pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
 	if (mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_mutex_ready(mutex);
 	if (mutex->waiters != 0
 	    || mutex->semaphore.ss_Owner != (struct Task *)NULL)
 		return EBUSY;
@@ -139,8 +174,20 @@ pthread_mutex_destroy(pthread_mutex_t *mutex)
 int
 pthread_mutex_lock(pthread_mutex_t *mutex)
 {
+	struct Task *me;
+
 	if (mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_mutex_ready(mutex);
+	/*
+	 * Exec SignalSemaphores nest.  POSIX NORMAL must not: same-task
+	 * relock is EDEADLK (RECURSIVE uses nest count as-is).
+	 */
+	me = FindTask((STRPTR)NULL);
+	if (mutex->kind != PTHREAD_MUTEX_RECURSIVE
+	    && mutex->semaphore.ss_Owner == me
+	    && mutex->semaphore.ss_NestCount > 0)
+		return EDEADLK;
 	ObtainSemaphore(&mutex->semaphore);
 	return 0;
 }
@@ -148,8 +195,16 @@ pthread_mutex_lock(pthread_mutex_t *mutex)
 int
 pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
+	struct Task *me;
+
 	if (mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_mutex_ready(mutex);
+	me = FindTask((STRPTR)NULL);
+	if (mutex->kind != PTHREAD_MUTEX_RECURSIVE
+	    && mutex->semaphore.ss_Owner == me
+	    && mutex->semaphore.ss_NestCount > 0)
+		return EBUSY;
 	if (AttemptSemaphore(&mutex->semaphore))
 		return 0;
 	return EBUSY;
@@ -162,10 +217,17 @@ pthread_mutex_timedlock(pthread_mutex_t *mutex,
 	BYTE sig;
 	ULONG mask;
 	int err;
+	struct Task *me;
 
 	if (mutex == (pthread_mutex_t *)NULL
 	    || abstime == (const struct timespec *)NULL)
 		return EINVAL;
+	cc_mutex_ready(mutex);
+	me = FindTask((STRPTR)NULL);
+	if (mutex->kind != PTHREAD_MUTEX_RECURSIVE
+	    && mutex->semaphore.ss_Owner == me
+	    && mutex->semaphore.ss_NestCount > 0)
+		return EDEADLK;
 	if (AttemptSemaphore(&mutex->semaphore))
 		return 0;
 
@@ -204,6 +266,7 @@ pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
 	if (mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_mutex_ready(mutex);
 	ReleaseSemaphore(&mutex->semaphore);
 	return 0;
 }
@@ -224,6 +287,7 @@ pthread_cond_destroy(pthread_cond_t *cond)
 {
 	if (cond == (pthread_cond_t *)NULL)
 		return EINVAL;
+	cc_cond_ready(cond);
 	ObtainSemaphore(&cond->semaphore);
 	if (cond->waiters.lh_Head->ln_Succ != (struct Node *)NULL)
 	{
@@ -244,6 +308,8 @@ pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 
 	if (cond == (pthread_cond_t *)NULL || mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_cond_ready(cond);
+	cc_mutex_ready(mutex);
 
 	/*
 	 * Private AllocSignal — not pr_MsgPort (shared with DOS / create
@@ -291,6 +357,8 @@ pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 
 	if (cond == (pthread_cond_t *)NULL || mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
+	cc_cond_ready(cond);
+	cc_mutex_ready(mutex);
 
 	sig = AllocSignal(-1L);
 	if (sig < 0)
@@ -329,6 +397,7 @@ pthread_cond_signal(pthread_cond_t *cond)
 
 	if (cond == (pthread_cond_t *)NULL)
 		return EINVAL;
+	cc_cond_ready(cond);
 	ObtainSemaphore(&cond->semaphore);
 	w = (cc_CondWaiter *)RemHead(&cond->waiters);
 	if (w != (cc_CondWaiter *)NULL)
@@ -348,6 +417,7 @@ pthread_cond_broadcast(pthread_cond_t *cond)
 
 	if (cond == (pthread_cond_t *)NULL)
 		return EINVAL;
+	cc_cond_ready(cond);
 	ObtainSemaphore(&cond->semaphore);
 	for (;;)
 	{

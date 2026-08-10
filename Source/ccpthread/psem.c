@@ -28,10 +28,14 @@ typedef struct
 int
 sem_init(sem_t *sem, int pshared, unsigned int value)
 {
-	(void)pshared;
 	if (sem == (sem_t *)NULL || value > SEM_VALUE_MAX)
 	{
 		errno = EINVAL;
+		return -1;
+	}
+	if (pshared != 0)
+	{
+		errno = ENOSYS;
 		return -1;
 	}
 	InitSemaphore(&sem->lock);
