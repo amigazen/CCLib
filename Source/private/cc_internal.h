@@ -247,6 +247,8 @@ typedef struct
 	 */
 	APTR thr_ctx;
 	void __stdargs (*thr_teardown)(APTR);
+	/* Per-session ClearSTDIO re-entry latch (not library-global). */
+	LONG clearing;
 } cc_task_UserData;
 
 /* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */

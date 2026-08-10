@@ -28,10 +28,138 @@
 /* pthread_startup.asm — reload A4 after SetupSTDIO (arg in A4). */
 void __stdargs cc_geta4(void);
 
+/* Defined below; cancel check may pthread_exit. */
+void pthread_exit(void *retval);
+
 struct List cc_thr_list;
 struct SignalSemaphore cc_thr_list_sem;
 pthread_t cc_thr_next_id = 1;
 static LONG cc_thr_inited;
+
+/* Global TLS key table (unix.lib2 tls_keys). */
+typedef struct
+{
+	void (*destructor)(void *);
+	LONG used;
+} cc_TLSKey;
+
+static cc_TLSKey cc_tls_keys[PTHREAD_KEYS_MAX];
+static struct SignalSemaphore cc_tls_sem;
+static LONG cc_tls_inited;
+
+static void
+cc_thr_init_cancel(cc_Thread *tp)
+{
+	tp->cancel_state = PTHREAD_CANCEL_ENABLE;
+	tp->cancel_type = PTHREAD_CANCEL_DEFERRED;
+	tp->cancel_sm = CC_THR_RUNNING;
+	InitSemaphore(&tp->cancel_sem);
+	tp->cancel_inited = 1;
+}
+
+void
+cc_thr_cancel_check(cc_Thread *tp)
+{
+	if (tp == (cc_Thread *)NULL || !tp->cancel_inited)
+		return;
+	if (tp->cancel_state != PTHREAD_CANCEL_ENABLE)
+		return;
+
+	ObtainSemaphore(&tp->cancel_sem);
+	if (tp->cancel_sm == CC_THR_CANCEL_REQUESTED)
+	{
+		tp->cancel_sm = CC_THR_CANCELED;
+		ReleaseSemaphore(&tp->cancel_sem);
+		pthread_exit(PTHREAD_CANCELED);
+		return;
+	}
+	ReleaseSemaphore(&tp->cancel_sem);
+}
+
+void
+cc_thr_run_tls_dtors(cc_Thread *tp)
+{
+	int i;
+	void *val;
+	void (*dtor)(void *);
+
+	if (tp == (cc_Thread *)NULL)
+		return;
+
+	/*
+	 * Near-BSS destructors need A4 (library ClearSTDIO leaves A4 as
+	 * the library base).  Idempotent: cleared slots are skipped.
+	 */
+	cc_geta4();
+
+	for (i = 0; i < PTHREAD_KEYS_MAX; i++)
+	{
+		val = tp->tls_values[i];
+		if (val == (void *)NULL)
+			continue;
+		dtor = (void (*)(void *))NULL;
+		if (cc_tls_inited)
+		{
+			ObtainSemaphore(&cc_tls_sem);
+			if (cc_tls_keys[i].used)
+				dtor = cc_tls_keys[i].destructor;
+			ReleaseSemaphore(&cc_tls_sem);
+		}
+		tp->tls_values[i] = (void *)NULL;
+		if (dtor != (void (*)(void *))NULL)
+			(*dtor)(val);
+	}
+}
+
+/*
+ * Poll Ctrl-C and invoke the session abort_func (same idea as library
+ * cc_check_break).  Must not call cc_check_break from this static lib —
+ * it is not an LVO; parm=r would emit @cc_check_break and SLINK fails.
+ */
+void
+cc_thr_check_break(void)
+{
+	struct Task *t;
+	cc_task_UserData *ud;
+
+	if ((SetSignal(0L, 0L) & SIGBREAKF_CTRL_C) == 0UL)
+		return;
+
+	t = FindTask((STRPTR)NULL);
+	if (t == (struct Task *)NULL)
+		return;
+	ud = (cc_task_UserData *)t->tc_UserData;
+	if (ud == (cc_task_UserData *)NULL
+	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
+		return;
+
+	SetSignal(0L, SIGBREAKF_CTRL_C);
+	(*ud->abort_func)(20L);
+}
+
+/*
+ * Wait for sigmask, but always wake on Ctrl-C so the session abort hook
+ * can force a panic/exit (join / cond / sem must not ignore breaks).
+ */
+void
+cc_thr_wait_or_break(ULONG sigmask)
+{
+	ULONG got;
+
+	for (;;)
+	{
+		got = Wait(sigmask | SIGBREAKF_CTRL_C);
+		if ((got & SIGBREAKF_CTRL_C) != 0UL)
+		{
+			SetSignal(0L, SIGBREAKF_CTRL_C);
+			cc_thr_check_break();
+			/* Test abort hooks may return; keep waiting. */
+			continue;
+		}
+		if ((got & sigmask) != 0UL)
+			return;
+	}
+}
 
 /*
  * __saveds so A4 is valid for near-BSS before the app start routine runs.
@@ -97,11 +225,14 @@ cc_thr_abort(LONG code)
 	RemTask((struct Task *)NULL);
 }
 
-void __stdargs
+void __stdargs __saveds
 cc_thr_session_teardown(APTR ctx)
 {
-	(void)ctx;
-	/* TLS destructors land here later; ThreadPair lifetime is join/detach. */
+	cc_Thread *tp;
+
+	tp = (cc_Thread *)ctx;
+	if (tp != (cc_Thread *)NULL && tp->magic == CC_THR_MAGIC)
+		cc_thr_run_tls_dtors(tp);
 }
 
 void
@@ -121,6 +252,9 @@ cc_thr_ensure_list(void)
 		return 0;
 	cc_thr_newlist(&cc_thr_list);
 	InitSemaphore(&cc_thr_list_sem);
+	InitSemaphore(&cc_tls_sem);
+	memset((APTR)cc_tls_keys, 0, sizeof(cc_tls_keys));
+	cc_tls_inited = 1;
 	cc_thr_next_id = 1;
 	cc_thr_inited = 1;
 	return 0;
@@ -200,6 +334,7 @@ cc_thr_ensure_main(void)
 	tp->parent = tp->child;
 	tp->parent_sig = -1;
 	tp->finished = 1;
+	cc_thr_init_cancel(tp);
 
 	ObtainSemaphore(&cc_thr_list_sem);
 	tp->id = cc_thr_next_id++;
@@ -285,7 +420,15 @@ cc_thread_entry(void)
 	 * Library LVOs do not preserve A4.  Invoke via __saveds trampoline
 	 * so near-BSS (mutexes, flags) is reachable in the start routine.
 	 */
+	cc_thr_cancel_check(tp);
 	rv = cc_thr_invoke(tp->start, tp->arg);
+
+	/*
+	 * TLS destructors need app A4; run before ClearSTDIO (which is a
+	 * library LVO).  thr_teardown will no-op once slots are cleared.
+	 */
+	cc_geta4();
+	cc_thr_run_tls_dtors(tp);
 
 	ClearSTDIO();
 	cc_geta4();
@@ -418,6 +561,7 @@ pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	tp->start = start_routine;
 	tp->arg = arg;
 	tp->detached = detached;
+	cc_thr_init_cancel(tp);
 
 	ObtainSemaphore(&cc_thr_list_sem);
 	tp->id = cc_thr_next_id++;
@@ -497,7 +641,7 @@ pthread_join(pthread_t thread, void **retval)
 
 	mask = 1UL << tp->parent_sig;
 	while (!tp->finished)
-		Wait(mask);
+		cc_thr_wait_or_break(mask);
 
 	if (retval != (void **)NULL)
 		*retval = tp->result;
@@ -553,6 +697,8 @@ pthread_exit(void *retval)
 	tp = cc_thr_current();
 	if (tp != (cc_Thread *)NULL && !tp->is_main)
 	{
+		cc_geta4();
+		cc_thr_run_tls_dtors(tp);
 		ClearSTDIO();
 		proc = (struct Process *)FindTask((STRPTR)NULL);
 		Forbid();
@@ -599,3 +745,149 @@ pthread_equal(pthread_t t1, pthread_t t2)
 {
 	return (t1 == t2) ? 1 : 0;
 }
+
+int
+pthread_key_create(pthread_key_t *key, void (*destructor)(void *))
+{
+	int i;
+
+	if (key == (pthread_key_t *)NULL)
+		return EINVAL;
+	if (cc_thr_ensure_list() != 0)
+		return EAGAIN;
+
+	ObtainSemaphore(&cc_tls_sem);
+	for (i = 0; i < PTHREAD_KEYS_MAX; i++)
+	{
+		if (!cc_tls_keys[i].used)
+		{
+			cc_tls_keys[i].used = 1;
+			cc_tls_keys[i].destructor = destructor;
+			*key = (pthread_key_t)i;
+			ReleaseSemaphore(&cc_tls_sem);
+			return 0;
+		}
+	}
+	ReleaseSemaphore(&cc_tls_sem);
+	return EAGAIN;
+}
+
+int
+pthread_key_delete(pthread_key_t key)
+{
+	if (key >= (pthread_key_t)PTHREAD_KEYS_MAX)
+		return EINVAL;
+	if (!cc_tls_inited)
+		return EINVAL;
+
+	ObtainSemaphore(&cc_tls_sem);
+	if (!cc_tls_keys[key].used)
+	{
+		ReleaseSemaphore(&cc_tls_sem);
+		return EINVAL;
+	}
+	cc_tls_keys[key].used = 0;
+	cc_tls_keys[key].destructor = (void (*)(void *))NULL;
+	ReleaseSemaphore(&cc_tls_sem);
+	return 0;
+}
+
+int
+pthread_setspecific(pthread_key_t key, const void *value)
+{
+	cc_Thread *tp;
+
+	if (key >= (pthread_key_t)PTHREAD_KEYS_MAX)
+		return EINVAL;
+	tp = cc_thr_current();
+	if (tp == (cc_Thread *)NULL)
+		tp = cc_thr_ensure_main();
+	if (tp == (cc_Thread *)NULL)
+		return EINVAL;
+	tp->tls_values[key] = (void *)value;
+	return 0;
+}
+
+void *
+pthread_getspecific(pthread_key_t key)
+{
+	cc_Thread *tp;
+
+	if (key >= (pthread_key_t)PTHREAD_KEYS_MAX)
+		return (void *)NULL;
+	tp = cc_thr_current();
+	if (tp == (cc_Thread *)NULL)
+		return (void *)NULL;
+	return tp->tls_values[key];
+}
+
+int
+pthread_cancel(pthread_t thread)
+{
+	cc_Thread *tp;
+
+	tp = cc_thr_find(thread);
+	if (tp == (cc_Thread *)NULL)
+		return ESRCH;
+	if (!tp->cancel_inited)
+		return 0;
+
+	ObtainSemaphore(&tp->cancel_sem);
+	if (tp->cancel_sm == CC_THR_RUNNING)
+		tp->cancel_sm = CC_THR_CANCEL_REQUESTED;
+	ReleaseSemaphore(&tp->cancel_sem);
+	return 0;
+}
+
+void
+pthread_testcancel(void)
+{
+	cc_Thread *tp;
+
+	tp = cc_thr_current();
+	if (tp == (cc_Thread *)NULL)
+		return;
+	cc_thr_cancel_check(tp);
+}
+
+int
+pthread_setcancelstate(int state, int *oldstate)
+{
+	cc_Thread *tp;
+
+	if (state != PTHREAD_CANCEL_ENABLE && state != PTHREAD_CANCEL_DISABLE)
+		return EINVAL;
+	tp = cc_thr_current();
+	if (tp == (cc_Thread *)NULL)
+		tp = cc_thr_ensure_main();
+	if (tp == (cc_Thread *)NULL)
+		return EINVAL;
+	if (oldstate != (int *)NULL)
+		*oldstate = tp->cancel_state;
+	tp->cancel_state = state;
+	return 0;
+}
+
+int
+pthread_setcanceltype(int type, int *oldtype)
+{
+	cc_Thread *tp;
+
+	if (type != PTHREAD_CANCEL_DEFERRED
+	    && type != PTHREAD_CANCEL_ASYNCHRONOUS)
+		return EINVAL;
+	tp = cc_thr_current();
+	if (tp == (cc_Thread *)NULL)
+		tp = cc_thr_ensure_main();
+	if (tp == (cc_Thread *)NULL)
+		return EINVAL;
+	if (oldtype != (int *)NULL)
+		*oldtype = tp->cancel_type;
+	/*
+	 * ASYNCHRONOUS stored but not honoured — cooperative deferred
+	 * only (unix.lib2 same practical model).
+	 */
+	tp->cancel_type = type;
+	return 0;
+}
+

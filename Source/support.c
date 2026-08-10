@@ -172,6 +172,7 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud->open_dirs = (APTR)NULL;
 	ud->thr_ctx = (APTR)NULL;
 	ud->thr_teardown = (void __stdargs (*)(APTR))NULL;
+	ud->clearing = 0;
 
 	task->tc_UserData = (APTR)ud;
 	return 1;
@@ -281,11 +282,11 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	struct Task *task;
 	cc_task_UserData *ud;
 	APTR old;
-	static LONG clearing;
 
 	/*
-	 * Fetch ud without cc_get_ud() - that polls Ctrl-C.  Disarm
-	 * abort_func first so teardown cannot re-enter exit via break.
+	 * Fetch ud without cc_get_ud() - that polls Ctrl-C.  Run pthread
+	 * teardown while abort_func is still armed so a bad destructor can
+	 * still panic/abort; disarm before stream/heap teardown.
 	 */
 	task = FindTask((STRPTR)NULL);
 	if (task == (struct Task *)NULL)
@@ -294,11 +295,9 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	if (ud == (cc_task_UserData *)NULL)
 		return;
 
-	ud->abort_func = (cc_ABORT_FUNC)NULL;
-
-	if (clearing)
+	if (ud->clearing)
 		return;
-	clearing = 1;
+	ud->clearing = 1;
 
 	/*
 	 * Static ccpthread session hook.  Require both slots: a lone non-NULL
@@ -311,6 +310,8 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 		ud->thr_teardown = (void __stdargs (*)(APTR))NULL;
 		ud->thr_ctx = (APTR)NULL;
 	}
+
+	ud->abort_func = (cc_ABORT_FUNC)NULL;
 
 	if (ud->parent != (struct Task *)NULL)
 		task = ud->parent;
@@ -352,7 +353,7 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 		task->tc_UserData = old;
 
 	FreeMem(ud, sizeof(cc_task_UserData));
-	clearing = 0;
+	/* ud freed — no ud->clearing = 0; next session starts clearing=0. */
 }
 
 void __ASM__ __SAVE_DS__ cli_parse(

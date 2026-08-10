@@ -32,6 +32,7 @@ static int g_flag;
 static int g_ready;
 static int g_wakes;
 static int g_worker_equal_ok;
+static int g_tls_dtor_hits;
 static volatile int g_run;
 static int g_hold_live;
 static int g_sync_hold;
@@ -118,6 +119,54 @@ worker_try_timeout(void *arg)
 	if (err == 0)
 		pthread_mutex_unlock(&g_mu);
 	return (void *)NULL;
+}
+
+static void
+tls_dtor(void *p)
+{
+	(void)p;
+	g_tls_dtor_hits++;
+}
+
+static void *
+worker_tls(void *arg)
+{
+	pthread_key_t key;
+	int err;
+
+	key = *(pthread_key_t *)arg;
+	err = pthread_setspecific(key, (const void *)0x1234L);
+	if (err != 0)
+		return (void *)1L;
+	if (pthread_getspecific(key) != (void *)0x1234L)
+		return (void *)2L;
+	return (void *)0L;
+}
+
+static void *
+worker_cancel(void *arg)
+{
+	(void)arg;
+	for (;;)
+	{
+		pthread_testcancel();
+		Delay(1L);
+	}
+	return (void *)0L;
+}
+
+static void *
+worker_rdlock(void *arg)
+{
+	pthread_rwlock_t *rw;
+
+	rw = (pthread_rwlock_t *)arg;
+	if (pthread_rwlock_rdlock(rw) != 0)
+		return (void *)1L;
+	Delay(5L);
+	if (pthread_rwlock_unlock(rw) != 0)
+		return (void *)2L;
+	return (void *)0L;
 }
 
 static void *
@@ -545,6 +594,153 @@ suite_detach(void)
 }
 
 static void
+suite_tls(void)
+{
+	pthread_key_t key;
+	pthread_t th;
+	void *rv;
+	int err;
+
+	ct_suite_begin((STRPTR)"tls",
+		(STRPTR)"pthread_key / get/setspecific / dtor");
+
+	g_tls_dtor_hits = 0;
+	err = pthread_key_create(&key, tls_dtor);
+	ct_check_long((STRPTR)"tls", (STRPTR)"key_create",
+		(STRPTR)"pthread_key_create(&key, tls_dtor)",
+		(STRPTR)"key_create must return 0",
+		0L, (LONG)err);
+
+	err = pthread_setspecific(key, (const void *)0xABCDL);
+	ct_check_long((STRPTR)"tls", (STRPTR)"set_main",
+		(STRPTR)"pthread_setspecific on main",
+		(STRPTR)"setspecific must return 0",
+		0L, (LONG)err);
+	ct_check_true((STRPTR)"tls", (STRPTR)"get_main",
+		(STRPTR)"pthread_getspecific on main",
+		(STRPTR)"must return the value set",
+		pthread_getspecific(key) == (void *)0xABCDL);
+
+	err = pthread_create(&th, (const pthread_attr_t *)NULL,
+		worker_tls, (void *)&key);
+	ct_check_long((STRPTR)"tls", (STRPTR)"create",
+		(STRPTR)"pthread_create(worker_tls)",
+		(STRPTR)"create must return 0",
+		0L, (LONG)err);
+	err = pthread_join(th, &rv);
+	ct_check_true((STRPTR)"tls", (STRPTR)"join",
+		(STRPTR)"pthread_join(worker_tls)",
+		(STRPTR)"worker must set/get key (rv==0)",
+		err == 0 && rv == (void *)0L);
+	ct_check_long((STRPTR)"tls", (STRPTR)"dtor",
+		(STRPTR)"TLS destructor after worker ClearSTDIO",
+		(STRPTR)"destructor must run once for worker value",
+		1L, (LONG)g_tls_dtor_hits);
+
+	/* Main still has its value; delete key without running main dtor. */
+	err = pthread_key_delete(key);
+	ct_check_long((STRPTR)"tls", (STRPTR)"key_delete",
+		(STRPTR)"pthread_key_delete(key)",
+		(STRPTR)"key_delete must return 0",
+		0L, (LONG)err);
+}
+
+static void
+suite_rwlock(void)
+{
+	pthread_rwlock_t rw;
+	pthread_t t1;
+	pthread_t t2;
+	void *rv;
+	int err;
+
+	ct_suite_begin((STRPTR)"rwlock",
+		(STRPTR)"pthread_rwlock_*");
+
+	err = pthread_rwlock_init(&rw, (const pthread_rwlockattr_t *)NULL);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"init",
+		(STRPTR)"pthread_rwlock_init(&rw, NULL)",
+		(STRPTR)"rwlock init must return 0",
+		0L, (LONG)err);
+
+	err = pthread_rwlock_wrlock(&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"wrlock",
+		(STRPTR)"pthread_rwlock_wrlock",
+		(STRPTR)"wrlock must return 0",
+		0L, (LONG)err);
+	err = pthread_rwlock_tryrdlock(&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"tryrd_busy",
+		(STRPTR)"pthread_rwlock_tryrdlock while write-held",
+		(STRPTR)"must return EBUSY",
+		(LONG)EBUSY, (LONG)err);
+	err = pthread_rwlock_unlock(&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"wrunlock",
+		(STRPTR)"pthread_rwlock_unlock writer",
+		(STRPTR)"unlock must return 0",
+		0L, (LONG)err);
+
+	err = pthread_create(&t1, (const pthread_attr_t *)NULL,
+		worker_rdlock, (void *)&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"rd_create1",
+		(STRPTR)"pthread_create rdlock #1",
+		(STRPTR)"create must return 0",
+		0L, (LONG)err);
+	err = pthread_create(&t2, (const pthread_attr_t *)NULL,
+		worker_rdlock, (void *)&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"rd_create2",
+		(STRPTR)"pthread_create rdlock #2",
+		(STRPTR)"create must return 0",
+		0L, (LONG)err);
+	err = pthread_join(t1, &rv);
+	ct_check_true((STRPTR)"rwlock", (STRPTR)"rd_join1",
+		(STRPTR)"pthread_join rdlock #1",
+		(STRPTR)"shared rdlock must succeed",
+		err == 0 && rv == (void *)0L);
+	err = pthread_join(t2, &rv);
+	ct_check_true((STRPTR)"rwlock", (STRPTR)"rd_join2",
+		(STRPTR)"pthread_join rdlock #2",
+		(STRPTR)"shared rdlock must succeed",
+		err == 0 && rv == (void *)0L);
+
+	err = pthread_rwlock_destroy(&rw);
+	ct_check_long((STRPTR)"rwlock", (STRPTR)"destroy",
+		(STRPTR)"pthread_rwlock_destroy",
+		(STRPTR)"destroy must return 0",
+		0L, (LONG)err);
+}
+
+static void
+suite_cancel(void)
+{
+	pthread_t th;
+	void *rv;
+	int err;
+
+	ct_suite_begin((STRPTR)"cancel",
+		(STRPTR)"cooperative pthread_cancel");
+
+	err = pthread_create(&th, (const pthread_attr_t *)NULL,
+		worker_cancel, (void *)NULL);
+	ct_check_long((STRPTR)"cancel", (STRPTR)"create",
+		(STRPTR)"pthread_create(worker_cancel)",
+		(STRPTR)"create must return 0",
+		0L, (LONG)err);
+
+	Delay(5L);
+	err = pthread_cancel(th);
+	ct_check_long((STRPTR)"cancel", (STRPTR)"cancel",
+		(STRPTR)"pthread_cancel(th)",
+		(STRPTR)"cancel must return 0",
+		0L, (LONG)err);
+
+	err = pthread_join(th, &rv);
+	ct_check_true((STRPTR)"cancel", (STRPTR)"join_canceled",
+		(STRPTR)"pthread_join after cancel",
+		(STRPTR)"retval must be PTHREAD_CANCELED",
+		err == 0 && rv == PTHREAD_CANCELED);
+}
+
+static void
 suite_sem(void)
 {
 	sem_t sem;
@@ -694,6 +890,9 @@ main(int argc, char **argv)
 	suite_cond();
 	suite_create_join();
 	suite_detach();
+	suite_tls();
+	suite_rwlock();
+	suite_cancel();
 	suite_sem();
 
 	ct_summary();

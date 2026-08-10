@@ -12,6 +12,7 @@
 #include <dos/dosextens.h>
 
 #include <proto/exec.h>
+#include <proto/dos.h>
 #include <proto/timer.h>
 #include <proto/utility.h>
 #include <proto/cclib.h>
@@ -19,6 +20,7 @@
 #include <time.h>
 #include <pthread.h>
 
+#include <private/cc_internal.h>
 #include "cc_pthread.h"
 
 typedef struct
@@ -78,7 +80,7 @@ cc_thr_wait_timeout(ULONG sigmask, const struct timespec *abstime)
 
 	if (abstime == (const struct timespec *)NULL)
 	{
-		Wait(sigmask);
+		cc_thr_wait_or_break(sigmask);
 		return 0;
 	}
 
@@ -123,18 +125,34 @@ cc_thr_wait_timeout(ULONG sigmask, const struct timespec *abstime)
 	SendIO((struct IORequest *)tr);
 
 	timsig = 1UL << port->mp_SigBit;
-	got = Wait(sigmask | timsig);
-
-	if ((got & timsig) != 0UL && (got & sigmask) == 0UL)
+	for (;;)
 	{
-		/* Timeout won. */
-		if (!CheckIO((struct IORequest *)tr))
-			AbortIO((struct IORequest *)tr);
-		WaitIO((struct IORequest *)tr);
-		CloseDevice((struct IORequest *)tr);
-		DeleteIORequest((struct IORequest *)tr);
-		DeleteMsgPort(port);
-		return ETIMEDOUT;
+		got = Wait(sigmask | timsig | SIGBREAKF_CTRL_C);
+		if ((got & SIGBREAKF_CTRL_C) != 0UL)
+		{
+			SetSignal(0L, SIGBREAKF_CTRL_C);
+			if (!CheckIO((struct IORequest *)tr))
+				AbortIO((struct IORequest *)tr);
+			WaitIO((struct IORequest *)tr);
+			CloseDevice((struct IORequest *)tr);
+			DeleteIORequest((struct IORequest *)tr);
+			DeleteMsgPort(port);
+			cc_thr_check_break();
+			return EINTR;
+		}
+		if ((got & timsig) != 0UL && (got & sigmask) == 0UL)
+		{
+			/* Timeout won. */
+			if (!CheckIO((struct IORequest *)tr))
+				AbortIO((struct IORequest *)tr);
+			WaitIO((struct IORequest *)tr);
+			CloseDevice((struct IORequest *)tr);
+			DeleteIORequest((struct IORequest *)tr);
+			DeleteMsgPort(port);
+			return ETIMEDOUT;
+		}
+		if ((got & sigmask) != 0UL)
+			break;
 	}
 
 	if (!CheckIO((struct IORequest *)tr))
@@ -179,6 +197,7 @@ pthread_mutex_lock(pthread_mutex_t *mutex)
 	if (mutex == (pthread_mutex_t *)NULL)
 		return EINVAL;
 	cc_mutex_ready(mutex);
+	pthread_testcancel();
 	/*
 	 * Exec SignalSemaphores nest.  POSIX NORMAL must not: same-task
 	 * relock is EDEADLK (RECURSIVE uses nest count as-is).
@@ -188,7 +207,15 @@ pthread_mutex_lock(pthread_mutex_t *mutex)
 	    && mutex->semaphore.ss_Owner == me
 	    && mutex->semaphore.ss_NestCount > 0)
 		return EDEADLK;
-	ObtainSemaphore(&mutex->semaphore);
+	/*
+	 * Poll AttemptSemaphore so Ctrl-C (cc_thr_check_break) can force abort
+	 * while blocked — ObtainSemaphore alone ignores breaks.
+	 */
+	while (!AttemptSemaphore(&mutex->semaphore))
+	{
+		cc_thr_check_break();
+		Delay(1L);
+	}
 	return 0;
 }
 
@@ -310,6 +337,7 @@ pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 		return EINVAL;
 	cc_cond_ready(cond);
 	cc_mutex_ready(mutex);
+	pthread_testcancel();
 
 	/*
 	 * Private AllocSignal — not pr_MsgPort (shared with DOS / create
@@ -332,7 +360,7 @@ pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 	ReleaseSemaphore(&cond->semaphore);
 
 	ReleaseSemaphore(&mutex->semaphore);
-	Wait(mask);
+	cc_thr_wait_or_break(mask);
 
 	ObtainSemaphore(&cond->semaphore);
 	if (w.node.ln_Succ != (struct Node *)NULL)
@@ -359,6 +387,7 @@ pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 		return EINVAL;
 	cc_cond_ready(cond);
 	cc_mutex_ready(mutex);
+	pthread_testcancel();
 
 	sig = AllocSignal(-1L);
 	if (sig < 0)
@@ -429,6 +458,148 @@ pthread_cond_broadcast(pthread_cond_t *cond)
 		Signal(w->task, w->sigmask);
 	}
 	ReleaseSemaphore(&cond->semaphore);
+	return 0;
+}
+
+/*
+ * Read-write locks — ported from unix.lib2 pthread_sync.c (mutex + cond).
+ */
+int
+pthread_rwlock_init(pthread_rwlock_t *rwlock,
+	const pthread_rwlockattr_t *attr)
+{
+	int err;
+
+	(void)attr;
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	err = pthread_mutex_init(&rwlock->lock, (const pthread_mutexattr_t *)NULL);
+	if (err != 0)
+		return err;
+	err = pthread_cond_init(&rwlock->readers_cond,
+		(const pthread_condattr_t *)NULL);
+	if (err != 0)
+		return err;
+	err = pthread_cond_init(&rwlock->writers_cond,
+		(const pthread_condattr_t *)NULL);
+	if (err != 0)
+		return err;
+	rwlock->readers_active = 0;
+	rwlock->writers_active = 0;
+	rwlock->writers_waiting = 0;
+	return 0;
+}
+
+int
+pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
+{
+	int err;
+
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	if (rwlock->readers_active != 0 || rwlock->writers_active != 0
+	    || rwlock->writers_waiting != 0)
+		return EBUSY;
+	err = pthread_cond_destroy(&rwlock->readers_cond);
+	if (err != 0)
+		return err;
+	err = pthread_cond_destroy(&rwlock->writers_cond);
+	if (err != 0)
+		return err;
+	return pthread_mutex_destroy(&rwlock->lock);
+}
+
+int
+pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
+{
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	pthread_testcancel();
+	pthread_mutex_lock(&rwlock->lock);
+	while (rwlock->writers_active > 0 || rwlock->writers_waiting > 0)
+		pthread_cond_wait(&rwlock->readers_cond, &rwlock->lock);
+	rwlock->readers_active++;
+	pthread_mutex_unlock(&rwlock->lock);
+	return 0;
+}
+
+int
+pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock)
+{
+	int err;
+
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	err = pthread_mutex_trylock(&rwlock->lock);
+	if (err != 0)
+		return err;
+	if (rwlock->writers_active > 0 || rwlock->writers_waiting > 0)
+	{
+		pthread_mutex_unlock(&rwlock->lock);
+		return EBUSY;
+	}
+	rwlock->readers_active++;
+	pthread_mutex_unlock(&rwlock->lock);
+	return 0;
+}
+
+int
+pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
+{
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	pthread_testcancel();
+	pthread_mutex_lock(&rwlock->lock);
+	rwlock->writers_waiting++;
+	while (rwlock->readers_active > 0 || rwlock->writers_active > 0)
+		pthread_cond_wait(&rwlock->writers_cond, &rwlock->lock);
+	rwlock->writers_waiting--;
+	rwlock->writers_active++;
+	pthread_mutex_unlock(&rwlock->lock);
+	return 0;
+}
+
+int
+pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock)
+{
+	int err;
+
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	err = pthread_mutex_trylock(&rwlock->lock);
+	if (err != 0)
+		return err;
+	if (rwlock->readers_active > 0 || rwlock->writers_active > 0)
+	{
+		pthread_mutex_unlock(&rwlock->lock);
+		return EBUSY;
+	}
+	rwlock->writers_active++;
+	pthread_mutex_unlock(&rwlock->lock);
+	return 0;
+}
+
+int
+pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
+{
+	if (rwlock == (pthread_rwlock_t *)NULL)
+		return EINVAL;
+	pthread_mutex_lock(&rwlock->lock);
+	if (rwlock->writers_active > 0)
+	{
+		rwlock->writers_active--;
+		if (rwlock->writers_waiting > 0)
+			pthread_cond_signal(&rwlock->writers_cond);
+		else
+			pthread_cond_broadcast(&rwlock->readers_cond);
+	}
+	else if (rwlock->readers_active > 0)
+	{
+		rwlock->readers_active--;
+		if (rwlock->readers_active == 0 && rwlock->writers_waiting > 0)
+			pthread_cond_signal(&rwlock->writers_cond);
+	}
+	pthread_mutex_unlock(&rwlock->lock);
 	return 0;
 }
 

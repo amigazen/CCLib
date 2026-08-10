@@ -3,7 +3,7 @@
 
 /*
  * Private thread control block for static ccpthread.lib.
- * Same ThreadPair model as unix.lib; after worker SetupSTDIO the pair
+ * Same ThreadPair model as unix.lib2; after worker SetupSTDIO the pair
  * lives on cc_task_UserData.thr_ctx (tc_UserData becomes the session).
  */
 
@@ -16,6 +16,14 @@
 #include <pthread.h>
 
 #define CC_THR_MAGIC 0x43435448UL /* 'CCTH' */
+
+/* Cooperative cancel state machine (unix.lib2). */
+typedef enum
+{
+	CC_THR_RUNNING = 0,
+	CC_THR_CANCEL_REQUESTED = 1,
+	CC_THR_CANCELED = 2
+} cc_thr_cancel_sm_t;
 
 typedef struct cc_Thread
 {
@@ -37,6 +45,14 @@ typedef struct cc_Thread
 	FILE *fp_stdin;
 	FILE *fp_stdout;
 	FILE *fp_stderr;
+	/* TLS values (unix.lib2 tp_TLSValues). */
+	void *tls_values[PTHREAD_KEYS_MAX];
+	/* Cooperative cancel (unix.lib2). */
+	int cancel_state;
+	int cancel_type;
+	cc_thr_cancel_sm_t cancel_sm;
+	struct SignalSemaphore cancel_sem;
+	LONG cancel_inited;
 } cc_Thread;
 
 extern struct List cc_thr_list;
@@ -51,7 +67,13 @@ void __stdargs __saveds cc_thread_entry(void);
 cc_Thread *cc_thr_find(pthread_t id);
 cc_Thread *cc_thr_current(void);
 int cc_thr_ensure_list(void);
-void __stdargs cc_thr_session_teardown(APTR ctx);
+void __stdargs __saveds cc_thr_session_teardown(APTR ctx);
+void cc_thr_run_tls_dtors(cc_Thread *tp);
+void cc_thr_cancel_check(cc_Thread *tp);
+/* Local Ctrl-C -> session abort_func (do not call library cc_check_break). */
+void cc_thr_check_break(void);
+/* Wait(sigmask | Ctrl-C); Ctrl-C -> cc_thr_check_break. */
+void cc_thr_wait_or_break(ULONG sigmask);
 
 /*
  * NewList is amiga.lib (stackargs).  Under parm=r with no prototype the

@@ -26,6 +26,21 @@ ccpthread.lib/pthread_cond_timedwait
 ccpthread.lib/pthread_cond_signal
 ccpthread.lib/pthread_cond_broadcast
 ccpthread.lib/pthread_once
+ccpthread.lib/pthread_rwlock_init
+ccpthread.lib/pthread_rwlock_destroy
+ccpthread.lib/pthread_rwlock_rdlock
+ccpthread.lib/pthread_rwlock_tryrdlock
+ccpthread.lib/pthread_rwlock_wrlock
+ccpthread.lib/pthread_rwlock_trywrlock
+ccpthread.lib/pthread_rwlock_unlock
+ccpthread.lib/pthread_key_create
+ccpthread.lib/pthread_key_delete
+ccpthread.lib/pthread_setspecific
+ccpthread.lib/pthread_getspecific
+ccpthread.lib/pthread_cancel
+ccpthread.lib/pthread_testcancel
+ccpthread.lib/pthread_setcancelstate
+ccpthread.lib/pthread_setcanceltype
 ccpthread.lib/sem_init
 ccpthread.lib/sem_destroy
 ccpthread.lib/sem_wait
@@ -37,8 +52,9 @@ ccpthread.lib/sem_getvalue
 ccpthread.lib/--background--                      ccpthread.lib/--background--
 
     ccpthread.lib is a static companion to cclib.library: POSIX threads,
-    mutexes, condition variables, pthread_once, and unnamed POSIX
-    semaphores.  
+    mutexes, condition variables, rwlocks, TLS keys, cooperative cancel,
+    pthread_once, and unnamed POSIX semaphores.  Port of unix.lib2
+    pthread.lib with CClib session deltas only.
 
     Process model
 	Each pthread is an Amiga Process (CreateNewProc).  Parent and child
@@ -49,9 +65,11 @@ ccpthread.lib/--background--                      ccpthread.lib/--background--
     CClib session
 	Workers call SetupSTDIO with FILE* slots on the ThreadPair so CRT
 	globals stdin/stdout/stderr (parent) are not overwritten.  Session
-	thr_ctx / thr_teardown run from ClearSTDIO.  Main ensures a
-	ThreadPair via thr_ctx when first using pthread_self / create.
-	Never leave a ThreadPair in tc_UserData across CClib LVOs.
+	thr_ctx / thr_teardown run from ClearSTDIO (TLS destructors need
+	app A4 — run via __saveds / cc_geta4).  ClearSTDIO re-entry latch
+	is per-session, not library-global.  Blocking waits (join / cond /
+	sem / timed) and mutex_lock poll Ctrl-C so abort_func can force
+	a panic.  Never leave a ThreadPair in tc_UserData across CClib LVOs.
 
     Stdio
 	Workers inherit the parent's Input/Output (NP_Close* FALSE) so
@@ -67,10 +85,10 @@ ccpthread.lib/--background--                      ccpthread.lib/--background--
 	(shared with DOS / create handshake).
 
     Limits / not implemented
-	PTHREAD_THREADS_MAX 64, PTHREAD_STACK_MIN 8192.  No pthread_key_*,
-	rwlock, cancel (beyond abort/Ctrl-C RemTask), scheduling attrs,
-	named sem_open, or SysV semget/semop.  Mutex kind NORMAL rejects
-	same-task relock (EBUSY/EDEADLK); RECURSIVE uses Exec nest count.
+	PTHREAD_THREADS_MAX 64, PTHREAD_KEYS_MAX 32, PTHREAD_STACK_MIN 8192.
+	Cooperative cancel only (ASYNCHRONOUS stored, not honoured).  No
+	cleanup_push/pop, named sem_open, or SysV semget (those are outside
+	unix.lib2 pthread.lib).  Mutex kind NORMAL rejects same-task relock.
 
     SEE ALSO
 	pthread.h, semaphore.h, cclib.library/--background--
@@ -754,4 +772,210 @@ ccpthread.lib/sem_getvalue                          ccpthread.lib/sem_getvalue
 
    SEE ALSO
 	sem_init, sem_post
+
+ccpthread.lib/pthread_rwlock_init                ccpthread.lib/pthread_rwlock_init
+   NAME
+	pthread_rwlock_init -- initialize a read-write lock
+
+   SYNOPSIS
+	int pthread_rwlock_init(pthread_rwlock_t *rwlock,
+	    const pthread_rwlockattr_t *attr);
+
+   FUNCTION
+	Port of unix.lib2: mutex + reader/writer condition variables.
+
+   RESULT
+	0 on success, EINVAL if rwlock is NULL.
+
+   SEE ALSO
+	pthread_rwlock_rdlock, pthread_rwlock_wrlock
+
+ccpthread.lib/pthread_rwlock_destroy          ccpthread.lib/pthread_rwlock_destroy
+   NAME
+	pthread_rwlock_destroy -- destroy a read-write lock
+
+   SYNOPSIS
+	int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+
+   RESULT
+	0, EINVAL, or EBUSY if holders remain.
+
+   SEE ALSO
+	pthread_rwlock_init
+
+ccpthread.lib/pthread_rwlock_rdlock            ccpthread.lib/pthread_rwlock_rdlock
+   NAME
+	pthread_rwlock_rdlock -- shared read lock
+
+   SYNOPSIS
+	int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+
+   FUNCTION
+	Waits while writers are active or waiting.  Cancel point.
+
+   SEE ALSO
+	pthread_rwlock_tryrdlock, pthread_rwlock_unlock
+
+ccpthread.lib/pthread_rwlock_tryrdlock      ccpthread.lib/pthread_rwlock_tryrdlock
+   NAME
+	pthread_rwlock_tryrdlock -- non-blocking read lock
+
+   SYNOPSIS
+	int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+
+   RESULT
+	0 or EBUSY.
+
+   SEE ALSO
+	pthread_rwlock_rdlock
+
+ccpthread.lib/pthread_rwlock_wrlock            ccpthread.lib/pthread_rwlock_wrlock
+   NAME
+	pthread_rwlock_wrlock -- exclusive write lock
+
+   SYNOPSIS
+	int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
+
+   FUNCTION
+	Waits for all readers and writers.  Cancel point.
+
+   SEE ALSO
+	pthread_rwlock_trywrlock
+
+ccpthread.lib/pthread_rwlock_trywrlock      ccpthread.lib/pthread_rwlock_trywrlock
+   NAME
+	pthread_rwlock_trywrlock -- non-blocking write lock
+
+   SYNOPSIS
+	int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+
+   RESULT
+	0 or EBUSY.
+
+   SEE ALSO
+	pthread_rwlock_wrlock
+
+ccpthread.lib/pthread_rwlock_unlock            ccpthread.lib/pthread_rwlock_unlock
+   NAME
+	pthread_rwlock_unlock -- unlock a read-write lock
+
+   SYNOPSIS
+	int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
+
+   FUNCTION
+	Releases a held read or write lock; prefers waiting writers.
+
+   SEE ALSO
+	pthread_rwlock_rdlock, pthread_rwlock_wrlock
+
+ccpthread.lib/pthread_key_create              ccpthread.lib/pthread_key_create
+   NAME
+	pthread_key_create -- allocate a TLS key
+
+   SYNOPSIS
+	int pthread_key_create(pthread_key_t *key, void (*destructor)(void *));
+
+   FUNCTION
+	Allocates a key slot (PTHREAD_KEYS_MAX).  destructor may be NULL.
+	Destructors run from ClearSTDIO thr_teardown (one pass).
+
+   RESULT
+	0, EINVAL, or EAGAIN if the key table is full.
+
+   SEE ALSO
+	pthread_setspecific, pthread_key_delete
+
+ccpthread.lib/pthread_key_delete              ccpthread.lib/pthread_key_delete
+   NAME
+	pthread_key_delete -- free a TLS key
+
+   SYNOPSIS
+	int pthread_key_delete(pthread_key_t key);
+
+   FUNCTION
+	Marks the key unused.  Does not run destructors for existing values.
+
+   SEE ALSO
+	pthread_key_create
+
+ccpthread.lib/pthread_setspecific            ccpthread.lib/pthread_setspecific
+   NAME
+	pthread_setspecific -- store a TLS value for this thread
+
+   SYNOPSIS
+	int pthread_setspecific(pthread_key_t key, const void *value);
+
+   FUNCTION
+	Stores value on the current ThreadPair (via thr_ctx).
+
+   SEE ALSO
+	pthread_getspecific
+
+ccpthread.lib/pthread_getspecific            ccpthread.lib/pthread_getspecific
+   NAME
+	pthread_getspecific -- fetch this thread's TLS value
+
+   SYNOPSIS
+	void *pthread_getspecific(pthread_key_t key);
+
+   RESULT
+	Stored pointer, or NULL if unset / bad key / no ThreadPair.
+
+   SEE ALSO
+	pthread_setspecific
+
+ccpthread.lib/pthread_cancel                      ccpthread.lib/pthread_cancel
+   NAME
+	pthread_cancel -- request cooperative cancellation
+
+   SYNOPSIS
+	int pthread_cancel(pthread_t thread);
+
+   FUNCTION
+	Marks CANCEL_REQUESTED.  Target exits at the next cancel point
+	(pthread_testcancel, mutex_lock, cond_wait, …) via
+	pthread_exit(PTHREAD_CANCELED).
+
+   SEE ALSO
+	pthread_testcancel, pthread_setcancelstate
+
+ccpthread.lib/pthread_testcancel              ccpthread.lib/pthread_testcancel
+   NAME
+	pthread_testcancel -- cancel point
+
+   SYNOPSIS
+	void pthread_testcancel(void);
+
+   FUNCTION
+	If cancel enabled and requested, pthread_exit(PTHREAD_CANCELED).
+
+   SEE ALSO
+	pthread_cancel
+
+ccpthread.lib/pthread_setcancelstate      ccpthread.lib/pthread_setcancelstate
+   NAME
+	pthread_setcancelstate -- enable or disable cancellation
+
+   SYNOPSIS
+	int pthread_setcancelstate(int state, int *oldstate);
+
+   FUNCTION
+	PTHREAD_CANCEL_ENABLE or PTHREAD_CANCEL_DISABLE.
+
+   SEE ALSO
+	pthread_cancel, pthread_setcanceltype
+
+ccpthread.lib/pthread_setcanceltype        ccpthread.lib/pthread_setcanceltype
+   NAME
+	pthread_setcanceltype -- deferred vs asynchronous
+
+   SYNOPSIS
+	int pthread_setcanceltype(int type, int *oldtype);
+
+   FUNCTION
+	Stores the type.  Only cooperative deferred cancel is honoured
+	(ASYNCHRONOUS is accepted but not implemented).
+
+   SEE ALSO
+	pthread_setcancelstate
 

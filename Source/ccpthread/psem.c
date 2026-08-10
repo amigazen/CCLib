@@ -6,6 +6,7 @@
 #include <exec/lists.h>
 #include <exec/semaphores.h>
 #include <exec/tasks.h>
+#include <dos/dos.h>
 #include <dos/dosextens.h>
 
 #include <proto/exec.h>
@@ -124,7 +125,7 @@ sem_wait(sem_t *sem)
 	AddTail(&sem->waiters, &w.node);
 	ReleaseSemaphore(&sem->lock);
 
-	Wait(mask);
+	cc_thr_wait_or_break(mask);
 
 	ObtainSemaphore(&sem->lock);
 	if (w.node.ln_Succ != (struct Node *)NULL)
