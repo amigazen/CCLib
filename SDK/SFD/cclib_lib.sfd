@@ -1,4 +1,4 @@
-==id $VER: cclib_lib.sfd 4.2 (10.8.2026)
+==id $VER: cclib_lib.sfd 4.3 (10.8.2026)
 *"cclib.library"
 *
 * Canonical LVO interface for cclib.library (shared resident). This SFD lists
@@ -7,17 +7,18 @@
 *
 * Packaging (see STATIC_LIBS.md at repo root)
 *   cclib.library  — this SFD: ISO C + Amiga-typical hosted core
+*                    (incl. wchar/multibyte foundation + private CheckBreak)
 *   ccposix.lib    — static: POSIX/portability extras (fd polish, signals,
-*                    getopt/glob, multibyte, …)
-*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem
+*                    getopt/glob, …) — multibyte is shared, not here
+*   ccpthread.lib  — static: pthread, unnamed sem (SysV sem optional later)
 *   ma.lib / m99.lib — math (not CClib LVOs)
 *   Future shared companions (bsdsocket-tied net, regex.library, …) — not here
 *
 * Freeze rules
 *   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table.
 *   Never reorder, remove, or insert mid-table above ==version 4.
-*   From ==version 4 onward: regroup freely while regenerating headers +
-*   StartUp FuncTab and rebuilding all clients together.
+*   V4 close-out: public wchar/mb* + wctype, then ==private CheckBreak /
+*   SignalBreak, then freeze (no further inserts/reorders).
 *   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras
 *   → STATIC_LIBS.md (ccposix / ccpthread / math / net).
 * Prototypes use C/POSIX types as single tokens LibDescConverter accepts
@@ -69,6 +70,8 @@
 ==typedef task_UserData
 ==typedef int64
 ==typedef uint64
+==typedef wchar_t
+==typedef wint_t
 ==bias 30
 ==public
 *
@@ -387,4 +390,33 @@ int isupper(int c) (d0)
 int isxdigit(int c) (d0)
 int isblank(int c) (d0)
 int isascii(int c) (d0)
+*
+* Multibyte / wchar foundation (MB_CUR_MAX==1 identity; "C" / 8-bit)
+int mblen(const char * s, size_t n) (a0,d0)
+int mbtowc(wchar_t * pwc, const char * s, size_t n) (a0,a1,d0)
+int wctomb(char * s, wchar_t wc) (a0,d0)
+size_t mbstowcs(wchar_t * pwcs, const char * s, size_t n) (a0,a1,d0)
+size_t wcstombs(char * s, const wchar_t * pwcs, size_t n) (a0,a1,d0)
+*
+* Wctype (single-byte wchar; delegates to ctype / locale Is*)
+int iswalnum(wint_t c) (d0)
+int iswalpha(wint_t c) (d0)
+int iswcntrl(wint_t c) (d0)
+int iswdigit(wint_t c) (d0)
+int iswgraph(wint_t c) (d0)
+int iswlower(wint_t c) (d0)
+int iswprint(wint_t c) (d0)
+int iswpunct(wint_t c) (d0)
+int iswspace(wint_t c) (d0)
+int iswupper(wint_t c) (d0)
+int iswxdigit(wint_t c) (d0)
+int iswblank(wint_t c) (d0)
+int iswascii(wint_t c) (d0)
+wint_t towlower(wint_t c) (d0)
+wint_t towupper(wint_t c) (d0)
+*
+* Companion flow control (private — no public pragmas/stubs)
+==private
+u_long CheckBreak() ()
+void SignalBreak(u_long mask) (d0)
 ==end

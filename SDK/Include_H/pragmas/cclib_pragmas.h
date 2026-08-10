@@ -21,7 +21,7 @@
 /* Packaging (see STATIC_LIBS.md at repo root) */
 /*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
 /*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
-/*                    getopt/glob, multibyte, …) */
+/*                    getopt/glob, …); multibyte is shared LVO */
 /*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
 /*   ma.lib / m99.lib — math (not CClib LVOs) */
 /*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
@@ -350,5 +350,30 @@
 #pragma libcall CCLibBase isxdigit 50A 001
 #pragma libcall CCLibBase isblank 510 001
 #pragma libcall CCLibBase isascii 516 001
+
+/* Multibyte / wchar foundation (MB_CUR_MAX==1 identity; "C" / 8-bit) */
+#pragma libcall CCLibBase mblen 51C 0802
+#pragma libcall CCLibBase mbtowc 522 09803
+#pragma libcall CCLibBase wctomb 528 0802
+#pragma libcall CCLibBase mbstowcs 52E 09803
+#pragma libcall CCLibBase wcstombs 534 09803
+
+/* Wctype (single-byte wchar; delegates to ctype / locale Is*) */
+#pragma libcall CCLibBase iswalnum 53A 001
+#pragma libcall CCLibBase iswalpha 540 001
+#pragma libcall CCLibBase iswcntrl 546 001
+#pragma libcall CCLibBase iswdigit 54C 001
+#pragma libcall CCLibBase iswgraph 552 001
+#pragma libcall CCLibBase iswlower 558 001
+#pragma libcall CCLibBase iswprint 55E 001
+#pragma libcall CCLibBase iswpunct 564 001
+#pragma libcall CCLibBase iswspace 56A 001
+#pragma libcall CCLibBase iswupper 570 001
+#pragma libcall CCLibBase iswxdigit 576 001
+#pragma libcall CCLibBase iswblank 57C 001
+#pragma libcall CCLibBase iswascii 582 001
+#pragma libcall CCLibBase towlower 588 001
+#pragma libcall CCLibBase towupper 58E 001
+
 
 #endif /* PRAGMAS_CCLIB_PRAGMAS_H */

@@ -26,7 +26,13 @@ typedef long ptrdiff_t;
 
 #ifndef __WCHAR_T
 #define __WCHAR_T
-typedef char wchar_t;
+/* unsigned int so WEOF (-1) is distinct from every wchar_t value */
+typedef unsigned int wchar_t;
+#endif
+
+#ifndef __WINT_T
+#define __WINT_T
+typedef int wint_t;
 #endif
 
 #ifndef __TIME_T

@@ -306,14 +306,17 @@ void cc_set_errno(LONG err);
 LONG cc_get_errno(void);
 
 /*
- * Ctrl-C poll (SAS __chkabort model for shared LVOs).  Clears
- * SIGBREAKF_CTRL_C and calls ud->abort_func(20) when armed.  No-op when
- * abort_func is NULL (no session / ClearSTDIO disarmed).  Leaf LVOs that
- * never call cc_get_ud() should call this at entry; cc_get_ud() polls too.
+ * Break poll (SAS __chkabort model for shared LVOs).  Watches
+ * CC_BREAK_MASK (Ctrl-C..F).  Clears pending bits and calls
+ * ud->abort_func(20) when armed.  When abort_func is NULL, leaves bits
+ * set (no session / ClearSTDIO disarmed).  Leaf LVOs that never call
+ * cc_get_ud() should call cc_check_break() at entry; cc_get_ud() polls
+ * too.  CheckBreak LVO is the companion-callable form of cc_poll_break.
  *
- * After Wait(...|SIGBREAKF_CTRL_C), the bit is already cleared - call
+ * After Wait(...|CC_BREAK_MASK), bits are already cleared - call
  * cc_raise_ctrl_c() instead of cc_check_break().
  */
+ULONG cc_poll_break(void);
 void cc_check_break(void);
 void cc_raise_ctrl_c(void);
 

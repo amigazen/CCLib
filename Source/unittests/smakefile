@@ -41,6 +41,8 @@ CCTEST_OBJS = \
 	cctest_dir.o \
 	cctest_path.o \
 	cctest_locale.o \
+	cctest_wchar.o \
+	cctest_break.o \
 	cctest.o
 
 CCPANIC_OBJS = \
@@ -93,7 +95,7 @@ cc_start.o: /crt/cc_start.asm
 	Sc OBJNAME $@ $<
 
 # Extra idir=/ so private/ headers resolve from Source/
-/crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h
+/crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h /private/cc_break.h
 	Sc idir=/ OBJNAME $@ $<
 
 /stubs/math.o: /stubs/math.c
@@ -157,6 +159,12 @@ cctest_path.o: cctest_path.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 cctest_locale.o: cctest_locale.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+cctest_wchar.o: cctest_wchar.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+cctest_break.o: cctest_break.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 cctest.o: cctest.c cctest_util.h

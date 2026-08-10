@@ -930,4 +930,98 @@ LONG __ASM__ __SAVE_DS__ isascii(
 	__REG__(d0, LONG c)
 );
 
+LONG __ASM__ __SAVE_DS__ mblen(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, ULONG n)
+);
+
+LONG __ASM__ __SAVE_DS__ mbtowc(
+	__REG__(a0, APTR pwc),
+	__REG__(a1, STRPTR s),
+	__REG__(d0, ULONG n)
+);
+
+LONG __ASM__ __SAVE_DS__ wctomb(
+	__REG__(a0, STRPTR s),
+	__REG__(d0, ULONG wc)
+);
+
+ULONG __ASM__ __SAVE_DS__ mbstowcs(
+	__REG__(a0, APTR pwcs),
+	__REG__(a1, STRPTR s),
+	__REG__(d0, ULONG n)
+);
+
+ULONG __ASM__ __SAVE_DS__ wcstombs(
+	__REG__(a0, STRPTR s),
+	__REG__(a1, APTR pwcs),
+	__REG__(d0, ULONG n)
+);
+
+LONG __ASM__ __SAVE_DS__ iswalnum(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswalpha(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswcntrl(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswdigit(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswgraph(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswlower(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswprint(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswpunct(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswspace(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswupper(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswxdigit(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswblank(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ iswascii(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ towlower(
+	__REG__(d0, LONG c)
+);
+
+LONG __ASM__ __SAVE_DS__ towupper(
+	__REG__(d0, LONG c)
+);
+
+ULONG __ASM__ __SAVE_DS__ CheckBreak(void);
+
+void __ASM__ __SAVE_DS__ SignalBreak(
+	__REG__(d0, ULONG mask)
+);
+
 #endif /* CCLIB_FUNCS_H */

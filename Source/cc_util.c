@@ -98,9 +98,39 @@ cc_raise_ctrl_c(void)
 }
 
 /*
- * Poll SIGBREAKF_CTRL_C and jump to the session abort hook (CRT exit).
+ * Shared break poll for LVO entry and the CheckBreak LVO.  Watches
+ * CC_BREAK_MASK (Ctrl-C..F).  If abort_func is armed, clears the pending
+ * bits and calls abort_func(20).  If disarmed, leaves the bits set and
+ * returns them for soft handling.
+ */
+ULONG
+cc_poll_break(void)
+{
+	ULONG pending;
+	struct Task *t;
+	cc_task_UserData *ud;
+
+	pending = SetSignal(0L, 0L) & CC_BREAK_MASK;
+	if (pending == 0UL)
+		return 0UL;
+
+	t = FindTask(NULL);
+	if (t == (struct Task *)NULL)
+		return pending;
+	ud = (cc_task_UserData *)t->tc_UserData;
+	if (ud == (cc_task_UserData *)NULL
+	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
+		return pending;
+
+	SetSignal(0L, pending);
+	(*ud->abort_func)(20L);
+	return pending;
+}
+
+/*
+ * Poll CC_BREAK_MASK and jump to the session abort hook (CRT exit).
  * If abort_func is NULL, leave the signal set so a later SetAbortFunc
- * still sees the break (do not silently eat Ctrl-C after ClearAbortFunc).
+ * still sees the break (do not silently eat breaks after ClearAbortFunc).
  * ClearSTDIO nulls abort_func before teardown so this cannot re-enter.
  *
  * Workers must not leave a ThreadPair in tc_UserData across CClib LVOs
@@ -110,22 +140,28 @@ cc_raise_ctrl_c(void)
 void
 cc_check_break(void)
 {
-	struct Task *t;
-	cc_task_UserData *ud;
+	(void)cc_poll_break();
+}
 
-	if ((SetSignal(0L, 0L) & SIGBREAKF_CTRL_C) == 0UL)
-		return;
+/*
+ * Private LVO: companion-callable break poll (parm=r libcall).
+ * Same policy as cc_check_break; returns pending mask bits.
+ */
+ULONG __ASM__ __SAVE_DS__ CheckBreak(void)
+{
+	return cc_poll_break();
+}
 
-	t = FindTask(NULL);
-	if (t == (struct Task *)NULL)
-		return;
-	ud = (cc_task_UserData *)t->tc_UserData;
-	if (ud == (cc_task_UserData *)NULL
-	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
-		return;
-
-	SetSignal(0L, SIGBREAKF_CTRL_C);
-	(*ud->abort_func)(20L);
+/*
+ * Private LVO: assert break bits on this task (tests / inject).
+ * Mask is clipped to CC_BREAK_MASK.
+ */
+void __ASM__ __SAVE_DS__ SignalBreak(
+	__REG__(d0, ULONG mask))
+{
+	mask &= CC_BREAK_MASK;
+	if (mask != 0UL)
+		SetSignal(mask, mask);
 }
 
 cc_task_UserData *cc_get_ud(void)

@@ -349,4 +349,29 @@
 #pragma amicall(CCLibBase, 0x510, isblank(d0))
 #pragma amicall(CCLibBase, 0x516, isascii(d0))
 
+/* Multibyte / wchar foundation (MB_CUR_MAX==1 identity; "C" / 8-bit) */
+#pragma amicall(CCLibBase, 0x51C, mblen(a0,d0))
+#pragma amicall(CCLibBase, 0x522, mbtowc(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x528, wctomb(a0,d0))
+#pragma amicall(CCLibBase, 0x52E, mbstowcs(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x534, wcstombs(a0,a1,d0))
+
+/* Wctype (single-byte wchar; delegates to ctype / locale Is*) */
+#pragma amicall(CCLibBase, 0x53A, iswalnum(d0))
+#pragma amicall(CCLibBase, 0x540, iswalpha(d0))
+#pragma amicall(CCLibBase, 0x546, iswcntrl(d0))
+#pragma amicall(CCLibBase, 0x54C, iswdigit(d0))
+#pragma amicall(CCLibBase, 0x552, iswgraph(d0))
+#pragma amicall(CCLibBase, 0x558, iswlower(d0))
+#pragma amicall(CCLibBase, 0x55E, iswprint(d0))
+#pragma amicall(CCLibBase, 0x564, iswpunct(d0))
+#pragma amicall(CCLibBase, 0x56A, iswspace(d0))
+#pragma amicall(CCLibBase, 0x570, iswupper(d0))
+#pragma amicall(CCLibBase, 0x576, iswxdigit(d0))
+#pragma amicall(CCLibBase, 0x57C, iswblank(d0))
+#pragma amicall(CCLibBase, 0x582, iswascii(d0))
+#pragma amicall(CCLibBase, 0x588, towlower(d0))
+#pragma amicall(CCLibBase, 0x58E, towupper(d0))
+
+
 #endif /* PRAGMA_CCLIB_LIB_H */

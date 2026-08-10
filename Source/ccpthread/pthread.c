@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include <private/cc_internal.h>
+#include <private/cc_break.h>
 #include "cc_pthread.h"
 
 /* pthread_startup.asm — reload A4 after SetupSTDIO (arg in A4). */
@@ -112,47 +113,38 @@ cc_thr_run_tls_dtors(cc_Thread *tp)
 }
 
 /*
- * Poll Ctrl-C and invoke the session abort_func (same idea as library
- * cc_check_break).  Must not call cc_check_break from this static lib —
- * it is not an LVO; parm=r would emit @cc_check_break and SLINK fails.
+ * Poll break mask via private CheckBreak LVO (same policy as library
+ * cc_check_break).  Do not call cc_check_break by name from this static
+ * lib — it is not an LVO; parm=r would emit @cc_check_break and SLINK fails.
  */
 void
 cc_thr_check_break(void)
 {
-	struct Task *t;
-	cc_task_UserData *ud;
-
-	if ((SetSignal(0L, 0L) & SIGBREAKF_CTRL_C) == 0UL)
-		return;
-
-	t = FindTask((STRPTR)NULL);
-	if (t == (struct Task *)NULL)
-		return;
-	ud = (cc_task_UserData *)t->tc_UserData;
-	if (ud == (cc_task_UserData *)NULL
-	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
-		return;
-
-	SetSignal(0L, SIGBREAKF_CTRL_C);
-	(*ud->abort_func)(20L);
+	(void)CheckBreak();
 }
 
 /*
- * Wait for sigmask, but always wake on Ctrl-C so the session abort hook
- * can force a panic/exit (join / cond / sem must not ignore breaks).
+ * Wait for sigmask, but always wake on CC_BREAK_MASK so the session abort
+ * hook can force a panic/exit (join / cond / sem must not ignore breaks).
  */
 void
 cc_thr_wait_or_break(ULONG sigmask)
 {
 	ULONG got;
+	ULONG brk;
 
 	for (;;)
 	{
-		got = Wait(sigmask | SIGBREAKF_CTRL_C);
-		if ((got & SIGBREAKF_CTRL_C) != 0UL)
+		got = Wait(sigmask | CC_BREAK_MASK);
+		brk = got & CC_BREAK_MASK;
+		if (brk != 0UL)
 		{
-			SetSignal(0L, SIGBREAKF_CTRL_C);
-			cc_thr_check_break();
+			/*
+			 * Wait already cleared the bits from the task mask.
+			 * Re-assert so CheckBreak sees them and runs abort_func.
+			 */
+			SignalBreak(brk);
+			(void)CheckBreak();
 			/* Test abort hooks may return; keep waiting. */
 			continue;
 		}

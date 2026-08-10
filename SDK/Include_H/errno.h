@@ -43,5 +43,7 @@ extern int errno;
 #define EPERM 18
 /* Value too large for defined data type */
 #define EOVERFLOW 19
+/* Illegal byte sequence (multibyte) */
+#define EILSEQ 20
 
 #endif

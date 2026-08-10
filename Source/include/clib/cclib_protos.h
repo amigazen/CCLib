@@ -366,6 +366,31 @@ int isxdigit(int c);
 int isblank(int c);
 int isascii(int c);
 
+/* Multibyte / wchar foundation (MB_CUR_MAX==1 identity; "C" / 8-bit)*/
+int mblen(CONST char *s, size_t n);
+int mbtowc(wchar_t *pwc, CONST char *s, size_t n);
+int wctomb(char *s, wchar_t wc);
+size_t mbstowcs(wchar_t *pwcs, CONST char *s, size_t n);
+size_t wcstombs(char *s, CONST wchar_t *pwcs, size_t n);
+
+/* Wctype (single-byte wchar; delegates to ctype / locale Is*)*/
+int iswalnum(wint_t c);
+int iswalpha(wint_t c);
+int iswcntrl(wint_t c);
+int iswdigit(wint_t c);
+int iswgraph(wint_t c);
+int iswlower(wint_t c);
+int iswprint(wint_t c);
+int iswpunct(wint_t c);
+int iswspace(wint_t c);
+int iswupper(wint_t c);
+int iswxdigit(wint_t c);
+int iswblank(wint_t c);
+int iswascii(wint_t c);
+wint_t towlower(wint_t c);
+wint_t towupper(wint_t c);
+
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

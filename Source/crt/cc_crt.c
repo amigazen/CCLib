@@ -35,6 +35,7 @@
 
 #include "/private/cc_build.h"
 #include "/private/cc_internal.h"
+#include "/private/cc_break.h"
 
 extern short _math;
 extern long blocksize;
@@ -218,17 +219,33 @@ void __stdargs __destruct(void)
 
 void __regargs __chkabort(void)
 {
-	if (SetSignal(0L, SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C)
-	{
-		cc_task_UserData *ud;
+	ULONG pending;
+	cc_task_UserData *ud;
 
-		ud = (cc_task_UserData *)GetSTDIO();
-		if (ud != (cc_task_UserData *)NULL
-		    && ud->abort_func != (cc_ABORT_FUNC)NULL)
-			(*ud->abort_func)(20);
-		else
-			exit(20);
-	}
+	/*
+	 * Fast path: no break bits.  Must not call CheckBreak unconditionally —
+	 * SAS inserts __chkabort on every function entry, including __fpclear
+	 * after cc_terminate has CloseLibrary'd and nulled CCLibBase.
+	 */
+	if ((SetSignal(0L, 0L) & CC_BREAK_MASK) == 0UL)
+		return;
+
+	/* Library already closed: cannot libcall; leave bits for the shell. */
+	if (CCLibBase == (struct Library *)NULL)
+		return;
+
+	pending = CheckBreak();
+	if (pending == 0UL)
+		return;
+
+	/*
+	 * CheckBreak returns with bits pending when abort_func is missing
+	 * (or returned).  Mirror historic CRT: exit if no hook.
+	 */
+	ud = (cc_task_UserData *)GetSTDIO();
+	if (ud == (cc_task_UserData *)NULL
+	    || ud->abort_func == (cc_ABORT_FUNC)NULL)
+		exit(20);
 }
 
 void __regargs _chkabort(void)

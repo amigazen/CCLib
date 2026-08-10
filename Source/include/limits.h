@@ -23,7 +23,8 @@
 
 /*
  * Multibyte: CClib is an 8-bit codeset libc.  MB_CUR_MAX stays 1 for "C"
- * and for ISO-8859-* locales.  Only a future mbs/wcs wave may raise this.
+ * and for ISO-8859-* locales.  wchar_t is unsigned int; conversion LVOs
+ * are identity for values 0..255 (see wchar.h / SFD close-out).
  */
 #define MB_CUR_MAX 1
 #define PATH_MAX 1024

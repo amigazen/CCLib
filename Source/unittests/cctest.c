@@ -34,6 +34,8 @@ main(int argc, char **argv)
 	ct_suite_dir();
 	ct_suite_path();
 	ct_suite_locale();
+	ct_suite_wchar();
+	ct_suite_break();
 
 	ct_summary();
 

@@ -1,4 +1,4 @@
-FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"cctest_crt.o"+"cctest_string.o"+"cctest_mem.o"+"cctest_conv.o"+"cctest_ctype.o"+"cctest_heap.o"+"cctest_list.o"+"cctest_fmt.o"+"cctest_stdio.o"+"cctest_io.o"+"cctest_time.o"+"cctest_env.o"+"cctest_sort.o"+"cctest_dir.o"+"cctest_path.o"+"cctest_locale.o"+"cctest.o"
+FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"cctest_crt.o"+"cctest_string.o"+"cctest_mem.o"+"cctest_conv.o"+"cctest_ctype.o"+"cctest_heap.o"+"cctest_list.o"+"cctest_fmt.o"+"cctest_stdio.o"+"cctest_io.o"+"cctest_time.o"+"cctest_env.o"+"cctest_sort.o"+"cctest_dir.o"+"cctest_path.o"+"cctest_locale.o"+"cctest_wchar.o"+"cctest_break.o"+"cctest.o"
 TO "CCTest"
 LIB lib:amiga.lib
 ADDSYM

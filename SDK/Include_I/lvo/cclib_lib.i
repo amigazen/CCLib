@@ -294,3 +294,28 @@ _LVOisxdigit equ -1290
 _LVOisblank equ -1296
 _LVOisascii equ -1302
 
+** Multibyte / wchar foundation (MB_CUR_MAX==1 identity; "C" / 8-bit)
+_LVOmblen equ -1308
+_LVOmbtowc equ -1314
+_LVOwctomb equ -1320
+_LVOmbstowcs equ -1326
+_LVOwcstombs equ -1332
+** Wctype (single-byte wchar; delegates to ctype / locale Is*)
+_LVOiswalnum equ -1338
+_LVOiswalpha equ -1344
+_LVOiswcntrl equ -1350
+_LVOiswdigit equ -1356
+_LVOiswgraph equ -1362
+_LVOiswlower equ -1368
+_LVOiswprint equ -1374
+_LVOiswpunct equ -1380
+_LVOiswspace equ -1386
+_LVOiswupper equ -1392
+_LVOiswxdigit equ -1398
+_LVOiswblank equ -1404
+_LVOiswascii equ -1410
+_LVOtowlower equ -1416
+_LVOtowupper equ -1422
+** Companion flow control (private)
+_LVOCheckBreak equ -1428
+_LVOSignalBreak equ -1434

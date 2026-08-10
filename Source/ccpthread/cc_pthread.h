@@ -70,9 +70,9 @@ int cc_thr_ensure_list(void);
 void __stdargs __saveds cc_thr_session_teardown(APTR ctx);
 void cc_thr_run_tls_dtors(cc_Thread *tp);
 void cc_thr_cancel_check(cc_Thread *tp);
-/* Local Ctrl-C -> session abort_func (do not call library cc_check_break). */
+/* Local wrapper: private CheckBreak LVO (see <private/cc_break.h>). */
 void cc_thr_check_break(void);
-/* Wait(sigmask | Ctrl-C); Ctrl-C -> cc_thr_check_break. */
+/* Wait(sigmask | CC_BREAK_MASK); break -> SignalBreak + CheckBreak. */
 void cc_thr_wait_or_break(ULONG sigmask);
 
 /*

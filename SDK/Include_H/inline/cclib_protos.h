@@ -785,4 +785,65 @@ int __isascii(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1302(a6)";
 #define isascii(c) __isascii(CCLibBase, (c))
 
 
+int __mblen(__reg("a6") void *, __reg("a0") CONST char *s, __reg("d0") size_t n)="\tjsr\t-1308(a6)";
+#define mblen(s, n) __mblen(CCLibBase, (s), (n))
+
+int __mbtowc(__reg("a6") void *, __reg("a0") wchar_t *pwc, __reg("a1") CONST char *s, __reg("d0") size_t n)="\tjsr\t-1314(a6)";
+#define mbtowc(pwc, s, n) __mbtowc(CCLibBase, (pwc), (s), (n))
+
+int __wctomb(__reg("a6") void *, __reg("a0") char *s, __reg("d0") wchar_t wc)="\tjsr\t-1320(a6)";
+#define wctomb(s, wc) __wctomb(CCLibBase, (s), (wc))
+
+size_t __mbstowcs(__reg("a6") void *, __reg("a0") wchar_t *pwcs, __reg("a1") CONST char *s, __reg("d0") size_t n)="\tjsr\t-1326(a6)";
+#define mbstowcs(pwcs, s, n) __mbstowcs(CCLibBase, (pwcs), (s), (n))
+
+size_t __wcstombs(__reg("a6") void *, __reg("a0") char *s, __reg("a1") CONST wchar_t *pwcs, __reg("d0") size_t n)="\tjsr\t-1332(a6)";
+#define wcstombs(s, pwcs, n) __wcstombs(CCLibBase, (s), (pwcs), (n))
+
+int __iswalnum(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1338(a6)";
+#define iswalnum(c) __iswalnum(CCLibBase, (c))
+
+int __iswalpha(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1344(a6)";
+#define iswalpha(c) __iswalpha(CCLibBase, (c))
+
+int __iswcntrl(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1350(a6)";
+#define iswcntrl(c) __iswcntrl(CCLibBase, (c))
+
+int __iswdigit(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1356(a6)";
+#define iswdigit(c) __iswdigit(CCLibBase, (c))
+
+int __iswgraph(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1362(a6)";
+#define iswgraph(c) __iswgraph(CCLibBase, (c))
+
+int __iswlower(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1368(a6)";
+#define iswlower(c) __iswlower(CCLibBase, (c))
+
+int __iswprint(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1374(a6)";
+#define iswprint(c) __iswprint(CCLibBase, (c))
+
+int __iswpunct(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1380(a6)";
+#define iswpunct(c) __iswpunct(CCLibBase, (c))
+
+int __iswspace(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1386(a6)";
+#define iswspace(c) __iswspace(CCLibBase, (c))
+
+int __iswupper(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1392(a6)";
+#define iswupper(c) __iswupper(CCLibBase, (c))
+
+int __iswxdigit(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1398(a6)";
+#define iswxdigit(c) __iswxdigit(CCLibBase, (c))
+
+int __iswblank(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1404(a6)";
+#define iswblank(c) __iswblank(CCLibBase, (c))
+
+int __iswascii(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1410(a6)";
+#define iswascii(c) __iswascii(CCLibBase, (c))
+
+wint_t __towlower(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1416(a6)";
+#define towlower(c) __towlower(CCLibBase, (c))
+
+wint_t __towupper(__reg("a6") void *, __reg("d0") wint_t c)="\tjsr\t-1422(a6)";
+#define towupper(c) __towupper(CCLibBase, (c))
+
+
 #endif /* INLINE_CCLIB_PROTOS_H */

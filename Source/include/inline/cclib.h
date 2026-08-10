@@ -2202,4 +2202,193 @@
 })
 
 
+#define mblen(s, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register CONST char *p0 __asm("a0") = (s);   \
+	register size_t p1 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1308:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define mbtowc(pwc, s, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wchar_t *p0 __asm("a0") = (pwc);   \
+	register CONST char *p1 __asm("a1") = (s);   \
+	register size_t p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1314:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define wctomb(s, wc)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register char *p0 __asm("a0") = (s);   \
+	register wchar_t p1 __asm("d0") = (wc);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1320:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define mbstowcs(pwcs, s, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wchar_t *p0 __asm("a0") = (pwcs);   \
+	register CONST char *p1 __asm("a1") = (s);   \
+	register size_t p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1326:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define wcstombs(s, pwcs, n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register char *p0 __asm("a0") = (s);   \
+	register CONST wchar_t *p1 __asm("a1") = (pwcs);   \
+	register size_t p2 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1332:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswalnum(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1338:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswalpha(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1344:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswcntrl(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1350:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswdigit(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1356:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswgraph(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1362:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswlower(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1368:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswprint(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1374:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswpunct(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1380:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswspace(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1386:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswupper(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1392:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswxdigit(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1398:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswblank(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1404:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define iswascii(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1410:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define towlower(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1416:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define towupper(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register wint_t p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1422:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+
 #endif /* INLINE_CCLIB_H */
