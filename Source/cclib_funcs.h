@@ -124,7 +124,7 @@ LONG __ASM__ __SAVE_DS__ setvbuf(
 	__REG__(d1, ULONG size));
 
 STRPTR __ASM__ __SAVE_DS__ mktemp(
-	__REG__(a0, STRPTR template));
+	__REG__(a0, STRPTR tmpl));
 
 STRPTR __ASM__ __SAVE_DS__ tmpnam(
 	__REG__(a0, STRPTR s));
@@ -788,7 +788,7 @@ LONG __ASM__ __SAVE_DS__ labs(
 );
 
 LONG __ASM__ __SAVE_DS__ mkstemp(
-	__REG__(a0, STRPTR template)
+	__REG__(a0, STRPTR tmpl)
 );
 
 STRPTR __ASM__ __SAVE_DS__ getcwd(

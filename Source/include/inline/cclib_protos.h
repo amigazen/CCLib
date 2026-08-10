@@ -134,8 +134,8 @@ void __getbuff(__reg("a6") void *, __reg("a0") FILE *stream)="\tjsr\t-168(a6)";
 int __setvbuf(__reg("a6") void *, __reg("a0") FILE *stream, __reg("a1") char *buf, __reg("d0") int mode, __reg("d1") size_t size)="\tjsr\t-174(a6)";
 #define setvbuf(stream, buf, mode, size) __setvbuf(CCLibBase, (stream), (buf), (mode), (size))
 
-char *__mktemp(__reg("a6") void *, __reg("a0") char *template)="\tjsr\t-180(a6)";
-#define mktemp(template) __mktemp(CCLibBase, (template))
+char *__mktemp(__reg("a6") void *, __reg("a0") char *tmpl)="\tjsr\t-180(a6)";
+#define mktemp(tmpl) __mktemp(CCLibBase, (tmpl))
 
 char *__tmpnam(__reg("a6") void *, __reg("a0") char *s)="\tjsr\t-186(a6)";
 #define tmpnam(s) __tmpnam(CCLibBase, (s))
@@ -677,8 +677,8 @@ long __labs(__reg("a6") void *, __reg("d0") long n)="\tjsr\t-1104(a6)";
 
 
 /* Path / filesystem (dos.library; softlinks are ccposix) */
-int __mkstemp(__reg("a6") void *, __reg("a0") char *template)="\tjsr\t-1110(a6)";
-#define mkstemp(template) __mkstemp(CCLibBase, (template))
+int __mkstemp(__reg("a6") void *, __reg("a0") char *tmpl)="\tjsr\t-1110(a6)";
+#define mkstemp(tmpl) __mkstemp(CCLibBase, (tmpl))
 
 char *__getcwd(__reg("a6") void *, __reg("a0") char *buf, __reg("d0") size_t size)="\tjsr\t-1116(a6)";
 #define getcwd(buf, size) __getcwd(CCLibBase, (buf), (size))

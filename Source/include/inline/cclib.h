@@ -304,10 +304,10 @@
 	r;   \
 })
 
-#define mktemp(template)    \
+#define mktemp(tmpl)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
-	register char *p0 __asm("a0") = (template);   \
+	register char *p0 __asm("a0") = (tmpl);   \
 	register APTR r __asm("d0");   \
 	__asm volatile ("jsr a6@(-180:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
@@ -1884,10 +1884,10 @@
 
 
 /* Path / filesystem (dos.library; softlinks are ccposix) */
-#define mkstemp(template)    \
+#define mkstemp(tmpl)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
-	register char *p0 __asm("a0") = (template);   \
+	register char *p0 __asm("a0") = (tmpl);   \
 	register APTR r __asm("d0");   \
 	__asm volatile ("jsr a6@(-1110:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \

@@ -105,7 +105,7 @@ int fclose(FILE *stream);
 FILE *fdopen(int fd, CONST char *mode);
 void getbuff(FILE *stream);
 int setvbuf(FILE *stream, char *buf, int mode, size_t size);
-char *mktemp(char *template);
+char *mktemp(char *tmpl);
 char *tmpnam(char *s);
 FILE *tmpfile(void);
 int putc(int c, FILE *stream);
@@ -324,7 +324,7 @@ int abs(int n);
 long labs(long n);
 
 /* Path / filesystem (dos.library; softlinks are ccposix)*/
-int mkstemp(char *template);
+int mkstemp(char *tmpl);
 char *getcwd(char *buf, size_t size);
 int chdir(CONST char *path);
 char *realpath(CONST char *path, char *resolved);
