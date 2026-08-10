@@ -2,7 +2,7 @@
 #define UNISTD_H 1
 
 /*
- * unistd — path and sleep helpers (CClib LVOs via proto).
+ * unistd - path and sleep helpers (CClib LVOs via proto).
  */
 
 #ifndef ANSIC

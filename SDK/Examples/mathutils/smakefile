@@ -1,0 +1,72 @@
+#
+# :ts=8
+#
+# CClib SDK example — meval linked with CClib CRT + ma.lib (no sc.lib).
+#
+# Build from this directory after installing cclib.library in LIBS:
+#   smake
+#
+# Requires sibling tree ////ma.lib (github/ma.lib) with SDK/lib/ma.lib.
+# Link: ma.lib + amiga.lib only.  If SLINK reports unresolved IEEE/softfloat
+# helpers, try:  slink with meval-ieee.lnk
+#
+
+###############################################################################
+
+SRC = ///Source
+MALIB = ////ma.lib/SDK/lib/ma.lib
+
+CRT_OBJS = \
+	cc_start.o \
+	$(SRC)/crt/cc_entry.o \
+	$(SRC)/crt/cc_crt.o \
+	$(SRC)/stubs/math.o \
+	$(SRC)/stubs/blocksize.o \
+	$(SRC)/stubs/cxamemset.o \
+	$(SRC)/stubs/cxamemcpy.o
+
+###############################################################################
+
+all: meval
+
+meval: $(CRT_OBJS) amiga_math_stubs.o meval.o meval.lnk
+	slink with meval.lnk
+
+clean:
+	delete quiet meval meval.map \
+		meval.o amiga_math_stubs.o cc_start.o \
+		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o \
+		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o
+
+###############################################################################
+
+cc_start.o: $(SRC)/crt/cc_start.asm
+	copy $(SRC)/crt/cc_start.asm cc_start.asm
+	asm -u cc_start.asm
+	delete quiet cc_start.asm
+
+$(SRC)/crt/cc_entry.o: $(SRC)/crt/cc_entry.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/crt/cc_crt.o: $(SRC)/crt/cc_crt.c
+	Sc idir=$(SRC) OBJNAME $@ $<
+
+$(SRC)/stubs/math.o: $(SRC)/stubs/math.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/blocksize.o: $(SRC)/stubs/blocksize.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/cxamemset.o: $(SRC)/stubs/cxamemset.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/cxamemcpy.o: $(SRC)/stubs/cxamemcpy.c
+	Sc OBJNAME $@ $<
+
+amiga_math_stubs.o: amiga_math_stubs.c
+	Sc OBJNAME $@ $<
+
+meval.o: meval.c
+	Sc OBJNAME $@ $<
+
+.PHONY: all clean

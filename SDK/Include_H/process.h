@@ -2,7 +2,7 @@
 #define PROCESS_H 1
 
 /*
- * process — Workbench / CLI child process helpers for CClib.
+ * process - Workbench / CLI child process helpers for CClib.
  * Child and related types come from <libraries/cclib.h> via <iolib.h>.
  */
 

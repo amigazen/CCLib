@@ -33,24 +33,37 @@ extern "C" {
 
 /*"cclib.library"*/
 
-/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the*/
-/* historic V3.0 jump table). Register-args LVO calling convention.*/
-/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published.*/
+/* Canonical LVO interface for cclib.library (shared resident). This SFD lists*/
+/* ONLY functions that live in the LVO jump table of cclib.library.*/
+/* Register-args LVO calling convention.*/
 
+/* Packaging (see STATIC_LIBS.md at repo root)*/
+/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core*/
+/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals,*/
+/*                    getopt/glob, multibyte, …)*/
+/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem*/
+/*   ma.lib / m99.lib — math (not CClib LVOs)*/
+/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here*/
+
+/* Freeze rules*/
+/*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table.*/
+/*   Never reorder, remove, or insert mid-table above ==version 4.*/
+/*   From ==version 4 onward: regroup freely while regenerating headers +*/
+/*   StartUp FuncTab and rebuilding all clients together.*/
+/*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras*/
+/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net).*/
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts*/
-/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd:*/
-/*   u_long = unsigned long;  unsigned = unsigned int.*/
+/* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types*/
+/* are typedef'd: u_long = unsigned long; unsigned = unsigned int.*/
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for*/
 /* Amiga-specific APIs (BPTR, …).*/
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*.*/
+/* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return*/
+/* 8-byte structs by value).*/
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias);*/
 /* strcasecmp is canonical (strcmpa ==alias).*/
-/* V4+ append-only at end: keep new LVOs in logical groups (memory,*/
-/* string, env, format, stdlib, …). Do not insert mid-table; within each*/
-/* append wave, batch by category before starting the next category.*/
-
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc,*/
 /* aputc) remain as public LVOs.*/
 
@@ -258,14 +271,16 @@ long cliexec(char *cmd);
 long exec(char *cmd);
 /*--- functions in V4 or higher ---*/
 
-/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not*/
-/* realtime.library) backs sleep/usleep/nanosleep.*/
+/* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C*/
+/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md.*/
+/* timer.device (not realtime.library) backs sleep/usleep/nanosleep.*/
+/* Softlink / dirent-seek / popen → ccposix.lib (not in this table).*/
 
-/* Memory*/
+/* Memory (completes V3 mem*)*/
 void *memmove(void *dst, CONST void *src, size_t n);
 void *memmem(CONST void *haystack, size_t hlen, CONST void *needle, size_t nlen);
 
-/* String*/
+/* String (completes V3 str*; BSD-safe + Lattice strlwr)*/
 int strncasecmp(CONST char *s1, CONST char *s2, size_t n);
 int strnicmp(CONST char *s1, CONST char *s2, size_t n);
 char *strdup(CONST char *s);
@@ -278,10 +293,10 @@ size_t strlcat(char *dst, CONST char *src, size_t size);
 char *strtok_r(char *s, CONST char *delim, char **saveptr);
 char *strlwr(char *s);
 
-/* Environment*/
+/* Environment (beside V3 setenv/getenv)*/
 int unsetenv(CONST char *name);
 
-/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias*/
+/* Formatted I/O (snprintf shares bias with vsnprintf)*/
 int vsnprintf(char *s, size_t n, CONST char *format, va_list args);
 int snprintf(char *s, size_t n, CONST char *format, ...);
 int vscanf(CONST char *format, va_list args);
@@ -290,21 +305,25 @@ int vsscanf(CONST char *s, CONST char *format, va_list args);
 ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream);
 
-/* Conversion*/
+/* Conversion (completes V3 atoi/atol/atof; 64-bit via out-params)*/
 long strtol(CONST char *s, char **endp, int base);
 u_long strtoul(CONST char *s, char **endp, int base);
 DOUBLE strtod(CONST char *s, char **endp);
 long atoll(CONST char *s);
+void strtoll(int64 *result, CONST char *s, char **endp, int base);
+void strtoull(uint64 *result, CONST char *s, char **endp, int base);
 
 /* Search / random / integer math*/
+/* div/ldiv: result pointer (SAS/C libcall cannot return 8-byte structs).*/
 void *bsearch(CONST void *key, CONST void *base, size_t nel, size_t width, void *compar);
 void srand(unsigned seed);
 int rand(void);
 void div(div_t *result, int numer, int denom);
 void ldiv(ldiv_t *result, long numer, long denom);
+int abs(int n);
 long labs(long n);
 
-/* Path / filesystem (dos.library)*/
+/* Path / filesystem (dos.library; softlinks are ccposix)*/
 int mkstemp(char *template);
 char *getcwd(char *buf, size_t size);
 int chdir(CONST char *path);
@@ -313,15 +332,14 @@ int mkdir(CONST char *path, mode_t mode);
 int rmdir(CONST char *path);
 int chmod(CONST char *path, mode_t mode);
 int utime(CONST char *path, void *times);
-int symlink(CONST char *target, CONST char *linkpath);
-ssize_t readlink(CONST char *path, char *buf, size_t bufsiz);
+int fstat(int fd, struct stat *buf);
 
-/* Directory (POSIX dirent beside historic scdir)*/
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix)*/
 DIR *opendir(CONST char *name);
 struct dirent *readdir(DIR *dir);
 int closedir(DIR *dir);
 
-/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay)*/
+/* Sleep (timer.device TR_ADDREQUEST)*/
 unsigned sleep(unsigned seconds);
 int usleep(useconds_t usec);
 int nanosleep(CONST struct timespec *req, struct timespec *rem);
@@ -333,7 +351,7 @@ int strcoll(CONST char *s1, CONST char *s2);
 size_t strxfrm(char *dest, CONST char *src, size_t n);
 char *strptime(CONST char *s, CONST char *format, struct tm *tm);
 
-/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE)*/
+/* Ctype (locale.library Is* when LC_CTYPE is non-"C")*/
 int isalnum(int c);
 int isalpha(int c);
 int iscntrl(int c);

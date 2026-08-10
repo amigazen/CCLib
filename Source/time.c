@@ -136,7 +136,7 @@ APTR __ASM__ __SAVE_DS__ gmtime(
 APTR __ASM__ __SAVE_DS__ localtime(
 	__REG__(a0, APTR timer))
 {
-	/* Amiga has no timezone database — identical to gmtime */
+	/* Amiga has no timezone database - identical to gmtime */
 	cc_check_break();
 
 	return gmtime(timer);
@@ -166,7 +166,7 @@ STRPTR __ASM__ __SAVE_DS__ asctime(
 		mon = 0;
 	year = (LONG)t->tm_year + 1900L;
 
-	/* "Sun Jan 1 12:00:00 1989\n" — APTR arg block via vsprintf (not tagcall) */
+	/* "Sun Jan 1 12:00:00 1989\n" - APTR arg block via vsprintf (not tagcall) */
 	args[0] = (APTR)cc_wday_abbr[wday];
 	args[1] = (APTR)cc_mon_abbr[mon];
 	args[2] = (APTR)(LONG)t->tm_mday;
@@ -262,7 +262,7 @@ DOUBLE __ASM__ __SAVE_DS__ difftime(
 	base = cc_get_mathbase();
 	if (base != (APTR)NULL)
 		return cc_ieeedp_flt(base, delta);
-	/* No mathbase (non-CRT): return +0.0 — callers should SetupSTDIO. */
+	/* No mathbase (non-CRT): return +0.0 - callers should SetupSTDIO. */
 	return cc_ieeedp_zero();
 }
 

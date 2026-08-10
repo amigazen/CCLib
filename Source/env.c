@@ -84,7 +84,7 @@ STRPTR __ASM__ __SAVE_DS__ scdir(
 		return ap->ap_Info.fib_FileName;
 	}
 
-	/* Continue an existing scan — pattern ignored after first call */
+	/* Continue an existing scan - pattern ignored after first call */
 	ap = (struct AnchorPath *)ud->scdir_mem;
 	err = MatchNext(ap);
 	if (err != 0L)
@@ -124,7 +124,7 @@ LONG __ASM__ __SAVE_DS__ setenv(
 	/*
 
 	 * Wrap dos SetVar / DeleteVar (see dos.library autodocs).
-	 * Prefer GVF_LOCAL_ONLY — SetVar's default is local-to-process.
+	 * Prefer GVF_LOCAL_ONLY - SetVar's default is local-to-process.
 	 */
 	cc_check_break();
 	if (name == NULL)

@@ -941,7 +941,7 @@ STRPTR __ASM__ __SAVE_DS__ mktemp(
 			return template;
 		UnLock(lock);
 	}
-	/* Exhausted attempts — leave a null template marker */
+	/* Exhausted attempts - leave a null template marker */
 	template[0] = '\0';
 	return template;
 }
@@ -979,7 +979,7 @@ LONG __ASM__ __SAVE_DS__ mkstemp(
 			UnLock(lock);
 			continue;
 		}
-		/* O_CREAT|O_EXCL|O_RDWR — open() already enforces EXCL. */
+		/* O_CREAT|O_EXCL|O_RDWR - open() already enforces EXCL. */
 		fd = open(template,
 			(ULONG)(CC_O_RDWR | CC_O_CREAT | CC_O_EXCL), 0UL);
 		if (fd != -1L)

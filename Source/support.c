@@ -35,7 +35,7 @@ static void cc_list_init(cc_list *l)
 /*
  * Free every node on a list that was allocated by add_head/add_tail
  * (layout [ULONG total][cc_node][data]).  Does not FreeMem the list
- * header — OpenFiles/StreamFiles live inside cc_task_UserData.
+ * header - OpenFiles/StreamFiles live inside cc_task_UserData.
  */
 static void cc_list_free_nodes(cc_list *l)
 {
@@ -282,7 +282,7 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	static LONG clearing;
 
 	/*
-	 * Fetch ud without cc_get_ud() — that polls Ctrl-C.  Disarm
+	 * Fetch ud without cc_get_ud() - that polls Ctrl-C.  Disarm
 	 * abort_func first so teardown cannot re-enter exit via break.
 	 */
 	task = FindTask((STRPTR)NULL);

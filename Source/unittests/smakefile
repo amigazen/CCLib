@@ -19,7 +19,9 @@ CRT_OBJS = \
 	/crt/cc_entry.o \
 	/crt/cc_crt.o \
 	/stubs/math.o \
-	/stubs/blocksize.o
+	/stubs/blocksize.o \
+	/stubs/cxamemset.o \
+	/stubs/cxamemcpy.o
 
 CCTEST_OBJS = \
 	cctest_util.o \
@@ -62,7 +64,7 @@ clean:
 	delete quiet CCTest CCPanic CCTest.map CCPanic.map \
 		$(CCTEST_OBJS) $(CCPANIC_OBJS) cc_start.o \
 		/crt/cc_entry.o /crt/cc_crt.o \
-		/stubs/math.o /stubs/blocksize.o
+		/stubs/math.o /stubs/blocksize.o /stubs/cxamemset.o /stubs/cxamemcpy.o
 
 test: CCTest CCPanic
 	CCTest
@@ -87,6 +89,12 @@ cc_start.o: /crt/cc_start.asm
 	Sc OBJNAME $@ $<
 
 /stubs/blocksize.o: /stubs/blocksize.c
+	Sc OBJNAME $@ $<
+
+/stubs/cxamemset.o: /stubs/cxamemset.c
+	Sc OBJNAME $@ $<
+
+/stubs/cxamemcpy.o: /stubs/cxamemcpy.c
 	Sc OBJNAME $@ $<
 
 cctest_util.o: cctest_util.c cctest_util.h

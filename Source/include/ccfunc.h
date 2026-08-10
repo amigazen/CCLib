@@ -2,7 +2,7 @@
 #define CCFUNC_H 1
 
 /*
- * ccfunc — umbrella support API for CClib clients.
+ * ccfunc - umbrella support API for CClib clients.
  *
  * C-friendly prototypes; LVOs are register-based via <proto/cclib.h>.
  * Varargs/stack UX for printf-family is via stubs/auto-lib.

@@ -2,7 +2,7 @@
 #define UTIME_H 1
 
 /*
- * utime — set file modification time (dos SetFileDate; Amiga epoch).
+ * utime - set file modification time (dos SetFileDate; Amiga epoch).
  */
 
 #ifndef ANSIC

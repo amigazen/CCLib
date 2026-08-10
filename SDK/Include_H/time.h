@@ -2,7 +2,7 @@
 #define TIME_H 1
 
 /*
- * time — calendar / clock for CClib (types in libraries/cclib.h; LVOs via proto).
+ * time - calendar / clock for CClib (types in libraries/cclib.h; LVOs via proto).
  */
 
 #ifndef ANSIC

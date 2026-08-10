@@ -2,7 +2,7 @@
 #define STDLIB_H 1
 
 /*
- * stdlib — allocation, conversion, env (LVOs via proto).
+ * stdlib - allocation, conversion, env (LVOs via proto).
  * exit / abort / atexit are CRT, not library LVOs.
  */
 

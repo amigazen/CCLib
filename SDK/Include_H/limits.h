@@ -2,7 +2,7 @@
 #define LIMITS_H 1
 
 /*
- * limits — numeric limits for CClib / Amiga 32-bit C.
+ * limits - numeric limits for CClib / Amiga 32-bit C.
  */
 
 #define CHAR_BIT 8

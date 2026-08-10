@@ -259,7 +259,7 @@ LONG __ASM__ __SAVE_DS__ strlen(
 	UBYTE *p;
 	LONG n;
 
-	/* Pure C — no strlen in AmigaOS 3.x utility.library. */
+	/* Pure C - no strlen in AmigaOS 3.x utility.library. */
 	cc_check_break();
 
 	p = (UBYTE *)s;

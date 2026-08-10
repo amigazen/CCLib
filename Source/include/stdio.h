@@ -2,7 +2,7 @@
 #define STDIO_H 1
 
 /*
- * stdio — stream I/O for cclib.library clients.
+ * stdio - stream I/O for cclib.library clients.
  *
  * Standard C/POSIX types (int, size_t, FILE *, const char *), unified with
  * the SFD / clib_protos face. This header includes <proto/cclib.h> for LVO
@@ -74,7 +74,7 @@ extern char *sys_errlist[];
 #endif
 #endif
 
-/* Macros after proto — must not precede fputc/fgetc LVO declarations. */
+/* Macros after proto - must not precede fputc/fgetc LVO declarations. */
 #ifndef NOMACROS
 #define getchar() getc(stdin)
 #define putchar(c) putc(c, stdout)

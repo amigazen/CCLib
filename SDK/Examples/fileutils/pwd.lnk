@@ -1,0 +1,7 @@
+FROM "cc_start.o"+"///Source/crt/cc_entry.o"+"///Source/crt/cc_crt.o"+"///Source/stubs/math.o"+"///Source/stubs/blocksize.o"+"///Source/stubs/cxamemset.o"+"///Source/stubs/cxamemcpy.o"+"pwd.o"
+TO "pwd"
+LIB lib:amiga.lib
+ADDSYM
+STRIPDEBUG
+BATCH
+NOICONS

@@ -2,7 +2,7 @@
 #define HEAPMEM_H 1
 
 /*
- * heapmem — HEADER / LastFree types for CClib heap management.
+ * heapmem - HEADER / LastFree types for CClib heap management.
  * Canonical definitions live in <libraries/cclib.h> (CCLIB_HEAPMEM_TYPES).
  */
 

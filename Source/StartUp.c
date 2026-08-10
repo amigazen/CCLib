@@ -195,7 +195,6 @@ APTR FuncTab[] = {
 	(APTR)kill_children,
 	(APTR)cliexec,
 	(APTR)exec,
-	/* V4 */
 	(APTR)memmove,
 	(APTR)memmem,
 	(APTR)strncasecmp,
@@ -219,11 +218,14 @@ APTR FuncTab[] = {
 	(APTR)strtoul,
 	(APTR)strtod,
 	(APTR)atoll,
+	(APTR)strtoll,
+	(APTR)strtoull,
 	(APTR)bsearch,
 	(APTR)srand,
 	(APTR)rand,
-	(APTR)div,
-	(APTR)ldiv,
+	(APTR)cc_div,
+	(APTR)cc_ldiv,
+	(APTR)cc_abs,
 	(APTR)labs,
 	(APTR)mkstemp,
 	(APTR)getcwd,
@@ -233,8 +235,7 @@ APTR FuncTab[] = {
 	(APTR)rmdir,
 	(APTR)chmod,
 	(APTR)utime,
-	(APTR)symlink,
-	(APTR)readlink,
+	(APTR)fstat,
 	(APTR)opendir,
 	(APTR)readdir,
 	(APTR)closedir,
@@ -276,7 +277,7 @@ __ASM__ __SAVE_DS__ LibInit(
 {
 	SysBase = sysbase;
 
-	/* dos V37+ / utility V37+ (SMult32 family).  Do not demand V47 here —
+	/* dos V37+ / utility V37+ (SMult32 family).  Do not demand V47 here -
 	 * a failed Open in LibInit means the resident never registers and every
 	 * client OpenLibrary(CClib) returns NULL.
 	 */

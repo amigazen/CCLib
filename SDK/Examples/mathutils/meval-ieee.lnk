@@ -1,0 +1,13 @@
+#
+# Diagnostic link: same as meval.lnk but also pulls SAS/C IEEE softfloat.
+# Use only if the pure ma.lib + amiga.lib link reports unresolved FP helpers.
+#
+#   slink with meval-ieee.lnk
+#
+FROM "cc_start.o"+"///Source/crt/cc_entry.o"+"///Source/crt/cc_crt.o"+"///Source/stubs/math.o"+"///Source/stubs/blocksize.o"+"///Source/stubs/cxamemset.o"+"///Source/stubs/cxamemcpy.o"+"amiga_math_stubs.o"+"meval.o"
+TO "meval"
+LIB ////ma.lib/SDK/lib/ma.lib sc:lib/scmieee.lib lib:amiga.lib
+ADDSYM
+STRIPDEBUG
+BATCH
+NOICONS

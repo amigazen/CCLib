@@ -131,7 +131,25 @@ ct_suite_io(void)
 		(STRPTR)"isatty on a disk file descriptor must be false (0)",
 		n);
 
+	memset((APTR)&sb, 0, (LONG)sizeof(sb));
+	st = fstat(fd, &sb);
+	ct_check_long((STRPTR)"io", (STRPTR)"fstat_open",
+		(STRPTR)"fstat on an open disk fd",
+		(STRPTR)"fstat on an open disk fd must return 0",
+		0, st);
+	ct_check_true((STRPTR)"io", (STRPTR)"fstat_size_ge_6",
+		(STRPTR)"fstat.st_size",
+		(STRPTR)"fstat.st_size must be at least 6 for IOTEST",
+		sb.st_size >= 6);
+
 	close(fd);
+
+	/* Sentinel fd: soft EBADF, no panic (stale closed fds are CCPanic). */
+	st = fstat(-1, &sb);
+	ct_check_true((STRPTR)"io", (STRPTR)"fstat_neg1",
+		(STRPTR)"fstat(-1)",
+		(STRPTR)"fstat on sentinel -1 must fail without abort_func",
+		st < 0);
 
 	st = access(path1, 0);
 	ct_check_long((STRPTR)"io", (STRPTR)"access_exists",

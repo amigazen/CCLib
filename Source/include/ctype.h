@@ -2,7 +2,7 @@
 #define CTYPE_H 1
 
 /*
- * ctype — classification macros (ASCII table) and/or is* LVOs via proto.
+ * ctype - classification macros (ASCII table) and/or is* LVOs via proto.
  * Define CC_CTYPE_FUNCS to use locale-aware LVO is* instead of table macros.
  */
 

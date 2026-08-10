@@ -2,7 +2,7 @@
 #define STDDEF_H 1
 
 /*
- * stddef — common C types for CClib clients.
+ * stddef - common C types for CClib clients.
  */
 
 #ifndef ANSIC

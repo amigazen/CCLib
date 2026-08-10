@@ -79,7 +79,10 @@ APTR __ASM__ __SAVE_DS__ memmove(
 			d[i] = s[i];
 		return dst;
 	}
-	CopyMem(src, dst, (ULONG)n);
+	if (((((ULONG)dst) | ((ULONG)src) | (ULONG)n) & 3UL) == 0UL)
+		CopyMemQuick(src, dst, (ULONG)n);
+	else
+		CopyMem(src, dst, (ULONG)n);
 	return dst;
 }
 
@@ -156,8 +159,13 @@ APTR __ASM__ __SAVE_DS__ memcpy(
 	__REG__(d0, LONG n))
 {
 	cc_check_break();
-	if (n > 0 && dst != src)
-		CopyMem(src, dst, (ULONG)n);
+	if (n > 0 && dst != src) {
+		/* CopyMemQuick when src, dst, and size are all longword-aligned. */
+		if (((((ULONG)dst) | ((ULONG)src) | (ULONG)n) & 3UL) == 0UL)
+			CopyMemQuick(src, dst, (ULONG)n);
+		else
+			CopyMem(src, dst, (ULONG)n);
+	}
 	return dst;
 }
 
@@ -208,13 +216,69 @@ APTR __ASM__ __SAVE_DS__ memset(
 {
 	UBYTE *p;
 	UBYTE ch;
-	LONG i;
+	ULONG fill;
+	ULONG seed;
+	ULONG left;
+	ULONG half;
+
+	/*
+	 * Fast paths (see docs/LIBC_TO_AMIGA.md - memset strategies):
+	 *   align + ULONG stores for small/medium blocks;
+	 *   seed one longword then CopyMemQuick/CopyMem doubling for large fills.
+	 * BltClear is chip/blitter-only and needs graphics.library - not used
+	 * in general libc; call BltClear directly for large chip buffers.
+	 */
 	cc_check_break();
+
+	if (n <= 0L)
+		return b;
 
 	p = (UBYTE *)b;
 	ch = (UBYTE)c;
-	for (i = 0; i < n; i++)
-		p[i] = ch;
+
+	while (n > 0L && (((ULONG)p) & 3UL) != 0UL) {
+		*p = ch;
+		p++;
+		n--;
+	}
+
+	if (n >= 4L) {
+		fill = (ULONG)ch;
+		fill |= (fill << 8);
+		fill |= (fill << 16);
+
+		if (n >= 64L) {
+			*(ULONG *)p = fill;
+			seed = 4UL;
+			left = (ULONG)n;
+			/* p is long-aligned; seed doubles from 4 -> always CopyMemQuick-legal. */
+			while ((seed << 1) <= left) {
+				half = seed;
+				CopyMemQuick(p, p + half, half);
+				seed = half << 1;
+			}
+			if (seed < left) {
+				left -= seed;
+				if ((left & 3UL) == 0UL)
+					CopyMemQuick(p, p + seed, left);
+				else
+					CopyMem(p, p + seed, left);
+			}
+			return b;
+		}
+
+		while (n >= 4L) {
+			*(ULONG *)p = fill;
+			p += 4;
+			n -= 4L;
+		}
+	}
+
+	while (n > 0L) {
+		*p = ch;
+		p++;
+		n--;
+	}
 	return b;
 }
 

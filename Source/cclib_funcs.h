@@ -738,6 +738,20 @@ LONG __ASM__ __SAVE_DS__ atoll(
 	__REG__(a0, STRPTR s)
 );
 
+void __ASM__ __SAVE_DS__ strtoll(
+	__REG__(a0, APTR result),
+	__REG__(a1, STRPTR s),
+	__REG__(a2, APTR endp),
+	__REG__(d0, LONG base)
+);
+
+void __ASM__ __SAVE_DS__ strtoull(
+	__REG__(a0, APTR result),
+	__REG__(a1, STRPTR s),
+	__REG__(a2, APTR endp),
+	__REG__(d0, LONG base)
+);
+
 APTR __ASM__ __SAVE_DS__ bsearch(
 	__REG__(a0, APTR key),
 	__REG__(a1, APTR base),
@@ -752,16 +766,21 @@ void __ASM__ __SAVE_DS__ srand(
 
 LONG __ASM__ __SAVE_DS__ rand(void);
 
-void __ASM__ __SAVE_DS__ div(
+/* FuncTab symbols: not "div"/"ldiv" — SAS/C treats those as ISO builtins. */
+void __ASM__ __SAVE_DS__ cc_div(
 	__REG__(a0, APTR result),
 	__REG__(d0, LONG numer),
 	__REG__(d1, LONG denom)
 );
 
-void __ASM__ __SAVE_DS__ ldiv(
+void __ASM__ __SAVE_DS__ cc_ldiv(
 	__REG__(a0, APTR result),
 	__REG__(d0, LONG numer),
 	__REG__(d1, LONG denom)
+);
+
+LONG __ASM__ __SAVE_DS__ cc_abs(
+	__REG__(d0, LONG n)
 );
 
 LONG __ASM__ __SAVE_DS__ labs(
@@ -805,15 +824,9 @@ LONG __ASM__ __SAVE_DS__ utime(
 	__REG__(a1, APTR times)
 );
 
-LONG __ASM__ __SAVE_DS__ symlink(
-	__REG__(a0, STRPTR target),
-	__REG__(a1, STRPTR linkpath)
-);
-
-LONG __ASM__ __SAVE_DS__ readlink(
-	__REG__(a0, STRPTR path),
-	__REG__(a1, STRPTR buf),
-	__REG__(d0, LONG bufsiz)
+LONG __ASM__ __SAVE_DS__ fstat(
+	__REG__(d0, LONG fd),
+	__REG__(a0, APTR buf)
 );
 
 APTR __ASM__ __SAVE_DS__ opendir(

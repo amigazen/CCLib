@@ -4,7 +4,7 @@
  * Port of archive Source/lcmain.c for SAS/C 6 (Lattice lineage), plus the
  * Aztec globals from _main.c so one CRT covers both historic surfaces.
  *
- * Lattice flow (CClib.Doc §IX):
+ * Lattice flow (CClib.Doc section IX):
  *   - Refuse stock c.o if WBenchMsg already set (would double-reply WB)
  *   - Take WB message ourselves; call __fpinit after that
  *   - Open CClib + IEEE math; SetupSTDIO; main(argc,argv)
@@ -14,9 +14,11 @@
  * BSS clear) and this file replaces lcmain / sc_crt/_main.c.
  *
  * Termination policy (stronger than ISO _exit): every CRT path that leaves
- * the process — exit, _exit, abort, Ctrl-C — runs atexit handlers once and
+ * the process - exit, _exit, abort, Ctrl-C - runs atexit handlers once and
  * then ClearSTDIO so heap, files, children, and scdir/getenv scratch cannot
- * leak when the library is closed.
+ * leak when the library is closed.  dos Exit(code) supplies the Shell RC;
+ * IoErr / SetIoErr supplies Result2.  Do not SetVar("RC")/"Result2" here -
+ * that deadlocks under RunCommand.
  */
 
 #include <exec/types.h>
@@ -61,7 +63,7 @@ void **_trapaddr = NULL;
 static LONG cc_exiting;
 static short cc_math_opened; /* Lattice _mathopen: we opened IEEE, must Close */
 
-/* ISO atexit() — CRT-owned (not a library LVO). */
+/* ISO atexit() - CRT-owned (not a library LVO). */
 #define CC_ATEXIT_MAX 32
 static void (*cc_atexit_fn[CC_ATEXIT_MAX])(void);
 static LONG cc_atexit_n;
@@ -72,6 +74,27 @@ void __stdargs __saveds _exit(LONG code);
 void __stdargs __saveds exit(LONG code);
 void __stdargs __saveds abort(void);
 int atexit(void (*func)(void));
+
+/* Raw DOS write for optional CRT breadcrumbs (DEFINE=CC_CRT_DEBUG). */
+#ifdef CC_CRT_DEBUG
+static void cc_crt_msg(STRPTR msg)
+{
+	BPTR out;
+	LONG n;
+
+	if (DOSBase == (struct DosLibrary *)NULL || msg == (STRPTR)NULL)
+		return;
+	n = 0;
+	while (msg[n] != '\0')
+		n++;
+	out = Output();
+	if (out != (BPTR)NULL)
+		Write(out, msg, n);
+}
+#define CC_CRT_DBG(s) cc_crt_msg((STRPTR)(s))
+#else
+#define CC_CRT_DBG(s) ((void)0)
+#endif
 
 static void cc_run_atexit(void)
 {
@@ -108,15 +131,88 @@ atexit(void (*func)(void))
 
 #ifdef __SASC
 /*
- * Floating-point init.  Lattice lcmain called this after taking the WB
- * message.  Stub is enough when the app (and CClib) avoid soft-float;
- * real IEEE goes through mathieeedoubbas via SetupSTDIO's mathbase.
+ * SAS/C autoinitialization / autotermination (User's Guide Ch. 10):
+ *   _STI... -> linker builds __ctors[] (NULL-terminated)
+ *   _STD... -> linker builds __dtors[]
+ * With no such functions, slink substitutes absolute 0 for references to
+ * __ctors / __dtors - you MUST NOT index them (SAS UG: check not NULL first).
+ *
+ * Matcha (matcha_cxx, ma_autolib _STI_4000_Matcha, ...) supplies real
+ * tables, so walking is required.  Pure C apps (CCTest, fileutils) often
+ * have none: address 0.  Do not take the address via `extern T arr[]` in
+ * C - that form can be assumed non-NULL.  Use asm helpers instead.
+ *
+ * Called from _main after WB message, before OpenLibrary(cclib).
+ * STI return values are ignored (SAS: void; SAS/C++ may leave 0 in d0).
  */
+typedef LONG __stdargs (*cc_sti_fn)(void);
+typedef void __stdargs (*cc_std_fn)(void);
+
+/* cc_start.asm: move.l #__ctors/#__dtors -> d0 (same link model as __main) */
+extern APTR __stdargs __cc_ctors_addr(void);
+extern APTR __stdargs __cc_dtors_addr(void);
+
 void __stdargs __fpinit(void)
 {
+	cc_sti_fn *table;
+	cc_sti_fn fn;
+
+	CC_CRT_DBG("cc_crt: __fpinit begin\n");
+	table = (cc_sti_fn *)__cc_ctors_addr();
+	if (table != (cc_sti_fn *)NULL && (ULONG)table >= 0x1000UL)
+	{
+		while (*table != (cc_sti_fn)NULL)
+		{
+			fn = *table;
+			(void)(*fn)();
+			table++;
+		}
+	}
+	CC_CRT_DBG("cc_crt: __fpinit done\n");
+}
+
+void __stdargs __fpterm(void)
+{
+	cc_std_fn *table;
+	cc_std_fn fn;
+
+	table = (cc_std_fn *)__cc_dtors_addr();
+	if (table != (cc_std_fn *)NULL && (ULONG)table >= 0x1000UL)
+	{
+		while (*table != (cc_std_fn)NULL)
+		{
+			fn = *table;
+			(*fn)();
+			table++;
+		}
+	}
 }
 
 void __stdargs __fpclear(void)
+{
+	__fpterm();
+}
+
+/*
+ * SAS/C C++ / reaction.lib expect ___construct / ___destruct (sc.lib).
+ * CClib startup already runs __ctors via __fpinit before main; these
+ * symbols exist so .cxx / reaction objects link without sc.lib. They do
+ * not re-walk __ctors (would double-init). Full C++ ctor-table parity
+ * beyond __ctors remains TODO if a .cxx needs more than _STI-style init.
+ */
+void __stdargs ___construct(void)
+{
+}
+
+void __stdargs ___destruct(void)
+{
+}
+
+void __stdargs __construct(void)
+{
+}
+
+void __stdargs __destruct(void)
 {
 }
 
@@ -158,7 +254,7 @@ void __stdargs XCEXIT(long code)
 #endif
 
 /*------------------------------------------------------------------------*/
-/* _main — Lattice signature: NUL-terminated arg string only              */
+/* _main - Lattice signature: NUL-terminated arg string only              */
 /* __stdargs: stack args, no parm=r '@' name (matches historic lcmain).   */
 /*------------------------------------------------------------------------*/
 
@@ -191,7 +287,7 @@ _main(STRPTR aptr)
 
 	/*
 	 * Lattice lcmain: if WBenchMsg is already set, stock c.o ran and
-	 * will reply to WB again after CClib — crash.  Abort hard.
+	 * will reply to WB again after CClib - crash.  Abort hard.
 	 */
 	if (WBenchMsg != (struct WBStartup *)NULL)
 	{
@@ -304,9 +400,16 @@ _main(STRPTR aptr)
 
 	ud = (cc_task_UserData *)GetSTDIO();
 	if (ud != (cc_task_UserData *)NULL)
+	{
+		CC_CRT_DBG("cc_crt: calling main()\n");
 		rv = main((int)ud->_argc, ud->_argv);
+		CC_CRT_DBG("cc_crt: main() returned\n");
+	}
 	else
+	{
+		CC_CRT_DBG("cc_crt: GetSTDIO NULL — skip main\n");
 		rv = 20;
+	}
 
 fail:
 	_exit((LONG)rv);

@@ -14,24 +14,37 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention. */
-/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
+/* Canonical LVO interface for cclib.library (shared resident). This SFD lists */
+/* ONLY functions that live in the LVO jump table of cclib.library. */
+/* Register-args LVO calling convention. */
 
+/* Packaging (see STATIC_LIBS.md at repo root) */
+/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
+/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
+/*                    getopt/glob, multibyte, …) */
+/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
+/*   ma.lib / m99.lib — math (not CClib LVOs) */
+/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
+
+/* Freeze rules */
+/*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table. */
+/*   Never reorder, remove, or insert mid-table above ==version 4. */
+/*   From ==version 4 onward: regroup freely while regenerating headers + */
+/*   StartUp FuncTab and rebuilding all clients together. */
+/*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras */
+/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net). */
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
-/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
-/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types */
+/* are typedef'd: u_long = unsigned long; unsigned = unsigned int. */
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
 /* Amiga-specific APIs (BPTR, …). */
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
+/* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return */
+/* 8-byte structs by value). */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
-/* V4+ append-only at end: keep new LVOs in logical groups (memory, */
-/* string, env, format, stdlib, …). Do not insert mid-table; within each */
-/* append wave, batch by category before starting the next category. */
-
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -100,26 +113,16 @@
 
 /* Formatted I/O (-312 .. -342) */
 
-/* printf/scanf families: C varargs via tagcall (last address reg =
- * &first stack arg). LibDescConverter only emits tagcall for ==varargs
- * aliases; these are separate historic LVOs, so tagcall is maintained here.
- * Matching v* LVOs below take va_list with ordinary libcall. */
-
-#if defined(__SASC_60)
+/*
+ * C-varargs LVOs: SFD is APTR base + ==varargs ... (same bias/name).
+ * LibDescConverter emits tagcall for the alias only.
+ */
 #pragma tagcall CCLibBase scanf 138 9802
 #pragma tagcall CCLibBase printf 13E 9802
 #pragma tagcall CCLibBase fscanf 144 A9803
 #pragma tagcall CCLibBase fprintf 14A A9803
 #pragma tagcall CCLibBase sscanf 150 A9803
 #pragma tagcall CCLibBase sprintf 156 A9803
-#else
-#pragma libcall CCLibBase scanf 138 9802
-#pragma libcall CCLibBase printf 13E 9802
-#pragma libcall CCLibBase fscanf 144 A9803
-#pragma libcall CCLibBase fprintf 14A A9803
-#pragma libcall CCLibBase sscanf 150 A9803
-#pragma libcall CCLibBase sprintf 156 A9803
-#endif
 
 /* Heap / allocation (-348 .. -420) */
 
@@ -249,14 +252,16 @@
 #pragma libcall CCLibBase exec 390 801
 /*--- functions in V4 or higher --- */
 
-/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
-/* realtime.library) backs sleep/usleep/nanosleep. */
+/* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C */
+/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md. */
+/* timer.device (not realtime.library) backs sleep/usleep/nanosleep. */
+/* Softlink / dirent-seek / popen → ccposix.lib (not in this table). */
 
-/* Memory */
+/* Memory (completes V3 mem*) */
 #pragma libcall CCLibBase memmove 396 09803
 #pragma libcall CCLibBase memmem 39C 190804
 
-/* String */
+/* String (completes V3 str*; BSD-safe + Lattice strlwr) */
 #pragma libcall CCLibBase strncasecmp 3A2 09803
 #pragma libcall CCLibBase strnicmp 3A2 09803
 #pragma libcall CCLibBase strdup 3A8 801
@@ -269,10 +274,10 @@
 #pragma libcall CCLibBase strtok_r 3D2 A9803
 #pragma libcall CCLibBase strlwr 3D8 801
 
-/* Environment */
+/* Environment (beside V3 setenv/getenv) */
 #pragma libcall CCLibBase unsetenv 3DE 801
 
-/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+/* Formatted I/O (snprintf shares bias with vsnprintf) */
 #pragma libcall CCLibBase vsnprintf 3E4 A90804
 #if defined(__SASC_60)
 #pragma tagcall CCLibBase snprintf 3E4 A90804
@@ -283,62 +288,65 @@
 #pragma libcall CCLibBase getline 3FC A9803
 #pragma libcall CCLibBase getdelim 402 A09804
 
-/* Conversion */
+/* Conversion (completes V3 atoi/atol/atof; 64-bit via out-params) */
 #pragma libcall CCLibBase strtol 408 09803
 #pragma libcall CCLibBase strtoul 40E 09803
 #pragma libcall CCLibBase strtod 414 9802
 #pragma libcall CCLibBase atoll 41A 801
+#pragma libcall CCLibBase strtoll 420 0A9804
+#pragma libcall CCLibBase strtoull 426 0A9804
 
 /* Search / random / integer math */
-#pragma libcall CCLibBase bsearch 420 A109805
-#pragma libcall CCLibBase srand 426 001
-#pragma libcall CCLibBase rand 42C 00
-#pragma libcall CCLibBase div 432 10803
-#pragma libcall CCLibBase ldiv 438 10803
-#pragma libcall CCLibBase labs 43E 001
+/* div/ldiv: result pointer (SAS/C libcall cannot return 8-byte structs). */
+#pragma libcall CCLibBase bsearch 42C A109805
+#pragma libcall CCLibBase srand 432 001
+#pragma libcall CCLibBase rand 438 00
+#pragma libcall CCLibBase div 43E 10803
+#pragma libcall CCLibBase ldiv 444 10803
+#pragma libcall CCLibBase abs 44A 001
+#pragma libcall CCLibBase labs 450 001
 
-/* Path / filesystem (dos.library) */
-#pragma libcall CCLibBase mkstemp 444 801
-#pragma libcall CCLibBase getcwd 44A 0802
-#pragma libcall CCLibBase chdir 450 801
-#pragma libcall CCLibBase realpath 456 9802
-#pragma libcall CCLibBase mkdir 45C 0802
-#pragma libcall CCLibBase rmdir 462 801
-#pragma libcall CCLibBase chmod 468 0802
-#pragma libcall CCLibBase utime 46E 9802
-#pragma libcall CCLibBase symlink 474 9802
-#pragma libcall CCLibBase readlink 47A 09803
+/* Path / filesystem (dos.library; softlinks are ccposix) */
+#pragma libcall CCLibBase mkstemp 456 801
+#pragma libcall CCLibBase getcwd 45C 0802
+#pragma libcall CCLibBase chdir 462 801
+#pragma libcall CCLibBase realpath 468 9802
+#pragma libcall CCLibBase mkdir 46E 0802
+#pragma libcall CCLibBase rmdir 474 801
+#pragma libcall CCLibBase chmod 47A 0802
+#pragma libcall CCLibBase utime 480 9802
+#pragma libcall CCLibBase fstat 486 8002
 
-/* Directory (POSIX dirent beside historic scdir) */
-#pragma libcall CCLibBase opendir 480 801
-#pragma libcall CCLibBase readdir 486 801
-#pragma libcall CCLibBase closedir 48C 801
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix) */
+#pragma libcall CCLibBase opendir 48C 801
+#pragma libcall CCLibBase readdir 492 801
+#pragma libcall CCLibBase closedir 498 801
 
-/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
-#pragma libcall CCLibBase sleep 492 001
-#pragma libcall CCLibBase usleep 498 001
-#pragma libcall CCLibBase nanosleep 49E 9802
+/* Sleep (timer.device TR_ADDREQUEST) */
+#pragma libcall CCLibBase sleep 49E 001
+#pragma libcall CCLibBase usleep 4A4 001
+#pragma libcall CCLibBase nanosleep 4AA 9802
 
 /* Locale */
-#pragma libcall CCLibBase setlocale 4A4 8002
-#pragma libcall CCLibBase localeconv 4AA 00
-#pragma libcall CCLibBase strcoll 4B0 9802
-#pragma libcall CCLibBase strxfrm 4B6 09803
-#pragma libcall CCLibBase strptime 4BC A9803
+#pragma libcall CCLibBase setlocale 4B0 8002
+#pragma libcall CCLibBase localeconv 4B6 00
+#pragma libcall CCLibBase strcoll 4BC 9802
+#pragma libcall CCLibBase strxfrm 4C2 09803
+#pragma libcall CCLibBase strptime 4C8 A9803
 
-/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
-#pragma libcall CCLibBase isalnum 4C2 001
-#pragma libcall CCLibBase isalpha 4C8 001
-#pragma libcall CCLibBase iscntrl 4CE 001
-#pragma libcall CCLibBase isdigit 4D4 001
-#pragma libcall CCLibBase isgraph 4DA 001
-#pragma libcall CCLibBase islower 4E0 001
-#pragma libcall CCLibBase isprint 4E6 001
-#pragma libcall CCLibBase ispunct 4EC 001
-#pragma libcall CCLibBase isspace 4F2 001
-#pragma libcall CCLibBase isupper 4F8 001
-#pragma libcall CCLibBase isxdigit 4FE 001
-#pragma libcall CCLibBase isblank 504 001
-#pragma libcall CCLibBase isascii 50A 001
+/* Ctype (locale.library Is* when LC_CTYPE is non-"C") */
+#pragma libcall CCLibBase isalnum 4CE 001
+#pragma libcall CCLibBase isalpha 4D4 001
+#pragma libcall CCLibBase iscntrl 4DA 001
+#pragma libcall CCLibBase isdigit 4E0 001
+#pragma libcall CCLibBase isgraph 4E6 001
+#pragma libcall CCLibBase islower 4EC 001
+#pragma libcall CCLibBase isprint 4F2 001
+#pragma libcall CCLibBase ispunct 4F8 001
+#pragma libcall CCLibBase isspace 4FE 001
+#pragma libcall CCLibBase isupper 504 001
+#pragma libcall CCLibBase isxdigit 50A 001
+#pragma libcall CCLibBase isblank 510 001
+#pragma libcall CCLibBase isascii 516 001
 
 #endif /* PRAGMAS_CCLIB_PRAGMAS_H */

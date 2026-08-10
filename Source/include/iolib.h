@@ -2,7 +2,7 @@
 #define IOLIB_H 1
 
 /*
- * iolib.h — historic name for CClib per-task userdata and related types.
+ * iolib.h - historic name for CClib per-task userdata and related types.
  *
  * task_UserData, FileDesc, MemBlk, Child, ABORT_FUNC, FILE, tm, etc. are
  * defined in <libraries/cclib.h>. Prefer that header; this file remains for

@@ -1,7 +1,7 @@
 /*
  * cc_ieee.c - IEEEDP* calls through SetupSTDIO's per-task mathbase
  *
- * No C floating-point operators — only pass DOUBLE bits to mathieeedoubbas.
+ * No C floating-point operators - only pass DOUBLE bits to mathieeedoubbas.
  * LVO jumpers live in cc_ieee_lvo.asm; C uses __ASM__/__REG__ prototypes
  * from <clib/compiler-specific.h> (CLib39x style).
  */
@@ -14,7 +14,7 @@
 #include "private/cc_internal.h"
 #include "private/cc_ieee.h"
 
-/* Defined in cc_ieee_lvo.asm — base in A6, IEEE args in d0/d1[/d2/d3]. */
+/* Defined in cc_ieee_lvo.asm - base in A6, IEEE args in d0/d1[/d2/d3]. */
 DOUBLE __ASM__ cc_ieeedp_flt_raw(
 	__REG__(a6, APTR base), __REG__(d0, LONG v));
 LONG __ASM__ cc_ieeedp_fix_raw(

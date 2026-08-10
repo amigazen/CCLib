@@ -16,6 +16,15 @@
 #include "private/cc_internal.h"
 #include "cclib_funcs.h"
 
+/* Not LVOs — retained for ccposix extraction. */
+LONG __ASM__ __SAVE_DS__ symlink(
+	__REG__(a0, STRPTR target),
+	__REG__(a1, STRPTR linkpath));
+LONG __ASM__ __SAVE_DS__ readlink(
+	__REG__(a0, STRPTR path),
+	__REG__(a1, STRPTR buf),
+	__REG__(d0, LONG bufsiz));
+
 /* Convert Amiga DateStamp to seconds since 1978-01-01 */
 static LONG cc_datestamp_secs(struct DateStamp *ds)
 {
@@ -149,7 +158,7 @@ LONG __ASM__ __SAVE_DS__ close(
 	desc->fh = NULL;
 	desc->magic = CC_FD_POISON;
 
-	/* remv_node unlinks only — free [ULONG][cc_node][data] block */
+	/* remv_node unlinks only - free [ULONG][cc_node][data] block */
 	node = (cc_node *)remv_node((APTR)&ud->OpenFiles, (APTR)desc);
 	if (node != NULL)
 	{
@@ -351,7 +360,11 @@ LONG __ASM__ __SAVE_DS__ isatty(
 	if (IsInteractive(desc->fh))
 		return 1L;
 
-	cc_set_errno(CC_ENOTTY);
+	/*
+	 * Valid fd, not a console: return 0 without touching errno.
+	 * Setting ENOTTY here used to clobber errno on every putc('\\n')
+	 * to a console-backed stdout (line-buffer flush probes isatty).
+	 */
 	return 0L;
 }
 
@@ -404,7 +417,7 @@ LONG __ASM__ __SAVE_DS__ access(
 		return -1L;
 	}
 
-	/* Classic R_OK=4 W_OK=2 X_OK=1 — Amiga protection bits are inverted */
+	/* Classic R_OK=4 W_OK=2 X_OK=1 - Amiga protection bits are inverted */
 	if ((mode & 4L) && (prot & FIBF_READ))
 	{
 		cc_set_errno(CC_EACCES);
@@ -421,6 +434,36 @@ LONG __ASM__ __SAVE_DS__ access(
 		return -1L;
 	}
 	return 0L;
+}
+
+/* Fill cc_stat from an examined FileInfoBlock; full=TRUE fills extended fields */
+static void cc_stat_from_fib(struct FileInfoBlock *fib, cc_stat *st, LONG full)
+{
+	st->st_attr = (UWORD)(fib->fib_Protection &
+		(FIBF_DELETE | FIBF_EXECUTE | FIBF_WRITE | FIBF_READ | FIBF_ARCHIVE));
+	st->st_mtime = cc_datestamp_secs(&fib->fib_Date);
+	st->st_size = fib->fib_Size;
+
+	if (full)
+	{
+		if (fib->fib_DirEntryType > 0)
+			st->st_mode = (UWORD)CC_S_IFREG;
+		else if (fib->fib_DirEntryType < 0)
+			st->st_mode = (UWORD)CC_S_IFDIR;
+		else
+			st->st_mode = (UWORD)CC_S_IFREG;
+
+		st->st_nlink = 1;
+		st->st_atime = st->st_mtime;
+		st->st_ctime = st->st_mtime;
+	}
+	else
+	{
+		st->st_mode = 0;
+		st->st_nlink = 0;
+		st->st_atime = 0;
+		st->st_ctime = 0;
+	}
 }
 
 /* Fill cc_stat from a locked name; full=TRUE also fills extended fields */
@@ -454,32 +497,7 @@ static LONG cc_fill_stat(STRPTR name, cc_stat *st, LONG full)
 		return -1L;
 	}
 
-	st->st_attr = (UWORD)(fib->fib_Protection &
-		(FIBF_DELETE | FIBF_EXECUTE | FIBF_WRITE | FIBF_READ | FIBF_ARCHIVE));
-	st->st_mtime = cc_datestamp_secs(&fib->fib_Date);
-	st->st_size = fib->fib_Size;
-
-	if (full)
-	{
-		if (fib->fib_DirEntryType > 0)
-			st->st_mode = (UWORD)CC_S_IFREG;
-		else if (fib->fib_DirEntryType < 0)
-			st->st_mode = (UWORD)CC_S_IFDIR;
-		else
-			st->st_mode = (UWORD)CC_S_IFREG;
-
-		st->st_nlink = 1;
-		st->st_atime = st->st_mtime;
-		st->st_ctime = st->st_mtime;
-	}
-	else
-	{
-		st->st_mode = 0;
-		st->st_nlink = 0;
-		st->st_atime = 0;
-		st->st_ctime = 0;
-	}
-
+	cc_stat_from_fib(fib, st, full);
 	FreeMem(fib, sizeof(struct FileInfoBlock));
 	return 0L;
 }
@@ -723,7 +741,7 @@ LONG __ASM__ __SAVE_DS__ chmod(
 
 	/*
 	 * Map low 9 Unix permission bits onto inverted Amiga FIBF_* flags.
-	 * Owner rwx → absence of FIBF_READ/WRITE/EXECUTE.
+	 * Owner rwx -> absence of FIBF_READ/WRITE/EXECUTE.
 	 */
 	prot = 0UL;
 	if ((mode & 0400L) == 0L)
@@ -756,7 +774,7 @@ LONG __ASM__ __SAVE_DS__ utime(
 		return -1L;
 	}
 
-	/* struct utimbuf { long actime; long modtime; } — Amiga epoch seconds. */
+	/* struct utimbuf { long actime; long modtime; } - Amiga epoch seconds. */
 	if (times == (APTR)NULL)
 	{
 		DateStamp(&ds);
@@ -781,6 +799,52 @@ LONG __ASM__ __SAVE_DS__ utime(
 	return 0L;
 }
 
+LONG __ASM__ __SAVE_DS__ fstat(
+	__REG__(d0, LONG fd),
+	__REG__(a0, APTR buf))
+{
+	cc_task_UserData *ud;
+	cc_FileDesc *desc;
+	struct FileInfoBlock *fib;
+	LONG ok;
+	cc_check_break();
+
+	if (buf == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+
+	ud = cc_get_ud();
+	desc = cc_fd_from_list(ud, fd);
+	if (desc == (cc_FileDesc *)NULL || desc->fh == NULL)
+	{
+		cc_set_errno(CC_EBADF);
+		return -1L;
+	}
+
+	fib = (struct FileInfoBlock *)AllocMem(sizeof(struct FileInfoBlock), MEMF_CLEAR);
+	if (fib == (struct FileInfoBlock *)NULL)
+	{
+		cc_set_errno(CC_ENOMEM);
+		return -1L;
+	}
+
+	ok = ExamineFH(desc->fh, fib);
+	if (!ok)
+	{
+		FreeMem(fib, sizeof(struct FileInfoBlock));
+		cc_set_errno(CC_EACCES);
+		return -1L;
+	}
+
+	/* Match historic stat_() fullness for fd-based queries. */
+	cc_stat_from_fib(fib, (cc_stat *)buf, 1L);
+	FreeMem(fib, sizeof(struct FileInfoBlock));
+	return 0L;
+}
+
+/* Softlink bodies kept for future ccposix.lib; not in FuncTab. */
 LONG __ASM__ __SAVE_DS__ symlink(
 	__REG__(a0, STRPTR target),
 	__REG__(a1, STRPTR linkpath))

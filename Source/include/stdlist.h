@@ -2,7 +2,7 @@
 #define STDLIST_H 1
 
 /*
- * stdlist — doubly-linked list helpers used by CClib.
+ * stdlist - doubly-linked list helpers used by CClib.
  * _node / _list types live in <libraries/cclib.h> (CCLIB_STDLIST_TYPES).
  */
 

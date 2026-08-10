@@ -96,7 +96,7 @@ ct_suite_locale(void)
 		buf);
 
 	/*
-	 * Optional system locale: setlocale("", …) opens the prefs locale.
+	 * Optional system locale: setlocale("", ...) opens the prefs locale.
 	 * Soft-skip if locale.library / OpenLocale unavailable.
 	 */
 	name = setlocale(CT_LC_TIME, (STRPTR)"");
@@ -129,7 +129,7 @@ ct_suite_locale(void)
 	{
 		ct_check_true((STRPTR)"locale", (STRPTR)"strftime_locale_skip",
 			(STRPTR)"setlocale(LC_TIME, \"\")",
-			(STRPTR)"No non-C system locale — skip FormatDate checks",
+			(STRPTR)"No non-C system locale - skip FormatDate checks",
 			1);
 		(void)setlocale(CT_LC_ALL, (STRPTR)"C");
 	}

@@ -6,6 +6,7 @@
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
 #include <errno.h>
+#include <stat.h>
 #include "cctest_util.h"
 
 #define CT_O_RDWR   2
@@ -19,6 +20,7 @@ ct_suite_panic_io(void)
 	LONG n;
 	char buf[8];
 	char path[40];
+	struct stat sb;
 
 	ct_suite_begin((STRPTR)"panic_io",
 		(STRPTR)"fd validation / abort_func");
@@ -28,7 +30,7 @@ ct_suite_panic_io(void)
 
 	/*
 	 * Sentinels (-1 / 0): soft EBADF, no abort_func.  These are not
-	 * forged capabilities — they never entered OpenFiles.
+	 * forged capabilities - they never entered OpenFiles.
 	 */
 	errno = 0;
 	ct_install_panic_hook();
@@ -159,6 +161,19 @@ ct_suite_panic_io(void)
 			(STRPTR)"lseek after close",
 			(STRPTR)"lseek on a closed fd must panic and fail",
 			n == -1L && ct_panic_hits == 1L);
+
+		ct_panic_hits = 0;
+		errno = 0;
+		memset((APTR)&sb, 0, (LONG)sizeof(sb));
+		n = fstat(fd, &sb);
+		ct_check_true((STRPTR)"panic_io", (STRPTR)"fstat_after_close",
+			(STRPTR)"fstat after close",
+			(STRPTR)"fstat on a closed fd must panic and fail",
+			n == -1L && ct_panic_hits == 1L);
+		ct_check_long((STRPTR)"panic_io", (STRPTR)"fstat_after_close_errno",
+			(STRPTR)"errno after fstat on closed fd",
+			(STRPTR)"stale fstat must set errno to EBADF",
+			(LONG)EBADF, errno);
 		ct_restore_panic_hook();
 
 		remove(path);

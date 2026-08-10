@@ -22,7 +22,7 @@ ct_suite_dir(void)
 		1);
 
 	/*
-	 * Scan LIBS: with a wildcard — do not depend on the exact installed
+	 * Scan LIBS: with a wildcard - do not depend on the exact installed
 	 * spelling of cclib.library, and never use a fake volume name (that
 	 * puts up an AmigaDOS "Please insert volume" requester).
 	 */

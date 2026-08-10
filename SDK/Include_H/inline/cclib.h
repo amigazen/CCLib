@@ -10,24 +10,37 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention. */
-/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
+/* Canonical LVO interface for cclib.library (shared resident). This SFD lists */
+/* ONLY functions that live in the LVO jump table of cclib.library. */
+/* Register-args LVO calling convention. */
 
+/* Packaging (see STATIC_LIBS.md at repo root) */
+/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
+/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
+/*                    getopt/glob, multibyte, …) */
+/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
+/*   ma.lib / m99.lib — math (not CClib LVOs) */
+/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
+
+/* Freeze rules */
+/*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table. */
+/*   Never reorder, remove, or insert mid-table above ==version 4. */
+/*   From ==version 4 onward: regroup freely while regenerating headers + */
+/*   StartUp FuncTab and rebuilding all clients together. */
+/*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras */
+/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net). */
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
-/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
-/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types */
+/* are typedef'd: u_long = unsigned long; unsigned = unsigned int. */
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
 /* Amiga-specific APIs (BPTR, …). */
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
+/* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return */
+/* 8-byte structs by value). */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
-/* V4+ append-only at end: keep new LVOs in logical groups (memory, */
-/* string, env, format, stdlib, …). Do not insert mid-table; within each */
-/* append wave, batch by category before starting the next category. */
-
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -1511,10 +1524,12 @@
 
 /*--- functions in V4 or higher --- */
 
-/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
-/* realtime.library) backs sleep/usleep/nanosleep. */
+/* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C */
+/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md. */
+/* timer.device (not realtime.library) backs sleep/usleep/nanosleep. */
+/* Softlink / dirent-seek / popen → ccposix.lib (not in this table). */
 
-/* Memory */
+/* Memory (completes V3 mem*) */
 #define memmove(dst, src, n)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1535,7 +1550,7 @@
 })
 
 
-/* String */
+/* String (completes V3 str*; BSD-safe + Lattice strlwr) */
 #define strncasecmp(s1, s2, n)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1651,7 +1666,7 @@
 })
 
 
-/* Environment */
+/* Environment (beside V3 setenv/getenv) */
 #define unsetenv(name)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1662,7 +1677,7 @@
 })
 
 
-/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+/* Formatted I/O (snprintf shares bias with vsnprintf) */
 #define vsnprintf(s, n, format, args)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1740,7 +1755,7 @@
 })
 
 
-/* Conversion */
+/* Conversion (completes V3 atoi/atol/atof; 64-bit via out-params) */
 #define strtol(s, endp, base)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1782,8 +1797,29 @@
 	r;   \
 })
 
+#define strtoll(result, s, endp, base)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register int64 *p0 __asm("a0") = (result);   \
+	register CONST char *p1 __asm("a1") = (s);   \
+	register char **p2 __asm("a2") = (endp);   \
+	register int p3 __asm("d0") = (base);   \
+	__asm volatile ("jsr a6@(-1056:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
+#define strtoull(result, s, endp, base)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register uint64 *p0 __asm("a0") = (result);   \
+	register CONST char *p1 __asm("a1") = (s);   \
+	register char **p2 __asm("a2") = (endp);   \
+	register int p3 __asm("d0") = (base);   \
+	__asm volatile ("jsr a6@(-1062:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
 
 /* Search / random / integer math */
+/* div/ldiv: result pointer (SAS/C libcall cannot return 8-byte structs). */
 #define bsearch(key, base, nel, width, compar)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
@@ -1792,21 +1828,21 @@
 	register size_t p2 __asm("d0") = (nel);   \
 	register size_t p3 __asm("d1") = (width);   \
 	register void *p4 __asm("a2") = (compar);   \
-	__asm volatile ("jsr a6@(-1056:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3), "r"(p4) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1068:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2), "r"(p3), "r"(p4) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 })
 
 #define srand(seed)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register unsigned p0 __asm("d0") = (seed);   \
-	__asm volatile ("jsr a6@(-1062:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1074:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 })
 
 #define rand()    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1068:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1080:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1816,7 +1852,7 @@
 	register div_t *p0 __asm("a0") = (result);   \
 	register int p1 __asm("d0") = (numer);   \
 	register int p2 __asm("d1") = (denom);   \
-	__asm volatile ("jsr a6@(-1074:W);" : "+r"(b) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1086:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 })
 
 #define ldiv(result, numer, denom)    \
@@ -1825,7 +1861,16 @@
 	register ldiv_t *p0 __asm("a0") = (result);   \
 	register long p1 __asm("d0") = (numer);   \
 	register long p2 __asm("d1") = (denom);   \
-	__asm volatile ("jsr a6@(-1080:W);" : "+r"(b) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1092:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+})
+
+#define abs(n)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register int p0 __asm("d0") = (n);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1098:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
 })
 
 #define labs(n)    \
@@ -1833,18 +1878,18 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register long p0 __asm("d0") = (n);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1086:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1104:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
 
-/* Path / filesystem (dos.library) */
+/* Path / filesystem (dos.library; softlinks are ccposix) */
 #define mkstemp(template)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register char *p0 __asm("a0") = (template);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1092:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1110:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1854,7 +1899,7 @@
 	register char *p0 __asm("a0") = (buf);   \
 	register size_t p1 __asm("d0") = (size);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1098:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1116:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1863,7 +1908,7 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register CONST char *p0 __asm("a0") = (path);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1104:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1122:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1873,7 +1918,7 @@
 	register CONST char *p0 __asm("a0") = (path);   \
 	register char *p1 __asm("a1") = (resolved);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1110:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1128:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1883,7 +1928,7 @@
 	register CONST char *p0 __asm("a0") = (path);   \
 	register mode_t p1 __asm("d0") = (mode);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1116:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1134:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1892,7 +1937,7 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register CONST char *p0 __asm("a0") = (path);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1122:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1140:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1902,7 +1947,7 @@
 	register CONST char *p0 __asm("a0") = (path);   \
 	register mode_t p1 __asm("d0") = (mode);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1128:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1146:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1912,39 +1957,28 @@
 	register CONST char *p0 __asm("a0") = (path);   \
 	register void *p1 __asm("a1") = (times);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1134:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1152:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
-#define symlink(target, linkpath)    \
+#define fstat(fd, buf)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
-	register CONST char *p0 __asm("a0") = (target);   \
-	register CONST char *p1 __asm("a1") = (linkpath);   \
+	register int p0 __asm("d0") = (fd);   \
+	register struct stat *p1 __asm("a0") = (buf);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1140:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
-})
-
-#define readlink(path, buf, bufsiz)    \
-({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register CONST char *p0 __asm("a0") = (path);   \
-	register char *p1 __asm("a1") = (buf);   \
-	register size_t p2 __asm("d0") = (bufsiz);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1146:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1158:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
 
-/* Directory (POSIX dirent beside historic scdir) */
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix) */
 #define opendir(name)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register CONST char *p0 __asm("a0") = (name);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1152:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1164:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1953,7 +1987,7 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register DIR *p0 __asm("a0") = (dir);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1158:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1170:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1962,18 +1996,18 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register DIR *p0 __asm("a0") = (dir);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1164:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1176:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
 
-/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
+/* Sleep (timer.device TR_ADDREQUEST) */
 #define sleep(seconds)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register unsigned p0 __asm("d0") = (seconds);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1170:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1182:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1982,7 +2016,7 @@
 	register void *b __asm("a6") = CCLibBase;  \
 	register useconds_t p0 __asm("d0") = (usec);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1176:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1188:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -1992,7 +2026,7 @@
 	register CONST struct timespec *p0 __asm("a0") = (req);   \
 	register struct timespec *p1 __asm("a1") = (rem);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1182:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1194:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -2004,7 +2038,7 @@
 	register int p0 __asm("d0") = (category);   \
 	register CONST char *p1 __asm("a0") = (name);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1188:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1200:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -2012,7 +2046,7 @@
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1194:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1206:W);" : "+r"(b), "=r"(r) :  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -2022,7 +2056,7 @@
 	register CONST char *p0 __asm("a0") = (s1);   \
 	register CONST char *p1 __asm("a1") = (s2);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1200:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1212:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -2033,7 +2067,7 @@
 	register CONST char *p1 __asm("a1") = (src);   \
 	register size_t p2 __asm("d0") = (n);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1206:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1218:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
@@ -2044,31 +2078,13 @@
 	register CONST char *p1 __asm("a1") = (format);   \
 	register struct tm *p2 __asm("a2") = (tm);   \
 	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1212:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	__asm volatile ("jsr a6@(-1224:W);" : "+r"(b), "=r"(r) : "r"(p0), "r"(p1), "r"(p2) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 
 
-/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
+/* Ctype (locale.library Is* when LC_CTYPE is non-"C") */
 #define isalnum(c)    \
-({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register int p0 __asm("d0") = (c);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1218:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
-})
-
-#define isalpha(c)    \
-({  \
-	register void *b __asm("a6") = CCLibBase;  \
-	register int p0 __asm("d0") = (c);   \
-	register APTR r __asm("d0");   \
-	__asm volatile ("jsr a6@(-1224:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
-	r;   \
-})
-
-#define iscntrl(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2077,7 +2093,7 @@
 	r;   \
 })
 
-#define isdigit(c)    \
+#define isalpha(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2086,7 +2102,7 @@
 	r;   \
 })
 
-#define isgraph(c)    \
+#define iscntrl(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2095,7 +2111,7 @@
 	r;   \
 })
 
-#define islower(c)    \
+#define isdigit(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2104,7 +2120,7 @@
 	r;   \
 })
 
-#define isprint(c)    \
+#define isgraph(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2113,7 +2129,7 @@
 	r;   \
 })
 
-#define ispunct(c)    \
+#define islower(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2122,7 +2138,7 @@
 	r;   \
 })
 
-#define isspace(c)    \
+#define isprint(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2131,7 +2147,7 @@
 	r;   \
 })
 
-#define isupper(c)    \
+#define ispunct(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2140,7 +2156,7 @@
 	r;   \
 })
 
-#define isxdigit(c)    \
+#define isspace(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2149,7 +2165,7 @@
 	r;   \
 })
 
-#define isblank(c)    \
+#define isupper(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
@@ -2158,12 +2174,30 @@
 	r;   \
 })
 
-#define isascii(c)    \
+#define isxdigit(c)    \
 ({  \
 	register void *b __asm("a6") = CCLibBase;  \
 	register int p0 __asm("d0") = (c);   \
 	register APTR r __asm("d0");   \
 	__asm volatile ("jsr a6@(-1290:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define isblank(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register int p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1296:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
+	r;   \
+})
+
+#define isascii(c)    \
+({  \
+	register void *b __asm("a6") = CCLibBase;  \
+	register int p0 __asm("d0") = (c);   \
+	register APTR r __asm("d0");   \
+	__asm volatile ("jsr a6@(-1302:W);" : "+r"(b), "=r"(r) : "r"(p0) : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");    \
 	r;   \
 })
 

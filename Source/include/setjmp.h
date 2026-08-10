@@ -2,7 +2,7 @@
 #define SETJMP_H 1
 
 /*
- * setjmp/longjmp — implemented in the CClib stub library (not library LVOs).
+ * setjmp/longjmp - implemented in the CClib stub library (not library LVOs).
  *
  * jmp_buf layout after setjmp:
  *   0  return address

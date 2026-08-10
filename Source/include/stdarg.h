@@ -2,7 +2,7 @@
 #define STDARG_H 1
 
 /*
- * stdarg — classic stack-based varargs for CClib stub/auto-lib UX.
+ * stdarg - classic stack-based varargs for CClib stub/auto-lib UX.
  * Library LVOs for formatted I/O use register conventions via <proto/cclib.h>.
  */
 

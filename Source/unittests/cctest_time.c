@@ -192,7 +192,7 @@ ct_suite_time(void)
 			3, (LONG)parsed.tm_mday);
 
 		/*
-		 * Timed sleep: usleep(200000) ≈ 0.2s.  Wall budget well under 2s.
+		 * Timed sleep: usleep(200000) ~= 0.2s.  Wall budget well under 2s.
 		 * Measure with lowlevel.library/ElapsedTime (16.16 fixed seconds).
 		 */
 		{
@@ -238,7 +238,7 @@ ct_suite_time(void)
 					0, urc);
 				ct_check_true((STRPTR)"time", (STRPTR)"usleep_no_lowlevel",
 					(STRPTR)"OpenLibrary(lowlevel.library)",
-					(STRPTR)"lowlevel.library absent — skip ElapsedTime check",
+					(STRPTR)"lowlevel.library absent - skip ElapsedTime check",
 					1);
 			}
 		}

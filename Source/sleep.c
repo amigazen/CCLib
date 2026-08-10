@@ -5,7 +5,7 @@
  *
  * OpenDevice + SendIO/Wait (not DoIO) so Ctrl-C can AbortIO.  Always
  * WaitIO once, then CloseDevice before DeleteIORequest/DeleteMsgPort.
- * Do not call amiga.lib TimeDelay from an LVO — it can clobber A6.
+ * Do not call amiga.lib TimeDelay from an LVO - it can clobber A6.
  */
 
 #include <exec/types.h>
@@ -88,7 +88,7 @@ cc_timer_delay(ULONG unit, ULONG secs, ULONG micro)
 	sigs = Wait((1UL << mp->mp_SigBit) | SIGBREAKF_CTRL_C);
 
 	/*
-	 * One WaitIO after optional AbortIO — never WaitIO twice, never
+	 * One WaitIO after optional AbortIO - never WaitIO twice, never
 	 * CloseDevice while the request is still pending.
 	 */
 	if (CheckIO((struct IORequest *)tr) == (struct IORequest *)NULL)

@@ -18,13 +18,15 @@
  * cc_util.c - task userdata helpers and ctype classification table
  */
 
+#include <dos/dos.h>
+
 #include <proto/exec.h>
 #include <proto/dos.h>
 
 #include "private/cc_internal.h"
 #include "cclib_funcs.h"
 
-/* ctype bit flags — must match archive ctype.h macros (type[(X)+1] & mask) */
+/* ctype bit flags - must match archive ctype.h macros (type[(X)+1] & mask) */
 #define CC_U 0x01 /* upper */
 #define CC_L 0x02 /* lower */
 #define CC_D 0x04 /* digit */
@@ -36,7 +38,7 @@
 /*
  * Index style: tab[0] is EOF sentinel; tab[c+1] classifies unsigned char c.
  * SetupSTDIO may hand apps a pointer to this table as the ctype "type" array.
- * Shared library resident — READ-ONLY for all tasks (CClib.Doc §4).
+ * Shared library resident - READ-ONLY for all tasks (CClib.Doc section 4).
  */
 UBYTE cc_ctype_tab[257] = {
 	0, /* EOF / index 0 */
@@ -126,7 +128,7 @@ cc_task_UserData *cc_get_ud(void)
 {
 	struct Task *t;
 
-	/* Most LVOs fetch ud on entry — that is the Ctrl-C checkpoint. */
+	/* Most LVOs fetch ud on entry - that is the Ctrl-C checkpoint. */
 	cc_check_break();
 
 	t = FindTask(NULL);
@@ -145,37 +147,136 @@ void cc_set_errno(LONG err)
 }
 
 /*
+ * Decimal LONG -> ASCII for console breadcrumbs.  buf must hold at least
+ * 12 bytes (sign + 10 digits + NUL).
+ */
+static void
+cc_fmt_long(LONG v, char *buf)
+{
+	ULONG u;
+	char tmp[12];
+	LONG i;
+	LONG j;
+
+	if (v < 0L)
+	{
+		buf[0] = '-';
+		u = (ULONG)(-v);
+		j = 1L;
+	}
+	else
+	{
+		u = (ULONG)v;
+		j = 0L;
+	}
+
+	i = 0L;
+	do
+	{
+		tmp[i] = (char)('0' + (u % 10UL));
+		u /= 10UL;
+		i++;
+	} while (u != 0UL && i < 11L);
+
+	while (i > 0L)
+	{
+		i--;
+		buf[j] = tmp[i];
+		j++;
+	}
+	buf[j] = '\0';
+}
+
+/* Raw console write - stdio may already be corrupt during panic. */
+static void
+cc_panic_msg(STRPTR msg)
+{
+	BPTR out;
+	LONG n;
+
+	if (DOSBase == (struct DosLibrary *)NULL || msg == (STRPTR)NULL)
+		return;
+	n = 0L;
+	while (msg[n] != '\0')
+		n++;
+	out = Output();
+	if (out != (BPTR)NULL)
+		(void)Write(out, msg, n);
+}
+
+/*
  * Abnormal session teardown entry.  Prefer ud->abort_func (CRT sets this
  * to exit, which runs atexit handlers then ClearSTDIO).  Apps register
- * their own cleanup with atexit() — no separate library cleanup list.
+ * their own cleanup with atexit() - no separate library cleanup list.
  * If there is no hook, reap here and Exit so resources cannot leak.
+ *
+ * panicking is library-global: clear it before abort_func/Exit so a
+ * shared library image is not left latched for the next client process.
+ *
+ * Status for the Shell: SetIoErr -> Result2 / WHY; Exit(code) -> RC.
+ * Never SetVar("RC") / SetVar("Result2") while still inside RunCommand.
  */
 void
 cc_panic(LONG code)
 {
 	cc_task_UserData *ud;
+	cc_ABORT_FUNC hook;
+	char cbuf[12];
 	static LONG panicking;
 
 	if (panicking)
 	{
+		/*
+		 * Nested panic: do not re-enter abort_func.  Clear the latch
+		 * before Exit so the shared library stays reusable.
+		 */
+		panicking = 0;
 		if (DOSBase != (struct DosLibrary *)NULL)
+		{
+			SetIoErr(ERROR_ACTION_NOT_KNOWN);
 			Exit(code);
+		}
 		return;
 	}
 	panicking = 1;
 
-	ud = cc_get_ud();
-	if (ud != (cc_task_UserData *)NULL
-	    && ud->abort_func != (cc_ABORT_FUNC)NULL)
+	/* Secondary result for WHY; primary RC comes from Exit(code). */
+	if (DOSBase != (struct DosLibrary *)NULL)
+		SetIoErr(ERROR_ACTION_NOT_KNOWN);
+
+	cc_panic_msg((STRPTR)"CClib: panic - invalid capability or programming error (code ");
+	cc_fmt_long(code, cbuf);
+	cc_panic_msg(cbuf);
+	cc_panic_msg((STRPTR)")\n");
+
+	/*
+	 * Resolve ud without cc_get_ud(): that polls Ctrl-C and could
+	 * recurse into abort_func while panicking is still set.
+	 */
+	ud = (cc_task_UserData *)NULL;
 	{
-		(*ud->abort_func)(code);
+		struct Task *t;
+
+		t = FindTask((STRPTR)NULL);
+		if (t != (struct Task *)NULL)
+			ud = (cc_task_UserData *)t->tc_UserData;
+	}
+
+	hook = (cc_ABORT_FUNC)NULL;
+	if (ud != (cc_task_UserData *)NULL)
+		hook = ud->abort_func;
+
+	/* Drop latch before hook: production exit() never returns. */
+	panicking = 0;
+
+	if (hook != (cc_ABORT_FUNC)NULL)
+	{
+		(*hook)(code);
 		/* Production exit() does not return.  A test hook may return. */
-		panicking = 0;
 		return;
 	}
 
 	ClearSTDIO();
-	panicking = 0;
 	if (DOSBase != (struct DosLibrary *)NULL)
 		Exit(code);
 }
@@ -210,7 +311,7 @@ cc_list_has_data(cc_list *list, APTR data)
 
 /*
  * Resolve an open() fd (pointer-as-capability) against OpenFiles.
- * Sentinels (-1/0) → EBADF.  Forged/stale pointers → panic then EBADF.
+ * Sentinels (-1/0) -> EBADF.  Forged/stale pointers -> panic then EBADF.
  */
 cc_FileDesc *
 cc_fd_from_list(cc_task_UserData *ud, LONG fd)
@@ -234,8 +335,8 @@ cc_fd_from_list(cc_task_UserData *ud, LONG fd)
 }
 
 /*
- * Resolve a FILE* against StreamFiles.  NULL → EINVAL.
- * Forged/stale streams → panic then EBADF.
+ * Resolve a FILE* against StreamFiles.  NULL -> EINVAL.
+ * Forged/stale streams -> panic then EBADF.
  */
 cc_FILE *
 cc_file_from_list(cc_task_UserData *ud, APTR stream)

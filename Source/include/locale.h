@@ -2,7 +2,7 @@
 #define LOCALE_H 1
 
 /*
- * locale.h — POSIX locale (struct lconv in libraries/cclib.h; LVOs via proto).
+ * locale.h - POSIX locale (struct lconv in libraries/cclib.h; LVOs via proto).
  */
 
 #ifndef ANSIC

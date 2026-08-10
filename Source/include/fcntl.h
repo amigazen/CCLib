@@ -2,7 +2,7 @@
 #define FCNTL_H 1
 
 /*
- * fcntl — open() mode flags for CClib.
+ * fcntl - open() mode flags for CClib.
  */
 
 #define O_RDONLY 0

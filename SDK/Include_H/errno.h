@@ -2,7 +2,7 @@
 #define ERRNO_H 1
 
 /*
- * errno — CClib error codes (application errno lives in CRT _main).
+ * errno - CClib error codes (application errno lives in CRT _main).
  */
 
 extern int errno;

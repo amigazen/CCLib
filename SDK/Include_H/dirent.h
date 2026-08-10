@@ -2,7 +2,7 @@
 #define DIRENT_H 1
 
 /*
- * dirent — opendir/readdir/closedir (DIR / struct dirent in libraries/cclib.h).
+ * dirent - opendir/readdir/closedir (DIR / struct dirent in libraries/cclib.h).
  */
 
 #ifndef ANSIC

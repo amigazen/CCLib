@@ -2,7 +2,7 @@
 #define STAT_H 1
 
 /*
- * stat — file status (struct stat in libraries/cclib.h; LVOs via proto).
+ * stat - file status (struct stat in libraries/cclib.h; LVOs via proto).
  */
 
 #ifndef ANSIC

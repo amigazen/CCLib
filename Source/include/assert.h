@@ -2,7 +2,7 @@
 #define ASSERT_H 1
 
 /*
- * assert — diagnostic macro for CClib clients.
+ * assert - diagnostic macro for CClib clients.
  */
 
 #ifndef NDEBUG

@@ -3,7 +3,7 @@
  *
  * Integer/string formats match RawDoFmt-style APTR arg arrays.
  * %e/%f/%g use mathieeedoubbas via the task mathbase (CClib.Doc IEEE rule).
- * No C `double` arithmetic — DOUBLE bits only through cc_ieee helpers.
+ * No C `double` arithmetic - DOUBLE bits only through cc_ieee helpers.
  */
 
 #include <exec/types.h>
@@ -407,7 +407,7 @@ static LONG cc_dofmt(fmt_put_t put, APTR data, STRPTR format, APTR args)
 			continue;
 		}
 
-		/* Unknown conversion — emit literally */
+		/* Unknown conversion - emit literally */
 		put((UBYTE)'%', data);
 		put((UBYTE)c, data);
 	}
@@ -447,7 +447,7 @@ LONG __ASM__ __SAVE_DS__ sprintf(
 }
 
 /*
- * C99 vsnprintf via the CClib formatter (not utility VSNPrintf — keep
+ * C99 vsnprintf via the CClib formatter (not utility VSNPrintf - keep
  * %e/%f/%g and APTR-arg semantics identical to sprintf).
  * FuncTab uses the cc_* symbol names; client pragmas still call snprintf.
  */

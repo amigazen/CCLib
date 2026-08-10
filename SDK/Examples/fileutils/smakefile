@@ -1,0 +1,100 @@
+#
+# :ts=8
+#
+# CClib SDK example — small Shell fileutils linked against cclib.library CRT.
+#
+# Build from this directory after installing cclib.library in LIBS:
+#   smake
+#
+# CRT objects are compiled from ///Source (same recipe as unittests).
+# Link: amiga.lib only — no sc.lib.  cc_start.o must be first on FROM.
+#
+
+###############################################################################
+
+SRC = ///Source
+
+CRT_OBJS = \
+	cc_start.o \
+	$(SRC)/crt/cc_entry.o \
+	$(SRC)/crt/cc_crt.o \
+	$(SRC)/stubs/math.o \
+	$(SRC)/stubs/blocksize.o \
+	$(SRC)/stubs/cxamemset.o \
+	$(SRC)/stubs/cxamemcpy.o
+
+TOOLS = cat ls pwd echo true false
+
+###############################################################################
+
+all: $(TOOLS)
+
+cat: $(CRT_OBJS) cat.o cat.lnk
+	slink with cat.lnk
+
+ls: $(CRT_OBJS) ls.o ls.lnk
+	slink with ls.lnk
+
+pwd: $(CRT_OBJS) pwd.o pwd.lnk
+	slink with pwd.lnk
+
+echo: $(CRT_OBJS) echo.o echo.lnk
+	slink with echo.lnk
+
+true: $(CRT_OBJS) true.o true.lnk
+	slink with true.lnk
+
+false: $(CRT_OBJS) false.o false.lnk
+	slink with false.lnk
+
+clean:
+	delete quiet cat ls pwd echo true false \
+		cat.map ls.map pwd.map echo.map true.map false.map \
+		cat.o ls.o pwd.o echo.o true.o false.o cc_start.o \
+		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o \
+		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o
+
+###############################################################################
+
+cc_start.o: $(SRC)/crt/cc_start.asm
+	copy $(SRC)/crt/cc_start.asm cc_start.asm
+	asm -u cc_start.asm
+	delete quiet cc_start.asm
+
+$(SRC)/crt/cc_entry.o: $(SRC)/crt/cc_entry.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/crt/cc_crt.o: $(SRC)/crt/cc_crt.c
+	Sc idir=$(SRC) OBJNAME $@ $<
+
+$(SRC)/stubs/math.o: $(SRC)/stubs/math.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/blocksize.o: $(SRC)/stubs/blocksize.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/cxamemset.o: $(SRC)/stubs/cxamemset.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/cxamemcpy.o: $(SRC)/stubs/cxamemcpy.c
+	Sc OBJNAME $@ $<
+
+cat.o: cat.c
+	Sc OBJNAME $@ $<
+
+ls.o: ls.c
+	Sc OBJNAME $@ $<
+
+pwd.o: pwd.c
+	Sc OBJNAME $@ $<
+
+echo.o: echo.c
+	Sc OBJNAME $@ $<
+
+true.o: true.c
+	Sc OBJNAME $@ $<
+
+false.o: false.c
+	Sc OBJNAME $@ $<
+
+.PHONY: all clean

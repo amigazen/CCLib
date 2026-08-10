@@ -382,7 +382,7 @@ ct_suite_conv(void)
 		(STRPTR)"0.50",
 		buf);
 
-	/* --- strtol / strtoul / atoll / labs / div / rand --- */
+	/* --- strtol / strtoul / strtoll / strtoull / atoll / abs / labs / div / rand --- */
 	{
 		char *endp;
 		div_t dr;
@@ -390,6 +390,20 @@ ct_suite_conv(void)
 		ULONG u;
 		LONG r1;
 		LONG r2;
+		union {
+			int64 v;
+			struct {
+				uint32 hi;
+				uint32 lo;
+			} w;
+		} i64;
+		union {
+			uint64 v;
+			struct {
+				uint32 hi;
+				uint32 lo;
+			} w;
+		} u64;
 
 		ct_check_long((STRPTR)"conv", (STRPTR)"strtol_dec",
 			(STRPTR)"strtol(\"1234\", NULL, 10)",
@@ -417,10 +431,82 @@ ct_suite_conv(void)
 			(STRPTR)"strtoul must parse ULONG_MAX decimal",
 			0xFFFFFFFFUL, u);
 
+		i64.w.hi = 0xDEADUL;
+		i64.w.lo = 0xBEEFUL;
+		strtoll(&i64.v, (STRPTR)"1234", (APTR)NULL, 10);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_dec_hi",
+			(STRPTR)"strtoll(\"1234\").hi",
+			(STRPTR)"strtoll base 10 must clear the high word for a small value",
+			0UL, (ULONG)i64.w.hi);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_dec_lo",
+			(STRPTR)"strtoll(\"1234\").lo",
+			(STRPTR)"strtoll base 10 must parse the low word as decimal 1234",
+			1234UL, (ULONG)i64.w.lo);
+
+		endp = (char *)NULL;
+		strtoll(&i64.v, (STRPTR)"-99xyz", (APTR)&endp, 10);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_neg_hi",
+			(STRPTR)"strtoll(\"-99xyz\").hi",
+			(STRPTR)"negative strtoll must set two's-complement high word",
+			0xFFFFFFFFUL, (ULONG)i64.w.hi);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_neg_lo",
+			(STRPTR)"strtoll(\"-99xyz\").lo",
+			(STRPTR)"negative strtoll must set two's-complement low word for -99",
+			(ULONG)(0UL - 99UL), (ULONG)i64.w.lo);
+		ct_check_true((STRPTR)"conv", (STRPTR)"strtoll_endptr",
+			(STRPTR)"*end == 'x' after strtoll(\"-99xyz\")",
+			(STRPTR)"endptr must point at the first unconverted character",
+			endp != (char *)NULL && *endp == 'x');
+
+		strtoll(&i64.v, (STRPTR)"0x100000000", (APTR)NULL, 0);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_2pow32_hi",
+			(STRPTR)"strtoll(\"0x100000000\").hi",
+			(STRPTR)"strtoll base 0 must parse 2^32 into the high word",
+			1UL, (ULONG)i64.w.hi);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoll_2pow32_lo",
+			(STRPTR)"strtoll(\"0x100000000\").lo",
+			(STRPTR)"strtoll of 2^32 must leave the low word zero",
+			0UL, (ULONG)i64.w.lo);
+
+		u64.w.hi = 0UL;
+		u64.w.lo = 0UL;
+		strtoull(&u64.v, (STRPTR)"4294967296", (APTR)NULL, 10);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoull_2pow32_hi",
+			(STRPTR)"strtoull(\"4294967296\").hi",
+			(STRPTR)"strtoull must parse 2^32 into the high word",
+			1UL, (ULONG)u64.w.hi);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoull_2pow32_lo",
+			(STRPTR)"strtoull(\"4294967296\").lo",
+			(STRPTR)"strtoull of 2^32 must leave the low word zero",
+			0UL, (ULONG)u64.w.lo);
+
+		strtoull(&u64.v, (STRPTR)"18446744073709551615", (APTR)NULL, 10);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoull_max_hi",
+			(STRPTR)"strtoull(UINT64_MAX).hi",
+			(STRPTR)"strtoull must parse UINT64_MAX high word",
+			0xFFFFFFFFUL, (ULONG)u64.w.hi);
+		ct_check_ulong((STRPTR)"conv", (STRPTR)"strtoull_max_lo",
+			(STRPTR)"strtoull(UINT64_MAX).lo",
+			(STRPTR)"strtoull must parse UINT64_MAX low word",
+			0xFFFFFFFFUL, (ULONG)u64.w.lo);
+
 		ct_check_long((STRPTR)"conv", (STRPTR)"atoll_pos",
 			(STRPTR)"atoll(\"99\")",
 			(STRPTR)"atoll must parse like strtol base 10",
 			99, atoll((STRPTR)"99"));
+
+		ct_check_long((STRPTR)"conv", (STRPTR)"abs_neg",
+			(STRPTR)"abs(-7)",
+			(STRPTR)"abs must return the absolute value of a negative int",
+			7, abs(-7));
+		ct_check_long((STRPTR)"conv", (STRPTR)"abs_pos",
+			(STRPTR)"abs(12)",
+			(STRPTR)"abs must leave a non-negative int unchanged",
+			12, abs(12));
+		ct_check_long((STRPTR)"conv", (STRPTR)"abs_zero",
+			(STRPTR)"abs(0)",
+			(STRPTR)"abs(0) must be 0",
+			0, abs(0));
 
 		ct_check_long((STRPTR)"conv", (STRPTR)"labs_neg",
 			(STRPTR)"labs(-5)",

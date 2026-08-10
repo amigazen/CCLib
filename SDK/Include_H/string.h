@@ -2,7 +2,7 @@
 #define STRING_H 1
 
 /*
- * string — memory and string routines for CClib.
+ * string - memory and string routines for CClib.
  * Standard C types; includes <proto/cclib.h> for LVO pragmas/prototypes.
  */
 

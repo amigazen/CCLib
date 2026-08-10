@@ -294,16 +294,23 @@ LONG cc_get_errno(void);
  * abort_func is NULL (no session / ClearSTDIO disarmed).  Leaf LVOs that
  * never call cc_get_ud() should call this at entry; cc_get_ud() polls too.
  *
- * After Wait(...|SIGBREAKF_CTRL_C), the bit is already cleared — call
+ * After Wait(...|SIGBREAKF_CTRL_C), the bit is already cleared - call
  * cc_raise_ctrl_c() instead of cc_check_break().
  */
 void cc_check_break(void);
 void cc_raise_ctrl_c(void);
 
 /*
- * Panic: invalid capability / programming error.  Invokes ud->abort_func
+ * Panic: invalid capability / programming error.  Writes a console
+ * message, sets IoErr (Shell Result2 / WHY), then invokes ud->abort_func
  * (CRT installs exit, which runs atexit then ClearSTDIO).  If the hook
  * returns, the caller must still fail the LVO (errno already set).
+ *
+ * Primary RC is the Exit() code from abort_func/CRT - never SetVar("RC")
+ * or SetVar("Result2") from a still-running RunCommand (CLI deadlock).
+ *
+ * The library-global panic latch is cleared before abort_func/Exit so a
+ * shared cclib.library image is not left poisoned for the next client.
  */
 void cc_panic(LONG code);
 

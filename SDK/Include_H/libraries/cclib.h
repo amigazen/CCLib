@@ -2,14 +2,14 @@
 #define LIBRARIES_CCLIB_H
 
 /*
- * libraries/cclib.h — public ABI structures for cclib.library
+ * libraries/cclib.h - public ABI structures for cclib.library
  *
- * Shared by the standard C headers in this SDK (stdio.h, iolib.h, …).
+ * Shared by the standard C headers in this SDK (stdio.h, iolib.h, ...).
  * Prefer these over the SAS/C clib when building for the CClib target.
  * Open the library with OpenLibrary(CCLIBNAME, 4). Prefer including the
- * standard C headers (<stdio.h>, <string.h>, …); they pull in
+ * standard C headers (<stdio.h>, <string.h>, ...); they pull in
  * <proto/cclib.h>. SFD and headers share one C/POSIX prototype face
- * (int, size_t, ssize_t, mode_t, char *, FILE *, …; u_long for unsigned
+ * (int, size_t, ssize_t, mode_t, char *, FILE *, ...; u_long for unsigned
  * long). Amiga types only for Amiga-specific APIs. Define struct Library
  * *CCLibBase in the CRT (or one .c) unless using an auto/stub library.
  */

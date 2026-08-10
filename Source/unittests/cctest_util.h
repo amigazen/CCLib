@@ -66,7 +66,7 @@ void ct_check_ptr_null(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 void ct_check_ptr_eq(STRPTR group, STRPTR name, STRPTR ctcall, STRPTR desc,
 	APTR expected, APTR actual);
 
-/* Suite entry points — CCTest (functional) */
+/* Suite entry points - CCTest (functional) */
 void ct_suite_crt(void);
 void ct_suite_string(void);
 void ct_suite_mem(void);
@@ -84,7 +84,7 @@ void ct_suite_dir(void);
 void ct_suite_path(void);
 void ct_suite_locale(void);
 
-/* Suite entry points — CCPanic (validation / abort_func) */
+/* Suite entry points - CCPanic (validation / abort_func) */
 void ct_suite_panic_heap(void);
 void ct_suite_panic_stdio(void);
 void ct_suite_panic_io(void);

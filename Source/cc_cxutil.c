@@ -7,7 +7,7 @@
  *
  * Map them to utility.library (opened in LibInit).  Calling convention is
  * the SAS/C register stub ABI: operands in d0/d1, result in d0.  Do not use
- * __SAVE_DS__ — callers already have A4 set, and A6 must stay the CClib
+ * __SAVE_DS__ - callers already have A4 set, and A6 must stay the CClib
  * base across the JSR.
  */
 

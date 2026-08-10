@@ -1,5 +1,5 @@
 /*
- * cc_locale.c - POSIX locale session (Wave 0–1 LVOs + Wave 2–3 FormatDate)
+ * cc_locale.c - POSIX locale session (Wave 0-1 LVOs + Wave 2-3 FormatDate)
  *
  * Default is "C" (locale NULL).  setlocale soft-opens locale.library on the
  * first non-"C" request; failure keeps "C" and returns NULL.
@@ -361,7 +361,7 @@ cc_strcoll(cc_task_UserData *ud, STRPTR s1, STRPTR s2)
 	return (LONG)(UBYTE)*s1 - (LONG)(UBYTE)*s2;
 }
 
-/* ---- Wave 5–6: ctype via table or locale.library Is* ---------------- */
+/* ---- Wave 5-6: ctype via table or locale.library Is* ---------------- */
 
 /* Same bit masks as ctype.h / cc_ctype_tab. */
 #define CC_CT_U 0x01
@@ -512,7 +512,7 @@ cc_isxdigit_ch(cc_task_UserData *ud, LONG c)
 LONG
 cc_isblank_ch(cc_task_UserData *ud, LONG c)
 {
-	/* No IsBlank in locale.library — space/tab only (C99). */
+	/* No IsBlank in locale.library - space/tab only (C99). */
 	(void)ud;
 	if (c < 0L || c > 255L)
 		return 0L;
@@ -679,7 +679,7 @@ ULONG __ASM__ __SAVE_DS__ strxfrm(
 	return len;
 }
 
-/* ---- Wave 2–3: FormatDate-backed strftime --------------------------- */
+/* ---- Wave 2-3: FormatDate-backed strftime --------------------------- */
 
 typedef struct
 {
@@ -793,7 +793,7 @@ cc_strftime_locale(cc_task_UserData *ud, STRPTR s, ULONG maxsize,
 		return 0L;
 
 	/*
-	 * Bare %c / %x / %X → locale preferred templates (POSIX "appropriate
+	 * Bare %c / %x / %X -> locale preferred templates (POSIX "appropriate
 	 * date and time representation").  Other formats go straight to
 	 * FormatDate so %a/%A/%b/%B/%p pick up localized names.
 	 */
@@ -823,7 +823,7 @@ cc_strftime_locale(cc_task_UserData *ud, STRPTR s, ULONG maxsize,
 	FormatDate(loc, tmpl, &ds, &hook);
 
 	/*
-	 * We owned the FormatDate attempt.  Overflow → length 0 (strftime
+	 * We owned the FormatDate attempt.  Overflow -> length 0 (strftime
 	 * returns 0); do not fall back to Pure C (would hide truncation).
 	 */
 	if (ctx.overflow || ctx.pos >= maxsize)

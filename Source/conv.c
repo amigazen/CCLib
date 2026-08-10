@@ -704,6 +704,314 @@ LONG __ASM__ __SAVE_DS__ atoll(
 	return strtol(s, (APTR)NULL, 10L);
 }
 
+/*
+ * 32x32 -> 64 unsigned multiply (no long long; SAS/C int64 is hi/lo).
+ */
+static void cc_umul32(ULONG a, ULONG b, ULONG *hi, ULONG *lo)
+{
+	ULONG a0;
+	ULONG a1;
+	ULONG b0;
+	ULONG b1;
+	ULONG p0;
+	ULONG p1;
+	ULONG p2;
+	ULONG p3;
+	ULONG mid;
+
+	a0 = a & 0xFFFFUL;
+	a1 = a >> 16;
+	b0 = b & 0xFFFFUL;
+	b1 = b >> 16;
+	p0 = a0 * b0;
+	p1 = a0 * b1;
+	p2 = a1 * b0;
+	p3 = a1 * b1;
+	mid = (p0 >> 16) + (p1 & 0xFFFFUL) + (p2 & 0xFFFFUL);
+	*lo = (p0 & 0xFFFFUL) | ((mid & 0xFFFFUL) << 16);
+	*hi = p3 + (p1 >> 16) + (p2 >> 16) + (mid >> 16);
+}
+
+/* *phi:*plo = *phi:*plo * base + digit; returns 1 on overflow. */
+static LONG cc_u64_muladd(ULONG *phi, ULONG *plo, ULONG base, ULONG digit)
+{
+	ULONG lo_hi;
+	ULONG lo_lo;
+	ULONG hi_hi;
+	ULONG hi_lo;
+	ULONG sum_lo;
+	ULONG sum_hi;
+	ULONG t;
+
+	cc_umul32(*plo, base, &lo_hi, &lo_lo);
+	cc_umul32(*phi, base, &hi_hi, &hi_lo);
+
+	sum_lo = lo_lo;
+	sum_hi = lo_hi + hi_lo;
+	if (sum_hi < lo_hi)
+		return 1L;
+	if (hi_hi != 0UL)
+		return 1L;
+
+	t = sum_lo + digit;
+	if (t < sum_lo)
+	{
+		sum_hi++;
+		if (sum_hi == 0UL)
+			return 1L;
+	}
+	sum_lo = t;
+
+	*plo = sum_lo;
+	*phi = sum_hi;
+	return 0L;
+}
+
+static void cc_u64_neg(ULONG *phi, ULONG *plo)
+{
+	ULONG nlo;
+	ULONG nhi;
+
+	nlo = (~*plo) + 1UL;
+	nhi = ~*phi;
+	if (nlo == 0UL)
+		nhi++;
+	*plo = nlo;
+	*phi = nhi;
+}
+
+/*
+ * Parse unsigned 64-bit magnitude; writes hi/lo limbs.
+ * Same shape as cc_parse_u32 used by strtoul.
+ */
+static void cc_parse_u64(
+	STRPTR s,
+	LONG base,
+	ULONG *hi_out,
+	ULONG *lo_out,
+	STRPTR *end_out,
+	LONG *overflow,
+	LONG *any,
+	LONG *neg_out)
+{
+	STRPTR p;
+	LONG sign;
+	LONG b;
+	LONG digit;
+	ULONG hi;
+	ULONG lo;
+	LONG ov;
+
+	*hi_out = 0UL;
+	*lo_out = 0UL;
+	*end_out = s;
+	*overflow = 0;
+	*any = 0;
+	*neg_out = 0;
+
+	if (s == (STRPTR)NULL)
+		return;
+
+	p = cc_skip_space(s);
+	sign = 0;
+	if (*p == '-')
+	{
+		sign = 1;
+		p++;
+	}
+	else if (*p == '+')
+	{
+		p++;
+	}
+
+	b = base;
+	if (b == 0L)
+	{
+		if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))
+		{
+			b = 16L;
+			p += 2;
+		}
+		else if (p[0] == '0')
+		{
+			b = 8L;
+			p++;
+			*any = 1;
+			*end_out = p;
+		}
+		else
+		{
+			b = 10L;
+		}
+	}
+	else if (b == 16L && p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))
+	{
+		p += 2;
+	}
+
+	if (b < 2L || b > 36L)
+	{
+		cc_set_errno(CC_EINVAL);
+		*end_out = s;
+		return;
+	}
+
+	hi = 0UL;
+	lo = 0UL;
+	ov = 0;
+	for (;;)
+	{
+		digit = cc_digit_val((LONG)(UBYTE)*p, b);
+		if (digit < 0L)
+			break;
+		*any = 1;
+		if (!ov && cc_u64_muladd(&hi, &lo, (ULONG)b, (ULONG)digit))
+			ov = 1;
+		p++;
+	}
+
+	if (!*any)
+	{
+		*end_out = s;
+		return;
+	}
+
+	*hi_out = hi;
+	*lo_out = lo;
+	*end_out = p;
+	*overflow = ov;
+	*neg_out = sign;
+}
+
+void __ASM__ __SAVE_DS__ strtoull(
+	__REG__(a0, APTR result),
+	__REG__(a1, STRPTR s),
+	__REG__(a2, APTR endp),
+	__REG__(d0, LONG base))
+{
+	uint64 *r;
+	ULONG hi;
+	ULONG lo;
+	STRPTR end;
+	LONG ov;
+	LONG any;
+	LONG neg;
+	union {
+		uint64 v;
+		struct {
+			uint32 hi;
+			uint32 lo;
+		} w;
+	} u;
+	cc_check_break();
+
+	r = (uint64 *)result;
+	if (r == (uint64 *)NULL)
+		return;
+
+	cc_parse_u64(s, base, &hi, &lo, &end, &ov, &any, &neg);
+
+	if (endp != (APTR)NULL)
+		*((STRPTR *)endp) = end;
+
+	if (!any)
+	{
+		u.w.hi = 0UL;
+		u.w.lo = 0UL;
+		*r = u.v;
+		return;
+	}
+
+	if (ov)
+	{
+		cc_set_errno(CC_ERANGE);
+		u.w.hi = 0xFFFFFFFFUL;
+		u.w.lo = 0xFFFFFFFFUL;
+		*r = u.v;
+		return;
+	}
+
+	/* Unsigned conversion: a leading '-' still yields the bit pattern. */
+	if (neg)
+		cc_u64_neg(&hi, &lo);
+
+	u.w.hi = hi;
+	u.w.lo = lo;
+	*r = u.v;
+}
+
+void __ASM__ __SAVE_DS__ strtoll(
+	__REG__(a0, APTR result),
+	__REG__(a1, STRPTR s),
+	__REG__(a2, APTR endp),
+	__REG__(d0, LONG base))
+{
+	int64 *r;
+	ULONG hi;
+	ULONG lo;
+	STRPTR end;
+	LONG ov;
+	LONG any;
+	LONG neg;
+	union {
+		int64 v;
+		struct {
+			uint32 hi;
+			uint32 lo;
+		} w;
+	} u;
+	cc_check_break();
+
+	r = (int64 *)result;
+	if (r == (int64 *)NULL)
+		return;
+
+	cc_parse_u64(s, base, &hi, &lo, &end, &ov, &any, &neg);
+
+	if (endp != (APTR)NULL)
+		*((STRPTR *)endp) = end;
+
+	if (!any)
+	{
+		u.w.hi = 0UL;
+		u.w.lo = 0UL;
+		*r = u.v;
+		return;
+	}
+
+	/*
+	 * Signed range: [−2^63, 2^63−1]. Magnitude limits:
+	 *   positive: hi <= 0x7FFFFFFF
+	 *   negative: hi:lo <= 0x8000000000000000
+	 */
+	if (ov ||
+	    (!neg && hi > 0x7FFFFFFFUL) ||
+	    (neg && (hi > 0x80000000UL ||
+		     (hi == 0x80000000UL && lo != 0UL))))
+	{
+		cc_set_errno(CC_ERANGE);
+		if (neg)
+		{
+			u.w.hi = 0x80000000UL;
+			u.w.lo = 0UL;
+		}
+		else
+		{
+			u.w.hi = 0x7FFFFFFFUL;
+			u.w.lo = 0xFFFFFFFFUL;
+		}
+		*r = u.v;
+		return;
+	}
+
+	if (neg)
+		cc_u64_neg(&hi, &lo);
+
+	u.w.hi = hi;
+	u.w.lo = lo;
+	*r = u.v;
+}
+
 void __ASM__ __SAVE_DS__ srand(
 	__REG__(d0, ULONG seed))
 {
@@ -758,7 +1066,12 @@ static void cc_div_body(LONG numer, LONG denom, LONG *q_out, LONG *rem_out)
 	*rem_out = rem;
 }
 
-void __ASM__ __SAVE_DS__ div(
+/*
+ * Named cc_div/cc_ldiv for FuncTab (same idea as cc_abs / cc_vsnprintf):
+ * a library symbol literally called div/ldiv can be mislinked by SAS/C.
+ * Client calls stay div()/ldiv() via #pragma libcall at these biases.
+ */
+void __ASM__ __SAVE_DS__ cc_div(
 	__REG__(a0, APTR result),
 	__REG__(d0, LONG numer),
 	__REG__(d1, LONG denom))
@@ -766,9 +1079,9 @@ void __ASM__ __SAVE_DS__ div(
 	div_t *r;
 	LONG q;
 	LONG rem;
-	cc_check_break();
 
 	r = (div_t *)result;
+	cc_check_break();
 	if (r == (div_t *)NULL)
 		return;
 	cc_div_body(numer, denom, &q, &rem);
@@ -776,7 +1089,7 @@ void __ASM__ __SAVE_DS__ div(
 	r->rem = (int)rem;
 }
 
-void __ASM__ __SAVE_DS__ ldiv(
+void __ASM__ __SAVE_DS__ cc_ldiv(
 	__REG__(a0, APTR result),
 	__REG__(d0, LONG numer),
 	__REG__(d1, LONG denom))
@@ -784,14 +1097,31 @@ void __ASM__ __SAVE_DS__ ldiv(
 	ldiv_t *r;
 	LONG q;
 	LONG rem;
-	cc_check_break();
 
 	r = (ldiv_t *)result;
+	cc_check_break();
 	if (r == (ldiv_t *)NULL)
 		return;
 	cc_div_body(numer, denom, &q, &rem);
 	r->quot = q;
 	r->rem = rem;
+}
+
+LONG __ASM__ __SAVE_DS__ cc_abs(
+	__REG__(d0, LONG n))
+{
+	/*
+	 * FuncTab uses cc_abs: stdlib.h #define abs(X) would break a symbol
+	 * named abs if that header is ever pulled into library TUs.
+	 */
+	cc_check_break();
+	if (n < 0L)
+	{
+		if (n == (LONG)0x80000000L)
+			return n;
+		return -n;
+	}
+	return n;
 }
 
 LONG __ASM__ __SAVE_DS__ labs(

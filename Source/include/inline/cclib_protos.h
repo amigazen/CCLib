@@ -10,24 +10,37 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention. */
-/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
+/* Canonical LVO interface for cclib.library (shared resident). This SFD lists */
+/* ONLY functions that live in the LVO jump table of cclib.library. */
+/* Register-args LVO calling convention. */
 
+/* Packaging (see STATIC_LIBS.md at repo root) */
+/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
+/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
+/*                    getopt/glob, multibyte, …) */
+/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
+/*   ma.lib / m99.lib — math (not CClib LVOs) */
+/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
+
+/* Freeze rules */
+/*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table. */
+/*   Never reorder, remove, or insert mid-table above ==version 4. */
+/*   From ==version 4 onward: regroup freely while regenerating headers + */
+/*   StartUp FuncTab and rebuilding all clients together. */
+/*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras */
+/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net). */
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
-/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
-/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types */
+/* are typedef'd: u_long = unsigned long; unsigned = unsigned int. */
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
 /* Amiga-specific APIs (BPTR, …). */
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
+/* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return */
+/* 8-byte structs by value). */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
-/* V4+ append-only at end: keep new LVOs in logical groups (memory, */
-/* string, env, format, stdlib, …). Do not insert mid-table; within each */
-/* append wave, batch by category before starting the next category. */
-
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -541,10 +554,12 @@ long __exec(__reg("a6") void *, __reg("a0") char *cmd)="\tjsr\t-912(a6)";
 
 /*--- functions in V4 or higher --- */
 
-/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
-/* realtime.library) backs sleep/usleep/nanosleep. */
+/* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C */
+/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md. */
+/* timer.device (not realtime.library) backs sleep/usleep/nanosleep. */
+/* Softlink / dirent-seek / popen → ccposix.lib (not in this table). */
 
-/* Memory */
+/* Memory (completes V3 mem*) */
 void *__memmove(__reg("a6") void *, __reg("a0") void *dst, __reg("a1") CONST void *src, __reg("d0") size_t n)="\tjsr\t-918(a6)";
 #define memmove(dst, src, n) __memmove(CCLibBase, (dst), (src), (n))
 
@@ -552,7 +567,7 @@ void *__memmem(__reg("a6") void *, __reg("a0") CONST void *haystack, __reg("d0")
 #define memmem(haystack, hlen, needle, nlen) __memmem(CCLibBase, (haystack), (hlen), (needle), (nlen))
 
 
-/* String */
+/* String (completes V3 str*; BSD-safe + Lattice strlwr) */
 int __strncasecmp(__reg("a6") void *, __reg("a0") CONST char *s1, __reg("a1") CONST char *s2, __reg("d0") size_t n)="\tjsr\t-930(a6)";
 #define strncasecmp(s1, s2, n) __strncasecmp(CCLibBase, (s1), (s2), (n))
 
@@ -587,12 +602,12 @@ char *__strlwr(__reg("a6") void *, __reg("a0") char *s)="\tjsr\t-984(a6)";
 #define strlwr(s) __strlwr(CCLibBase, (s))
 
 
-/* Environment */
+/* Environment (beside V3 setenv/getenv) */
 int __unsetenv(__reg("a6") void *, __reg("a0") CONST char *name)="\tjsr\t-990(a6)";
 #define unsetenv(name) __unsetenv(CCLibBase, (name))
 
 
-/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+/* Formatted I/O (snprintf shares bias with vsnprintf) */
 int __vsnprintf(__reg("a6") void *, __reg("a0") char *s, __reg("d0") size_t n, __reg("a1") CONST char *format, __reg("a2") va_list args)="\tjsr\t-996(a6)";
 #define vsnprintf(s, n, format, args) __vsnprintf(CCLibBase, (s), (n), (format), (args))
 
@@ -617,7 +632,7 @@ ssize_t __getdelim(__reg("a6") void *, __reg("a0") char **lineptr, __reg("a1") s
 #define getdelim(lineptr, n, delim, stream) __getdelim(CCLibBase, (lineptr), (n), (delim), (stream))
 
 
-/* Conversion */
+/* Conversion (completes V3 atoi/atol/atof; 64-bit via out-params) */
 long __strtol(__reg("a6") void *, __reg("a0") CONST char *s, __reg("a1") char **endp, __reg("d0") int base)="\tjsr\t-1032(a6)";
 #define strtol(s, endp, base) __strtol(CCLibBase, (s), (endp), (base))
 
@@ -630,136 +645,143 @@ DOUBLE __strtod(__reg("a6") void *, __reg("a0") CONST char *s, __reg("a1") char 
 long __atoll(__reg("a6") void *, __reg("a0") CONST char *s)="\tjsr\t-1050(a6)";
 #define atoll(s) __atoll(CCLibBase, (s))
 
+void __strtoll(__reg("a6") void *, __reg("a0") int64 *result, __reg("a1") CONST char *s, __reg("a2") char **endp, __reg("d0") int base)="\tjsr\t-1056(a6)";
+#define strtoll(result, s, endp, base) __strtoll(CCLibBase, (result), (s), (endp), (base))
+
+void __strtoull(__reg("a6") void *, __reg("a0") uint64 *result, __reg("a1") CONST char *s, __reg("a2") char **endp, __reg("d0") int base)="\tjsr\t-1062(a6)";
+#define strtoull(result, s, endp, base) __strtoull(CCLibBase, (result), (s), (endp), (base))
+
 
 /* Search / random / integer math */
-void *__bsearch(__reg("a6") void *, __reg("a0") CONST void *key, __reg("a1") CONST void *base, __reg("d0") size_t nel, __reg("d1") size_t width, __reg("a2") void *compar)="\tjsr\t-1056(a6)";
+/* div/ldiv: result pointer (SAS/C libcall cannot return 8-byte structs). */
+void *__bsearch(__reg("a6") void *, __reg("a0") CONST void *key, __reg("a1") CONST void *base, __reg("d0") size_t nel, __reg("d1") size_t width, __reg("a2") void *compar)="\tjsr\t-1068(a6)";
 #define bsearch(key, base, nel, width, compar) __bsearch(CCLibBase, (key), (base), (nel), (width), (compar))
 
-void __srand(__reg("a6") void *, __reg("d0") unsigned seed)="\tjsr\t-1062(a6)";
+void __srand(__reg("a6") void *, __reg("d0") unsigned seed)="\tjsr\t-1074(a6)";
 #define srand(seed) __srand(CCLibBase, (seed))
 
-int __rand(__reg("a6") void *)="\tjsr\t-1068(a6)";
+int __rand(__reg("a6") void *)="\tjsr\t-1080(a6)";
 #define rand() __rand(CCLibBase)
 
-void __div(__reg("a6") void *, __reg("a0") div_t *result, __reg("d0") int numer, __reg("d1") int denom)="\tjsr\t-1074(a6)";
+void __div(__reg("a6") void *, __reg("a0") div_t *result, __reg("d0") int numer, __reg("d1") int denom)="\tjsr\t-1086(a6)";
 #define div(result, numer, denom) __div(CCLibBase, (result), (numer), (denom))
 
-void __ldiv(__reg("a6") void *, __reg("a0") ldiv_t *result, __reg("d0") long numer, __reg("d1") long denom)="\tjsr\t-1080(a6)";
+void __ldiv(__reg("a6") void *, __reg("a0") ldiv_t *result, __reg("d0") long numer, __reg("d1") long denom)="\tjsr\t-1092(a6)";
 #define ldiv(result, numer, denom) __ldiv(CCLibBase, (result), (numer), (denom))
 
-long __labs(__reg("a6") void *, __reg("d0") long n)="\tjsr\t-1086(a6)";
+int __abs(__reg("a6") void *, __reg("d0") int n)="\tjsr\t-1098(a6)";
+#define abs(n) __abs(CCLibBase, (n))
+
+long __labs(__reg("a6") void *, __reg("d0") long n)="\tjsr\t-1104(a6)";
 #define labs(n) __labs(CCLibBase, (n))
 
 
-/* Path / filesystem (dos.library) */
-int __mkstemp(__reg("a6") void *, __reg("a0") char *template)="\tjsr\t-1092(a6)";
+/* Path / filesystem (dos.library; softlinks are ccposix) */
+int __mkstemp(__reg("a6") void *, __reg("a0") char *template)="\tjsr\t-1110(a6)";
 #define mkstemp(template) __mkstemp(CCLibBase, (template))
 
-char *__getcwd(__reg("a6") void *, __reg("a0") char *buf, __reg("d0") size_t size)="\tjsr\t-1098(a6)";
+char *__getcwd(__reg("a6") void *, __reg("a0") char *buf, __reg("d0") size_t size)="\tjsr\t-1116(a6)";
 #define getcwd(buf, size) __getcwd(CCLibBase, (buf), (size))
 
-int __chdir(__reg("a6") void *, __reg("a0") CONST char *path)="\tjsr\t-1104(a6)";
+int __chdir(__reg("a6") void *, __reg("a0") CONST char *path)="\tjsr\t-1122(a6)";
 #define chdir(path) __chdir(CCLibBase, (path))
 
-char *__realpath(__reg("a6") void *, __reg("a0") CONST char *path, __reg("a1") char *resolved)="\tjsr\t-1110(a6)";
+char *__realpath(__reg("a6") void *, __reg("a0") CONST char *path, __reg("a1") char *resolved)="\tjsr\t-1128(a6)";
 #define realpath(path, resolved) __realpath(CCLibBase, (path), (resolved))
 
-int __mkdir(__reg("a6") void *, __reg("a0") CONST char *path, __reg("d0") mode_t mode)="\tjsr\t-1116(a6)";
+int __mkdir(__reg("a6") void *, __reg("a0") CONST char *path, __reg("d0") mode_t mode)="\tjsr\t-1134(a6)";
 #define mkdir(path, mode) __mkdir(CCLibBase, (path), (mode))
 
-int __rmdir(__reg("a6") void *, __reg("a0") CONST char *path)="\tjsr\t-1122(a6)";
+int __rmdir(__reg("a6") void *, __reg("a0") CONST char *path)="\tjsr\t-1140(a6)";
 #define rmdir(path) __rmdir(CCLibBase, (path))
 
-int __chmod(__reg("a6") void *, __reg("a0") CONST char *path, __reg("d0") mode_t mode)="\tjsr\t-1128(a6)";
+int __chmod(__reg("a6") void *, __reg("a0") CONST char *path, __reg("d0") mode_t mode)="\tjsr\t-1146(a6)";
 #define chmod(path, mode) __chmod(CCLibBase, (path), (mode))
 
-int __utime(__reg("a6") void *, __reg("a0") CONST char *path, __reg("a1") void *times)="\tjsr\t-1134(a6)";
+int __utime(__reg("a6") void *, __reg("a0") CONST char *path, __reg("a1") void *times)="\tjsr\t-1152(a6)";
 #define utime(path, times) __utime(CCLibBase, (path), (times))
 
-int __symlink(__reg("a6") void *, __reg("a0") CONST char *target, __reg("a1") CONST char *linkpath)="\tjsr\t-1140(a6)";
-#define symlink(target, linkpath) __symlink(CCLibBase, (target), (linkpath))
-
-ssize_t __readlink(__reg("a6") void *, __reg("a0") CONST char *path, __reg("a1") char *buf, __reg("d0") size_t bufsiz)="\tjsr\t-1146(a6)";
-#define readlink(path, buf, bufsiz) __readlink(CCLibBase, (path), (buf), (bufsiz))
+int __fstat(__reg("a6") void *, __reg("d0") int fd, __reg("a0") struct stat *buf)="\tjsr\t-1158(a6)";
+#define fstat(fd, buf) __fstat(CCLibBase, (fd), (buf))
 
 
-/* Directory (POSIX dirent beside historic scdir) */
-DIR *__opendir(__reg("a6") void *, __reg("a0") CONST char *name)="\tjsr\t-1152(a6)";
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix) */
+DIR *__opendir(__reg("a6") void *, __reg("a0") CONST char *name)="\tjsr\t-1164(a6)";
 #define opendir(name) __opendir(CCLibBase, (name))
 
-struct dirent *__readdir(__reg("a6") void *, __reg("a0") DIR *dir)="\tjsr\t-1158(a6)";
+struct dirent *__readdir(__reg("a6") void *, __reg("a0") DIR *dir)="\tjsr\t-1170(a6)";
 #define readdir(dir) __readdir(CCLibBase, (dir))
 
-int __closedir(__reg("a6") void *, __reg("a0") DIR *dir)="\tjsr\t-1164(a6)";
+int __closedir(__reg("a6") void *, __reg("a0") DIR *dir)="\tjsr\t-1176(a6)";
 #define closedir(dir) __closedir(CCLibBase, (dir))
 
 
-/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
-unsigned __sleep(__reg("a6") void *, __reg("d0") unsigned seconds)="\tjsr\t-1170(a6)";
+/* Sleep (timer.device TR_ADDREQUEST) */
+unsigned __sleep(__reg("a6") void *, __reg("d0") unsigned seconds)="\tjsr\t-1182(a6)";
 #define sleep(seconds) __sleep(CCLibBase, (seconds))
 
-int __usleep(__reg("a6") void *, __reg("d0") useconds_t usec)="\tjsr\t-1176(a6)";
+int __usleep(__reg("a6") void *, __reg("d0") useconds_t usec)="\tjsr\t-1188(a6)";
 #define usleep(usec) __usleep(CCLibBase, (usec))
 
-int __nanosleep(__reg("a6") void *, __reg("a0") CONST struct timespec *req, __reg("a1") struct timespec *rem)="\tjsr\t-1182(a6)";
+int __nanosleep(__reg("a6") void *, __reg("a0") CONST struct timespec *req, __reg("a1") struct timespec *rem)="\tjsr\t-1194(a6)";
 #define nanosleep(req, rem) __nanosleep(CCLibBase, (req), (rem))
 
 
 /* Locale */
-char *__setlocale(__reg("a6") void *, __reg("d0") int category, __reg("a0") CONST char *name)="\tjsr\t-1188(a6)";
+char *__setlocale(__reg("a6") void *, __reg("d0") int category, __reg("a0") CONST char *name)="\tjsr\t-1200(a6)";
 #define setlocale(category, name) __setlocale(CCLibBase, (category), (name))
 
-struct lconv *__localeconv(__reg("a6") void *)="\tjsr\t-1194(a6)";
+struct lconv *__localeconv(__reg("a6") void *)="\tjsr\t-1206(a6)";
 #define localeconv() __localeconv(CCLibBase)
 
-int __strcoll(__reg("a6") void *, __reg("a0") CONST char *s1, __reg("a1") CONST char *s2)="\tjsr\t-1200(a6)";
+int __strcoll(__reg("a6") void *, __reg("a0") CONST char *s1, __reg("a1") CONST char *s2)="\tjsr\t-1212(a6)";
 #define strcoll(s1, s2) __strcoll(CCLibBase, (s1), (s2))
 
-size_t __strxfrm(__reg("a6") void *, __reg("a0") char *dest, __reg("a1") CONST char *src, __reg("d0") size_t n)="\tjsr\t-1206(a6)";
+size_t __strxfrm(__reg("a6") void *, __reg("a0") char *dest, __reg("a1") CONST char *src, __reg("d0") size_t n)="\tjsr\t-1218(a6)";
 #define strxfrm(dest, src, n) __strxfrm(CCLibBase, (dest), (src), (n))
 
-char *__strptime(__reg("a6") void *, __reg("a0") CONST char *s, __reg("a1") CONST char *format, __reg("a2") struct tm *tm)="\tjsr\t-1212(a6)";
+char *__strptime(__reg("a6") void *, __reg("a0") CONST char *s, __reg("a1") CONST char *format, __reg("a2") struct tm *tm)="\tjsr\t-1224(a6)";
 #define strptime(s, format, tm) __strptime(CCLibBase, (s), (format), (tm))
 
 
-/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
-int __isalnum(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1218(a6)";
+/* Ctype (locale.library Is* when LC_CTYPE is non-"C") */
+int __isalnum(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1230(a6)";
 #define isalnum(c) __isalnum(CCLibBase, (c))
 
-int __isalpha(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1224(a6)";
+int __isalpha(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1236(a6)";
 #define isalpha(c) __isalpha(CCLibBase, (c))
 
-int __iscntrl(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1230(a6)";
+int __iscntrl(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1242(a6)";
 #define iscntrl(c) __iscntrl(CCLibBase, (c))
 
-int __isdigit(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1236(a6)";
+int __isdigit(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1248(a6)";
 #define isdigit(c) __isdigit(CCLibBase, (c))
 
-int __isgraph(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1242(a6)";
+int __isgraph(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1254(a6)";
 #define isgraph(c) __isgraph(CCLibBase, (c))
 
-int __islower(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1248(a6)";
+int __islower(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1260(a6)";
 #define islower(c) __islower(CCLibBase, (c))
 
-int __isprint(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1254(a6)";
+int __isprint(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1266(a6)";
 #define isprint(c) __isprint(CCLibBase, (c))
 
-int __ispunct(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1260(a6)";
+int __ispunct(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1272(a6)";
 #define ispunct(c) __ispunct(CCLibBase, (c))
 
-int __isspace(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1266(a6)";
+int __isspace(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1278(a6)";
 #define isspace(c) __isspace(CCLibBase, (c))
 
-int __isupper(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1272(a6)";
+int __isupper(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1284(a6)";
 #define isupper(c) __isupper(CCLibBase, (c))
 
-int __isxdigit(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1278(a6)";
+int __isxdigit(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1290(a6)";
 #define isxdigit(c) __isxdigit(CCLibBase, (c))
 
-int __isblank(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1284(a6)";
+int __isblank(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1296(a6)";
 #define isblank(c) __isblank(CCLibBase, (c))
 
-int __isascii(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1290(a6)";
+int __isascii(__reg("a6") void *, __reg("d0") int c)="\tjsr\t-1302(a6)";
 #define isascii(c) __isascii(CCLibBase, (c))
 
 

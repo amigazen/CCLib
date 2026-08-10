@@ -14,24 +14,37 @@
 
 /*"cclib.library" */
 
-/* Canonical LVO interface for cclib.library (V4.0 reimplementation of the */
-/* historic V3.0 jump table). Register-args LVO calling convention. */
-/* V3 table is frozen. V4+ may be regrouped until the V4 ABI is published. */
+/* Canonical LVO interface for cclib.library (shared resident). This SFD lists */
+/* ONLY functions that live in the LVO jump table of cclib.library. */
+/* Register-args LVO calling convention. */
 
+/* Packaging (see STATIC_LIBS.md at repo root) */
+/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
+/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
+/*                    getopt/glob, multibyte, …) */
+/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
+/*   ma.lib / m99.lib — math (not CClib LVOs) */
+/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
+
+/* Freeze rules */
+/*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table. */
+/*   Never reorder, remove, or insert mid-table above ==version 4. */
+/*   From ==version 4 onward: regroup freely while regenerating headers + */
+/*   StartUp FuncTab and rebuilding all clients together. */
+/*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras */
+/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net). */
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
-/* (see <sys/types.h>, <stddef.h>). Multi-word C types are typedef'd: */
-/*   u_long = unsigned long;  unsigned = unsigned int. */
+/* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types */
+/* are typedef'd: u_long = unsigned long; unsigned = unsigned int. */
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
 /* Amiga-specific APIs (BPTR, …). */
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
+/* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return */
+/* 8-byte structs by value). */
 
 /* V4.0 vs historic V3.0: remove is canonical (unlink ==alias); */
 /* strcasecmp is canonical (strcmpa ==alias). */
-/* V4+ append-only at end: keep new LVOs in logical groups (memory, */
-/* string, env, format, stdlib, …). Do not insert mid-table; within each */
-/* append wave, batch by category before starting the next category. */
-
 /* Legacy BSD/Lattice names (bcopy, bcmp, bzero, index, rindex, agetc, */
 /* aputc) remain as public LVOs. */
 
@@ -239,14 +252,16 @@
 #pragma amicall(CCLibBase, 0x390, exec(a0))
 /*--- functions in V4 or higher --- */
 
-/* V4 (-918 ..). Not frozen: grouped by category. timer.device (not */
-/* realtime.library) backs sleep/usleep/nanosleep. */
+/* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C */
+/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md. */
+/* timer.device (not realtime.library) backs sleep/usleep/nanosleep. */
+/* Softlink / dirent-seek / popen → ccposix.lib (not in this table). */
 
-/* Memory */
+/* Memory (completes V3 mem*) */
 #pragma amicall(CCLibBase, 0x396, memmove(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x39C, memmem(a0,d0,a1,d1))
 
-/* String */
+/* String (completes V3 str*; BSD-safe + Lattice strlwr) */
 #pragma amicall(CCLibBase, 0x3A2, strncasecmp(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x3A2, strnicmp(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x3A8, strdup(a0))
@@ -259,10 +274,10 @@
 #pragma amicall(CCLibBase, 0x3D2, strtok_r(a0,a1,a2))
 #pragma amicall(CCLibBase, 0x3D8, strlwr(a0))
 
-/* Environment */
+/* Environment (beside V3 setenv/getenv) */
 #pragma amicall(CCLibBase, 0x3DE, unsetenv(a0))
 
-/* Format — vsnprintf LVO; snprintf is ==varargs at the same bias */
+/* Formatted I/O (snprintf shares bias with vsnprintf) */
 #pragma amicall(CCLibBase, 0x3E4, vsnprintf(a0,d0,a1,a2))
 #if defined(__STORM__)
 #pragma tagcall(CCLibBase, 0x3E4, snprintf(a0,d0,a1,a2))
@@ -273,62 +288,65 @@
 #pragma amicall(CCLibBase, 0x3FC, getline(a0,a1,a2))
 #pragma amicall(CCLibBase, 0x402, getdelim(a0,a1,d0,a2))
 
-/* Conversion */
+/* Conversion (completes V3 atoi/atol/atof; 64-bit via out-params) */
 #pragma amicall(CCLibBase, 0x408, strtol(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x40E, strtoul(a0,a1,d0))
 #pragma amicall(CCLibBase, 0x414, strtod(a0,a1))
 #pragma amicall(CCLibBase, 0x41A, atoll(a0))
+#pragma amicall(CCLibBase, 0x420, strtoll(a0,a1,a2,d0))
+#pragma amicall(CCLibBase, 0x426, strtoull(a0,a1,a2,d0))
 
 /* Search / random / integer math */
-#pragma amicall(CCLibBase, 0x420, bsearch(a0,a1,d0,d1,a2))
-#pragma amicall(CCLibBase, 0x426, srand(d0))
-#pragma amicall(CCLibBase, 0x42C, rand())
-#pragma amicall(CCLibBase, 0x432, div(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x438, ldiv(a0,d0,d1))
-#pragma amicall(CCLibBase, 0x43E, labs(d0))
+/* div/ldiv: result pointer (SAS/C libcall cannot return 8-byte structs). */
+#pragma amicall(CCLibBase, 0x42C, bsearch(a0,a1,d0,d1,a2))
+#pragma amicall(CCLibBase, 0x432, srand(d0))
+#pragma amicall(CCLibBase, 0x438, rand())
+#pragma amicall(CCLibBase, 0x43E, div(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x444, ldiv(a0,d0,d1))
+#pragma amicall(CCLibBase, 0x44A, abs(d0))
+#pragma amicall(CCLibBase, 0x450, labs(d0))
 
-/* Path / filesystem (dos.library) */
-#pragma amicall(CCLibBase, 0x444, mkstemp(a0))
-#pragma amicall(CCLibBase, 0x44A, getcwd(a0,d0))
-#pragma amicall(CCLibBase, 0x450, chdir(a0))
-#pragma amicall(CCLibBase, 0x456, realpath(a0,a1))
-#pragma amicall(CCLibBase, 0x45C, mkdir(a0,d0))
-#pragma amicall(CCLibBase, 0x462, rmdir(a0))
-#pragma amicall(CCLibBase, 0x468, chmod(a0,d0))
-#pragma amicall(CCLibBase, 0x46E, utime(a0,a1))
-#pragma amicall(CCLibBase, 0x474, symlink(a0,a1))
-#pragma amicall(CCLibBase, 0x47A, readlink(a0,a1,d0))
+/* Path / filesystem (dos.library; softlinks are ccposix) */
+#pragma amicall(CCLibBase, 0x456, mkstemp(a0))
+#pragma amicall(CCLibBase, 0x45C, getcwd(a0,d0))
+#pragma amicall(CCLibBase, 0x462, chdir(a0))
+#pragma amicall(CCLibBase, 0x468, realpath(a0,a1))
+#pragma amicall(CCLibBase, 0x46E, mkdir(a0,d0))
+#pragma amicall(CCLibBase, 0x474, rmdir(a0))
+#pragma amicall(CCLibBase, 0x47A, chmod(a0,d0))
+#pragma amicall(CCLibBase, 0x480, utime(a0,a1))
+#pragma amicall(CCLibBase, 0x486, fstat(d0,a0))
 
-/* Directory (POSIX dirent beside historic scdir) */
-#pragma amicall(CCLibBase, 0x480, opendir(a0))
-#pragma amicall(CCLibBase, 0x486, readdir(a0))
-#pragma amicall(CCLibBase, 0x48C, closedir(a0))
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix) */
+#pragma amicall(CCLibBase, 0x48C, opendir(a0))
+#pragma amicall(CCLibBase, 0x492, readdir(a0))
+#pragma amicall(CCLibBase, 0x498, closedir(a0))
 
-/* Sleep — timer.device TR_ADDREQUEST (amiga.lib TimeDelay) */
-#pragma amicall(CCLibBase, 0x492, sleep(d0))
-#pragma amicall(CCLibBase, 0x498, usleep(d0))
-#pragma amicall(CCLibBase, 0x49E, nanosleep(a0,a1))
+/* Sleep (timer.device TR_ADDREQUEST) */
+#pragma amicall(CCLibBase, 0x49E, sleep(d0))
+#pragma amicall(CCLibBase, 0x4A4, usleep(d0))
+#pragma amicall(CCLibBase, 0x4AA, nanosleep(a0,a1))
 
 /* Locale */
-#pragma amicall(CCLibBase, 0x4A4, setlocale(d0,a0))
-#pragma amicall(CCLibBase, 0x4AA, localeconv())
-#pragma amicall(CCLibBase, 0x4B0, strcoll(a0,a1))
-#pragma amicall(CCLibBase, 0x4B6, strxfrm(a0,a1,d0))
-#pragma amicall(CCLibBase, 0x4BC, strptime(a0,a1,a2))
+#pragma amicall(CCLibBase, 0x4B0, setlocale(d0,a0))
+#pragma amicall(CCLibBase, 0x4B6, localeconv())
+#pragma amicall(CCLibBase, 0x4BC, strcoll(a0,a1))
+#pragma amicall(CCLibBase, 0x4C2, strxfrm(a0,a1,d0))
+#pragma amicall(CCLibBase, 0x4C8, strptime(a0,a1,a2))
 
-/* Locale Waves 5–6 — ctype classification (locale.library Is* when LC_CTYPE) */
-#pragma amicall(CCLibBase, 0x4C2, isalnum(d0))
-#pragma amicall(CCLibBase, 0x4C8, isalpha(d0))
-#pragma amicall(CCLibBase, 0x4CE, iscntrl(d0))
-#pragma amicall(CCLibBase, 0x4D4, isdigit(d0))
-#pragma amicall(CCLibBase, 0x4DA, isgraph(d0))
-#pragma amicall(CCLibBase, 0x4E0, islower(d0))
-#pragma amicall(CCLibBase, 0x4E6, isprint(d0))
-#pragma amicall(CCLibBase, 0x4EC, ispunct(d0))
-#pragma amicall(CCLibBase, 0x4F2, isspace(d0))
-#pragma amicall(CCLibBase, 0x4F8, isupper(d0))
-#pragma amicall(CCLibBase, 0x4FE, isxdigit(d0))
-#pragma amicall(CCLibBase, 0x504, isblank(d0))
-#pragma amicall(CCLibBase, 0x50A, isascii(d0))
+/* Ctype (locale.library Is* when LC_CTYPE is non-"C") */
+#pragma amicall(CCLibBase, 0x4CE, isalnum(d0))
+#pragma amicall(CCLibBase, 0x4D4, isalpha(d0))
+#pragma amicall(CCLibBase, 0x4DA, iscntrl(d0))
+#pragma amicall(CCLibBase, 0x4E0, isdigit(d0))
+#pragma amicall(CCLibBase, 0x4E6, isgraph(d0))
+#pragma amicall(CCLibBase, 0x4EC, islower(d0))
+#pragma amicall(CCLibBase, 0x4F2, isprint(d0))
+#pragma amicall(CCLibBase, 0x4F8, ispunct(d0))
+#pragma amicall(CCLibBase, 0x4FE, isspace(d0))
+#pragma amicall(CCLibBase, 0x504, isupper(d0))
+#pragma amicall(CCLibBase, 0x50A, isxdigit(d0))
+#pragma amicall(CCLibBase, 0x510, isblank(d0))
+#pragma amicall(CCLibBase, 0x516, isascii(d0))
 
 #endif /* PRAGMA_CCLIB_LIB_H */
