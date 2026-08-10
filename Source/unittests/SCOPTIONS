@@ -4,6 +4,7 @@ cnest
 streq
 strmer
 nostkchk
+idir=/
 idir=/include
 idir=//SDK/Include_H
 idir=include:

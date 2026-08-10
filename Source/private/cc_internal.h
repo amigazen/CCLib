@@ -28,6 +28,14 @@
 #define CC_ERANGE  9
 #define CC_EDOM    10
 #define CC_EINTR   11
+#define CC_EBUSY   12
+#define CC_EAGAIN  13
+#define CC_ESRCH   14
+#define CC_EDEADLK 15
+#define CC_ETIMEDOUT 16
+#define CC_ENOSYS  17
+#define CC_EPERM   18
+#define CC_EOVERFLOW 19
 
 /* fcntl open flags */
 #define CC_O_RDONLY  0
@@ -232,6 +240,13 @@ typedef struct
 	ULONG rand_seed;
 	/* Head of open DIR list (dirent.c); cleared in ClearSTDIO. */
 	APTR open_dirs;
+	/*
+	 * Opaque pthread / TLS context for static ccpthread.lib.
+	 * thr_teardown(thr_ctx) runs from ClearSTDIO when both are set.
+	 * Use __stdargs so the library call matches the static-lib callee.
+	 */
+	APTR thr_ctx;
+	void __stdargs (*thr_teardown)(APTR);
 } cc_task_UserData;
 
 /* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */

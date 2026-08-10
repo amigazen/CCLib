@@ -27,5 +27,21 @@ extern int errno;
 #define ERANGE 9
 #define EDOM 10
 #define EINTR 11
+/* Resource busy (pthread mutex/cond/sem) */
+#define EBUSY 12
+/* Try again / would block */
+#define EAGAIN 13
+/* No such process / thread */
+#define ESRCH 14
+/* Resource deadlock would occur */
+#define EDEADLK 15
+/* Connection timed out / timed wait expired */
+#define ETIMEDOUT 16
+/* Function not implemented */
+#define ENOSYS 17
+/* Operation not permitted */
+#define EPERM 18
+/* Value too large for defined data type */
+#define EOVERFLOW 19
 
 #endif

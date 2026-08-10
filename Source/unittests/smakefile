@@ -52,7 +52,7 @@ CCPANIC_OBJS = \
 
 ###############################################################################
 
-all: CCTest CCPanic
+all: CCTest CCPanic CCPthread
 
 CCTest: $(CRT_OBJS) $(CCTEST_OBJS) CCTest.lnk
 	slink with CCTest.lnk
@@ -60,15 +60,26 @@ CCTest: $(CRT_OBJS) $(CCTEST_OBJS) CCTest.lnk
 CCPanic: $(CRT_OBJS) $(CCPANIC_OBJS) CCPanic.lnk
 	slink with CCPanic.lnk
 
-clean:
-	delete quiet CCTest CCPanic CCTest.map CCPanic.map \
-		$(CCTEST_OBJS) $(CCPANIC_OBJS) cc_start.o \
-		/crt/cc_entry.o /crt/cc_crt.o \
-		/stubs/math.o /stubs/blocksize.o /stubs/cxamemset.o /stubs/cxamemcpy.o
+CCPTHREAD_OBJS = \
+	/ccpthread/pthread.o \
+	/ccpthread/pthread_sync.o \
+	/ccpthread/psem.o \
+	/ccpthread/pthread_startup.o
 
-test: CCTest CCPanic
+CCPthread: $(CRT_OBJS) ccpthread_main.o $(CCPTHREAD_OBJS) CCPthread.lnk
+	slink with CCPthread.lnk
+
+clean:
+	delete quiet CCTest CCPanic CCPthread CCTest.map CCPanic.map CCPthread.map \
+		$(CCTEST_OBJS) $(CCPANIC_OBJS) ccpthread_main.o cc_start.o \
+		/crt/cc_entry.o /crt/cc_crt.o \
+		/stubs/math.o /stubs/blocksize.o /stubs/cxamemset.o /stubs/cxamemcpy.o \
+		$(CCPTHREAD_OBJS)
+
+test: CCTest CCPanic CCPthread
 	CCTest
 	CCPanic
+	CCPthread
 
 ###############################################################################
 
@@ -162,5 +173,24 @@ ccpanic_stdio.o: ccpanic_stdio.c cctest_util.h
 
 ccpanic_io.o: ccpanic_io.c cctest_util.h
 	Sc OBJNAME $@ $<
+
+ccpthread_main.o: ccpthread_main.c
+	Sc nostkchk OBJNAME $@ $<
+
+# No asm -u: object symbols are _cc_* to match __stdargs (unix.lib2 style).
+/ccpthread/pthread_startup.o: /ccpthread/pthread_startup.asm
+	copy /ccpthread/pthread_startup.asm pthread_startup.asm
+	asm pthread_startup.asm
+	copy pthread_startup.o /ccpthread/pthread_startup.o
+	delete quiet pthread_startup.asm pthread_startup.o
+
+/ccpthread/pthread.o: /ccpthread/pthread.c /ccpthread/cc_pthread.h
+	Sc nostkchk idir=/ccpthread OBJNAME $@ /ccpthread/pthread.c
+
+/ccpthread/pthread_sync.o: /ccpthread/pthread_sync.c /ccpthread/cc_pthread.h
+	Sc nostkchk idir=/ccpthread OBJNAME $@ /ccpthread/pthread_sync.c
+
+/ccpthread/psem.o: /ccpthread/psem.c /ccpthread/cc_pthread.h
+	Sc nostkchk idir=/ccpthread OBJNAME $@ /ccpthread/psem.c
 
 .PHONY: all clean test

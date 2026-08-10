@@ -170,6 +170,8 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud->scnfp = (APTR)NULL;
 	ud->rand_seed = 1UL;
 	ud->open_dirs = (APTR)NULL;
+	ud->thr_ctx = (APTR)NULL;
+	ud->thr_teardown = (void __stdargs (*)(APTR))NULL;
 
 	task->tc_UserData = (APTR)ud;
 	return 1;
@@ -297,6 +299,18 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	if (clearing)
 		return;
 	clearing = 1;
+
+	/*
+	 * Static ccpthread session hook.  Require both slots: a lone non-NULL
+	 * teardown after a partial library rebuild would jump into garbage.
+	 */
+	if (ud->thr_ctx != (APTR)NULL &&
+	    ud->thr_teardown != (void __stdargs (*)(APTR))NULL)
+	{
+		(*ud->thr_teardown)(ud->thr_ctx);
+		ud->thr_teardown = (void __stdargs (*)(APTR))NULL;
+		ud->thr_ctx = (APTR)NULL;
+	}
 
 	if (ud->parent != (struct Task *)NULL)
 		task = ud->parent;

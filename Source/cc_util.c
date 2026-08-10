@@ -102,6 +102,10 @@ cc_raise_ctrl_c(void)
  * If abort_func is NULL, leave the signal set so a later SetAbortFunc
  * still sees the break (do not silently eat Ctrl-C after ClearAbortFunc).
  * ClearSTDIO nulls abort_func before teardown so this cannot re-enter.
+ *
+ * Workers must not leave a ThreadPair in tc_UserData across CClib LVOs
+ * (clear it before SetupSTDIO); this path assumes UserData is a session
+ * or NULL.
  */
 void
 cc_check_break(void)

@@ -1,0 +1,29 @@
+#
+# :ts=8
+#
+# Static ccpthread.lib - POSIX threads + unnamed semaphores for CClib.
+# Link with CRT + open cclib.library.  Not resident LVOs.
+#
+
+OBJS = pthread.o pthread_sync.o psem.o pthread_startup.o
+
+all: ccpthread.lib
+
+ccpthread.lib: $(OBJS)
+	oml ccpthread.lib r $(OBJS)
+
+clean:
+	delete quiet $(OBJS) ccpthread.lib
+
+# No asm -u: symbols are written with leading _ to match __stdargs C names.
+pthread_startup.o: pthread_startup.asm
+	asm pthread_startup.asm
+
+pthread.o: pthread.c cc_pthread.h
+	Sc nostkchk OBJNAME $@ pthread.c
+
+pthread_sync.o: pthread_sync.c cc_pthread.h
+	Sc nostkchk OBJNAME $@ pthread_sync.c
+
+psem.o: psem.c cc_pthread.h
+	Sc nostkchk OBJNAME $@ psem.c
