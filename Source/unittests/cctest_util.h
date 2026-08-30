@@ -90,5 +90,6 @@ void ct_suite_break(void);
 void ct_suite_panic_heap(void);
 void ct_suite_panic_stdio(void);
 void ct_suite_panic_io(void);
+void ct_suite_panic_dir(void);
 
 #endif /* CCTEST_UTIL_H */
