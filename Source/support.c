@@ -67,8 +67,10 @@ static int cc_is_space(char c)
 
 /*
  * Build FileDesc + FILE for a dos BPTR via add_tail (same allocator as
- * open/fopen).  mode should include CC_O_STDIO for CLI Input/Output.
- * If share_fd is non-NULL, reuse that FileDesc (shared BPTR, Close once).
+ * open/fopen).  mode should include CC_O_STDIO for CLI Input/Output/
+ * ErrorOutput.  If share_fd is non-NULL, reuse that FileDesc (shared BPTR,
+ * refs++, Close once when refs hits 0) so stdout and stderr stay distinct
+ * FILE* when ErrorOutput() equals Output().
  */
 static cc_FILE *cc_make_std_stream(
 	cc_task_UserData *ud,
@@ -89,13 +91,19 @@ static cc_FILE *cc_make_std_stream(
 			return (cc_FILE *)NULL;
 		fd->fh = fh;
 		fd->mode = mode;
-		fd->pad = 0;
+		fd->refs = 1;
 		fd->magic = CC_FD_MAGIC;
+	} else {
+		if (fd->refs < (UWORD)0xFFFF)
+			fd->refs++;
 	}
 
 	fp = (cc_FILE *)add_tail((APTR)&ud->StreamFiles, (LONG)sizeof(cc_FILE));
-	if (fp == (cc_FILE *)NULL)
+	if (fp == (cc_FILE *)NULL) {
+		if (share_fd != (cc_FileDesc *)NULL && fd->refs > 1)
+			fd->refs--;
 		return (cc_FILE *)NULL;
+	}
 
 	fp->_unit = (LONG)fd;
 	fp->_bp = (char *)NULL;
@@ -173,6 +181,8 @@ LONG __ASM__ __SAVE_DS__ SetSTDIO(void)
 	ud->thr_ctx = (APTR)NULL;
 	ud->thr_teardown = (void __stdargs (*)(APTR))NULL;
 	ud->clearing = 0;
+	ud->panic_mode = 0; /* CC_PANIC_ABORT */
+	ud->panic_pad = 0;
 
 	task->tc_UserData = (APTR)ud;
 	return 1;
@@ -205,6 +215,35 @@ void __ASM__ __SAVE_DS__ ClearAbortFunc(void)
 	if (ud == (cc_task_UserData *)NULL)
 		return;
 	ud->abort_func = (cc_ABORT_FUNC)NULL;
+}
+
+LONG __ASM__ __SAVE_DS__ SetPanicMode(
+	__REG__(d0, LONG mode))
+{
+	cc_task_UserData *ud;
+	LONG prev;
+	cc_check_break();
+
+	ud = cc_get_ud();
+	if (ud == (cc_task_UserData *)NULL)
+		return 0L;
+	prev = (LONG)ud->panic_mode;
+	if (mode == 1L)
+		ud->panic_mode = 1; /* CC_PANIC_HOOK */
+	else
+		ud->panic_mode = 0; /* CC_PANIC_ABORT */
+	return prev;
+}
+
+LONG __ASM__ __SAVE_DS__ GetPanicMode(void)
+{
+	cc_task_UserData *ud;
+	cc_check_break();
+
+	ud = cc_get_ud();
+	if (ud == (cc_task_UserData *)NULL)
+		return 0L;
+	return (LONG)ud->panic_mode;
 }
 
 /*
@@ -322,9 +361,26 @@ void __ASM__ __SAVE_DS__ ClearSTDIO(void)
 	 * atexit handlers are CRT-owned and must already have run.
 	 */
 	scdir_clean();
-	/* Close any DIR left open by the app before streams/heap go away. */
+	/*
+	 * Drain open DIR list without closedir LVO: a failed closedir
+	 * (forged/stale) would leave open_dirs unchanged and spin forever.
+	 */
 	while (ud->open_dirs != (APTR)NULL)
-		(void)closedir(ud->open_dirs);
+	{
+		cc_DIR *d;
+
+		d = (cc_DIR *)ud->open_dirs;
+		ud->open_dirs = (APTR)d->next;
+		if (d->magic == CC_DIR_MAGIC)
+		{
+			if (d->fib != (struct FileInfoBlock *)NULL)
+				FreeMem(d->fib, sizeof(struct FileInfoBlock));
+			if (d->lock != NULL)
+				UnLock(d->lock);
+		}
+		d->magic = CC_DIR_POISON;
+		FreeMem(d, sizeof(cc_DIR));
+	}
 	(void)kill_children();
 	if (ud->getenv_mem != (APTR)NULL)
 	{
@@ -667,8 +723,11 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	out_fh = Output();
 	err_fh = out_fh;
 	/*
-	 * ErrorOutput() exists from dos.library V37.  When unavailable,
-	 * stderr shares Output().
+	 * stderr from dos.library ErrorOutput() (V37+).  Autodoc: when the
+	 * process error stream is unset, ErrorOutput() returns Output().
+	 * Always wrap as a distinct FILE* (share FileDesc when BPTRs match)
+	 * so fclose(stderr) cannot destroy stdout — AC / hosted-C habit.
+	 * See https://developer.amigaos3.net/autodocs/dos.library/ErrorOutput.html
 	 */
 	if (DOSBase != (struct DosLibrary *)NULL
 	    && ((struct Library *)DOSBase)->lib_Version >= 37) {
@@ -678,7 +737,7 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	}
 
 	/*
-	 * CLI Input/Output must not be Closed.  A WINDOW opened by
+	 * CLI Input/Output/ErrorOutput must not be Closed.  A WINDOW opened by
 	 * wb_parse was SelectInput/Output'd and should be Closed later.
 	 */
 	if (wbm != (APTR)NULL)
@@ -715,8 +774,8 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 	}
 
 	if (err_fh != (BPTR)NULL) {
-		if (err_fh == out_fh && fp_out != (cc_FILE *)NULL) {
-			fp_err = fp_out;
+		if (err_fh == out_fh && fd_out != (cc_FileDesc *)NULL) {
+			fp_err = cc_make_std_stream(ud, err_fh, (short)(CC_O_WRONLY | stdio_bit), fd_out);
 		} else if (err_fh == in_fh && fd_in != (cc_FileDesc *)NULL) {
 			fp_err = cc_make_std_stream(ud, err_fh, (short)(CC_O_WRONLY | stdio_bit), fd_in);
 		} else {
@@ -726,7 +785,6 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 			*((cc_FILE **)stderr_p) = fp_err;
 	}
 
-	(void)fd_out;
 	return 1;
 }
 

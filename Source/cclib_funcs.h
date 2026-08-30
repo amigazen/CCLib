@@ -1024,4 +1024,10 @@ void __ASM__ __SAVE_DS__ SignalBreak(
 	__REG__(d0, ULONG mask)
 );
 
+LONG __ASM__ __SAVE_DS__ SetPanicMode(
+	__REG__(d0, LONG mode)
+);
+
+LONG __ASM__ __SAVE_DS__ GetPanicMode(void);
+
 #endif /* CCLIB_FUNCS_H */

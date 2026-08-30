@@ -171,7 +171,8 @@ typedef struct
 {
 	BPTR fh;
 	short mode;
-	UWORD pad;
+	/* Live FILE* / fd owners sharing this BPTR (stdio when Error==Output). */
+	UWORD refs;
 	ULONG magic;
 } cc_FileDesc;
 
@@ -249,6 +250,11 @@ typedef struct
 	void __stdargs (*thr_teardown)(APTR);
 	/* Per-session ClearSTDIO re-entry latch (not library-global). */
 	LONG clearing;
+	/* CC_PANIC_ABORT (default) or CC_PANIC_HOOK — private/cc_panic.h.
+	 * Kept at end so earlier session fields (thr_ctx, …) stay stable.
+	 */
+	short panic_mode;
+	short panic_pad;
 } cc_task_UserData;
 
 /* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */
@@ -259,8 +265,9 @@ typedef struct
 } cc_div_t;
 
 /* Opaque DIR payload (also exposed as DIR in <dirent.h>). */
-#define CC_DIR_MAGIC 0x43434449UL /* 'CCDI' */
-#define CC_PATH_MAX  1024L
+#define CC_DIR_MAGIC  0x43434449UL /* 'CCDI' */
+#define CC_DIR_POISON 0xDEADD112UL
+#define CC_PATH_MAX   1024L
 
 typedef struct cc_DIR
 {
@@ -322,9 +329,11 @@ void cc_raise_ctrl_c(void);
 
 /*
  * Panic: invalid capability / programming error.  Writes a console
- * message, sets IoErr (Shell Result2 / WHY), then invokes ud->abort_func
- * (CRT installs exit, which runs atexit then ClearSTDIO).  If the hook
- * returns, the caller must still fail the LVO (errno already set).
+ * message, sets IoErr (Shell Result2 / WHY), then:
+ *   CC_PANIC_ABORT (default): ud->abort_func if armed, else ClearSTDIO+Exit
+ *   CC_PANIC_HOOK: abort_func if armed; never Exit from the library
+ * Forged-handle detection runs either way.  If the hook returns, the
+ * caller must still fail the LVO (errno already set).
  *
  * Primary RC is the Exit() code from abort_func/CRT - never SetVar("RC")
  * or SetVar("Result2") from a still-running RunCommand (CLI deadlock).
@@ -337,6 +346,8 @@ void cc_panic(LONG code);
 /* Capability resolve: membership on session registries (+ magic). */
 cc_FileDesc *cc_fd_from_list(cc_task_UserData *ud, LONG fd);
 cc_FILE *cc_file_from_list(cc_task_UserData *ud, APTR stream);
+cc_DIR *cc_dir_from_list(cc_task_UserData *ud, APTR dirp);
+cc_DIR *cc_dir_from_list(cc_task_UserData *ud, APTR dirp);
 cc_MemBlk *cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr);
 
 /*

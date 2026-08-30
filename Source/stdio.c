@@ -365,6 +365,14 @@ LONG __ASM__ __SAVE_DS__ fclose(
 		fp->_tmpname = NULL;
 	}
 
+	/* Drop CRT globals so fclose(stderr) leaves a NULL, not a stale ptr. */
+	if (ud->stdin_p != (cc_FILE **)NULL && *ud->stdin_p == fp)
+		*ud->stdin_p = (cc_FILE *)NULL;
+	if (ud->stdout_p != (cc_FILE **)NULL && *ud->stdout_p == fp)
+		*ud->stdout_p = (cc_FILE *)NULL;
+	if (ud->stderr_p != (cc_FILE **)NULL && *ud->stderr_p == fp)
+		*ud->stderr_p = (cc_FILE *)NULL;
+
 	fp->magic = CC_FP_POISON;
 	node = (cc_node *)remv_node((APTR)&ud->StreamFiles, (APTR)fp);
 	if (node != NULL)

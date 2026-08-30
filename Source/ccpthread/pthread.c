@@ -377,12 +377,17 @@ cc_thread_entry(void)
 	tp->fp_stdin = (FILE *)NULL;
 	tp->fp_stdout = (FILE *)NULL;
 	tp->fp_stderr = (FILE *)NULL;
+	/*
+	 * Install abort only after thr_ctx is set.  If SetupSTDIO panics with
+	 * cc_thr_abort armed but thr_ctx still NULL, RemTask runs and the
+	 * parent hangs forever in pthread_join.
+	 */
 	if (!SetupSTDIO(
 		(FILE **)&tp->fp_stdin, (FILE **)&tp->fp_stdout,
 		(FILE **)&tp->fp_stderr,
 		&tp->thr_errno, (LONG *)NULL, (char **)NULL,
 		(APTR)NULL, 0L, (char *)NULL, (APTR)NULL,
-		(APTR)cc_thr_abort))
+		(APTR)NULL))
 	{
 		Forbid();
 		tp->result = (void *)NULL;
@@ -407,6 +412,7 @@ cc_thread_entry(void)
 		ud->thr_ctx = (APTR)tp;
 		ud->thr_teardown = cc_thr_session_teardown;
 	}
+	SetAbortFunc((APTR)cc_thr_abort);
 
 	/*
 	 * Library LVOs do not preserve A4.  Invoke via __saveds trampoline
@@ -514,7 +520,7 @@ pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	LONG detached;
 	BYTE sig;
 	char name[32];
-	struct TagItem tags[10];
+	struct TagItem tags[12];
 	LONG ti;
 	BPTR in_fh;
 	BPTR out_fh;
@@ -591,6 +597,13 @@ pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	tags[ti].ti_Data = (ULONG)out_fh;
 	ti++;
 	tags[ti].ti_Tag = NP_CloseOutput;
+	tags[ti].ti_Data = FALSE;
+	ti++;
+	/* Match Output so ErrorOutput() is defined without a second BPTR. */
+	tags[ti].ti_Tag = NP_Error;
+	tags[ti].ti_Data = (ULONG)out_fh;
+	ti++;
+	tags[ti].ti_Tag = NP_CloseError;
 	tags[ti].ti_Data = FALSE;
 	ti++;
 	tags[ti].ti_Tag = TAG_DONE;

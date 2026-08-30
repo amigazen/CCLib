@@ -25,6 +25,7 @@ main(int argc, char **argv)
 	ct_suite_panic_heap();
 	ct_suite_panic_stdio();
 	ct_suite_panic_io();
+	ct_suite_panic_dir();
 
 	ct_summary();
 

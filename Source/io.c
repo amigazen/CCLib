@@ -129,7 +129,7 @@ LONG __ASM__ __SAVE_DS__ open(
 
 	fd->fh = fh;
 	fd->mode = (short)flags;
-	fd->pad = 0;
+	fd->refs = 1;
 	fd->magic = CC_FD_MAGIC;
 	return (LONG)fd;
 }
@@ -149,7 +149,17 @@ LONG __ASM__ __SAVE_DS__ close(
 	if (desc == (cc_FileDesc *)NULL)
 		return -1L;
 
-	/* Stdio handles that wrap Input()/Output() must not be Closed */
+	/*
+	 * Shared FileDesc (stdout/stderr when ErrorOutput==Output): drop one
+	 * owner and keep the BPTR alive until the last close.
+	 */
+	if (desc->refs > 1)
+	{
+		desc->refs--;
+		return 0L;
+	}
+
+	/* Stdio handles that wrap Input()/Output()/ErrorOutput must not Close */
 	if (!(desc->mode & CC_O_STDIO))
 	{
 		if (desc->fh != NULL)

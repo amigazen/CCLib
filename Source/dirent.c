@@ -3,6 +3,7 @@
  *
  * Built on dos Examine / ExNext (same stack as historic scdir, but returns
  * a reusable DIR handle instead of a single task-global AnchorPath).
+ * DIR* is a session capability: membership on ud->open_dirs + magic.
  */
 
 #include <exec/types.h>
@@ -104,16 +105,20 @@ APTR __ASM__ __SAVE_DS__ opendir(
 APTR __ASM__ __SAVE_DS__ readdir(
 	__REG__(a0, APTR dirp))
 {
+	cc_task_UserData *ud;
 	cc_DIR *dir;
 	LONG ok;
 	LONG i;
 	cc_check_break();
 
-	dir = (cc_DIR *)dirp;
-	if (dir == (cc_DIR *)NULL || dir->magic != CC_DIR_MAGIC
-	    || dir->fib == (struct FileInfoBlock *)NULL)
+	ud = cc_get_ud();
+	dir = cc_dir_from_list(ud, dirp);
+	if (dir == (cc_DIR *)NULL)
+		return (APTR)NULL;
+	if (dir->fib == (struct FileInfoBlock *)NULL)
 	{
 		cc_set_errno(CC_EBADF);
+		cc_panic(20L);
 		return (APTR)NULL;
 	}
 
@@ -153,12 +158,9 @@ LONG __ASM__ __SAVE_DS__ closedir(
 	cc_check_break();
 
 	ud = cc_get_ud();
-	dir = (cc_DIR *)dirp;
-	if (dir == (cc_DIR *)NULL || dir->magic != CC_DIR_MAGIC)
-	{
-		cc_set_errno(CC_EBADF);
+	dir = cc_dir_from_list(ud, dirp);
+	if (dir == (cc_DIR *)NULL)
 		return -1L;
-	}
 
 	cc_dir_unlink(ud, dir);
 
@@ -167,7 +169,7 @@ LONG __ASM__ __SAVE_DS__ closedir(
 	if (dir->lock != NULL)
 		UnLock(dir->lock);
 
-	dir->magic = CC_FP_POISON;
+	dir->magic = CC_DIR_POISON;
 	FreeMem(dir, sizeof(cc_DIR));
 	return 0L;
 }

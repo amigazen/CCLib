@@ -445,7 +445,13 @@ cclib.library/SetupSTDIO                              cclib.library/SetupSTDIO
 
 	Command-line programs pass alen and aptr; SetupSTDIO calls cli_parse to build argc/argv from the CLI argument string and command name. Workbench programs pass wbm (struct WBStartup *); wb_parse builds argv from the tool's argument list and, when the icon has a WINDOW tooltype, opens a CON: (or similar) window for standard I/O.
 
-	When standard I/O is available, Input(), Output(), and ErrorOutput() are wrapped in FILE streams and FileDesc records on the task lists. CLI streams are tagged CC_O_STDIO so close() will not Close() the underlying DOS handles.
+	When standard I/O is available, Input(), Output(), and ErrorOutput()
+	(dos.library V37+; falls back to Output() when unset) are each wrapped
+	in a distinct FILE*.  When ErrorOutput() returns the same BPTR as
+	Output() — the usual Shell case — the two FILE* share one FileDesc
+	(refcount) so fclose(stderr) cannot destroy stdout.  CLI streams are
+	tagged CC_O_STDIO so close() will not Close() the underlying DOS
+	handles.  See dos.library/ErrorOutput.
 
    INPUTS
 	stdin_p - address of the application's FILE * stdin variable

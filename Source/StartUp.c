@@ -282,6 +282,8 @@ APTR FuncTab[] = {
 	(APTR)towupper,
 	(APTR)CheckBreak,
 	(APTR)SignalBreak,
+	(APTR)SetPanicMode,
+	(APTR)GetPanicMode,
 	(APTR)((LONG)-1)
 };
 

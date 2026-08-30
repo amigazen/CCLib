@@ -15,12 +15,12 @@
 /* Register-args LVO calling convention. */
 
 /* Packaging (see STATIC_LIBS.md at repo root) */
-/*   cclib.library  — this SFD: ISO C + Amiga-typical hosted core */
-/*   ccposix.lib    — static: POSIX/portability extras (fd polish, signals, */
-/*                    getopt/glob, multibyte, …) */
-/*   ccpthread.lib  — static: pthread, unnamed sem, SysV sem */
-/*   ma.lib / m99.lib — math (not CClib LVOs) */
-/*   Future shared companions (bsdsocket-tied net, regex.library, …) — not here */
+/*   cclib.library  -- this SFD: ISO C + Amiga-typical hosted core */
+/*   ccposix.lib    -- static: POSIX/portability extras (fd polish, signals, */
+/*                    getopt/glob, multibyte, ...) */
+/*   ccpthread.lib  -- static: pthread, unnamed sem, SysV sem */
+/*   ma.lib / m99.lib -- math (not CClib LVOs) */
+/*   Future shared companions (bsdsocket-tied net, regex.library, ...) -- not here */
 
 /* Freeze rules */
 /*   Pre-V4 (before ==version 4 / -30 .. -912): FROZEN historic V3 jump table. */
@@ -28,12 +28,12 @@
 /*   From ==version 4 onward: regroup freely while regenerating headers + */
 /*   StartUp FuncTab and rebuilding all clients together. */
 /*   Shared core = Amiga-typical + ISO completions of V3; Unix-port extras */
-/*   → STATIC_LIBS.md (ccposix / ccpthread / math / net). */
+/*   -> STATIC_LIBS.md (ccposix / ccpthread / math / net). */
 /* Prototypes use C/POSIX types as single tokens LibDescConverter accepts */
 /* (see <sys/types.h>, <stddef.h>, <libraries/cclib.h>). Multi-word C types */
 /* are typedef'd: u_long = unsigned long; unsigned = unsigned int. */
 /* Builtin: void, double, BPTR, CONST/const, struct. Amiga types only for */
-/* Amiga-specific APIs (BPTR, …). */
+/* Amiga-specific APIs (BPTR, ...). */
 
 /* Formatted I/O: printf/scanf families use C ... (tagcall) or va_list on v*. */
 /* div/ldiv/strtoll/strtoull take result pointers (SAS/C libcall cannot return */
@@ -555,9 +555,9 @@ long __exec(__reg("a6") void *, __reg("a0") char *cmd)="\tjsr\t-912(a6)";
 /*--- functions in V4 or higher --- */
 
 /* V4 shared-core LVOs (-918 ..). Grouped by category. Amiga-typical hosted C */
-/* + ISO completions of V3. Not a full POSIX/relibc surface — STATIC_LIBS.md. */
+/* + ISO completions of V3. Not a full POSIX/relibc surface -- STATIC_LIBS.md. */
 /* timer.device (not realtime.library) backs sleep/usleep/nanosleep. */
-/* Softlink / dirent-seek / popen → ccposix.lib (not in this table). */
+/* Softlink / dirent-seek / popen -> ccposix.lib (not in this table). */
 
 /* Memory (completes V3 mem*) */
 void *__memmove(__reg("a6") void *, __reg("a0") void *dst, __reg("a1") CONST void *src, __reg("d0") size_t n)="\tjsr\t-918(a6)";
@@ -705,7 +705,7 @@ int __fstat(__reg("a6") void *, __reg("d0") int fd, __reg("a0") struct stat *buf
 #define fstat(fd, buf) __fstat(CCLibBase, (fd), (buf))
 
 
-/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind → ccposix) */
+/* Directory (POSIX dirent beside V3 scdir; seek/tell/rewind -> ccposix) */
 DIR *__opendir(__reg("a6") void *, __reg("a0") CONST char *name)="\tjsr\t-1164(a6)";
 #define opendir(name) __opendir(CCLibBase, (name))
 

@@ -3,6 +3,7 @@
  */
 
 #include <exec/types.h>
+#include <stdio.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
 #include "cctest_util.h"
@@ -44,8 +45,23 @@ ct_suite_crt(void)
 
 	ct_check_ptr_nonnull((STRPTR)"crt", (STRPTR)"stderr_attached",
 		(STRPTR)"stderr",
-		(STRPTR)"SetupSTDIO must attach a FILE* for standard error (harness must not use it)",
+		(STRPTR)"SetupSTDIO must attach a FILE* for standard error (ErrorOutput)",
 		(APTR)stderr);
+
+	/*
+	 * Even when ErrorOutput() == Output(), stderr must be a distinct
+	 * FILE* so fclose(stderr) cannot tear down stdout (AC habit).
+	 * Do not fclose(stderr) in this suite — it would leave the rest of
+	 * CCTest / ClearSTDIO without a live stderr cookie.
+	 */
+	ct_check_true((STRPTR)"crt", (STRPTR)"stderr_ne_stdout",
+		(STRPTR)"stderr != stdout",
+		(STRPTR)"stderr must be a distinct FILE* from stdout",
+		stderr != stdout);
+	ct_check_true((STRPTR)"crt", (STRPTR)"stderr_shares_fd",
+		(STRPTR)"fileno(stderr) == fileno(stdout)",
+		(STRPTR)"shared BPTR uses one FileDesc (refcount) behind two FILE*",
+		fileno(stderr) == fileno(stdout));
 
 	ud = GetSTDIO();
 	ct_check_ptr_nonnull((STRPTR)"crt", (STRPTR)"GetSTDIO",

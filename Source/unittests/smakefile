@@ -50,6 +50,7 @@ CCPANIC_OBJS = \
 	ccpanic_heap.o \
 	ccpanic_stdio.o \
 	ccpanic_io.o \
+	ccpanic_dir.o \
 	ccpanic.o
 
 ###############################################################################
@@ -180,6 +181,9 @@ ccpanic_stdio.o: ccpanic_stdio.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 ccpanic_io.o: ccpanic_io.c cctest_util.h
+	Sc OBJNAME $@ $<
+
+ccpanic_dir.o: ccpanic_dir.c cctest_util.h
 	Sc OBJNAME $@ $<
 
 ccpthread_main.o: ccpthread_main.c

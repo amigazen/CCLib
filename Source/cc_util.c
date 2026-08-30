@@ -316,6 +316,13 @@ cc_panic(LONG code)
 		return;
 	}
 
+	/*
+	 * CC_PANIC_HOOK with no abort_func: report already done; do not
+	 * ClearSTDIO/Exit (servers / harnesses that refuse libc Exit).
+	 */
+	if (ud != (cc_task_UserData *)NULL && ud->panic_mode == 1)
+		return;
+
 	ClearSTDIO();
 	if (DOSBase != (struct DosLibrary *)NULL)
 		Exit(code);
@@ -402,6 +409,47 @@ cc_file_from_list(cc_task_UserData *ud, APTR stream)
 		return (cc_FILE *)NULL;
 	}
 	return fp;
+}
+
+/*
+ * Resolve a DIR* against ud->open_dirs.  NULL -> EBADF (soft).
+ * Forged/stale cookies -> panic then EBADF.
+ */
+cc_DIR *
+cc_dir_from_list(cc_task_UserData *ud, APTR dirp)
+{
+	cc_DIR *dir;
+	cc_DIR *p;
+
+	if (ud == (cc_task_UserData *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (cc_DIR *)NULL;
+	}
+	if (dirp == (APTR)NULL)
+	{
+		cc_set_errno(CC_EBADF);
+		return (cc_DIR *)NULL;
+	}
+	dir = (cc_DIR *)dirp;
+	p = (cc_DIR *)ud->open_dirs;
+	while (p != (cc_DIR *)NULL)
+	{
+		if (p == dir)
+		{
+			if (dir->magic != CC_DIR_MAGIC)
+			{
+				cc_set_errno(CC_EBADF);
+				cc_panic(20L);
+				return (cc_DIR *)NULL;
+			}
+			return dir;
+		}
+		p = p->next;
+	}
+	cc_set_errno(CC_EBADF);
+	cc_panic(20L);
+	return (cc_DIR *)NULL;
 }
 
 /*

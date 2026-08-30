@@ -1,4 +1,4 @@
-FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"ccpanic_heap.o"+"ccpanic_stdio.o"+"ccpanic_io.o"+"ccpanic.o"
+FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"ccpanic_heap.o"+"ccpanic_stdio.o"+"ccpanic_io.o"+"ccpanic_dir.o"+"ccpanic.o"
 TO "CCPanic"
 LIB lib:amiga.lib
 ADDSYM
