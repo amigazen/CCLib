@@ -27,9 +27,18 @@
 #include <dos/dos.h>
 #include <dos/dosextens.h>
 #include <workbench/startup.h>
+#include <workbench/workbench.h>
 
 #include <proto/exec.h>
 #include <proto/dos.h>
+/*
+ * SAS #pragma libcall names its base literally, so a macro cannot
+ * retarget proto/icon.h.  __NOLIBBASE__ skips the public extern, and
+ * the static below satisfies GetDiskObject without a link symbol.
+ */
+#define __NOLIBBASE__
+#include <proto/icon.h>
+#undef __NOLIBBASE__
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
 
@@ -43,6 +52,15 @@ extern long blocksize;
 extern struct ExecBase *SysBase;
 extern struct DosLibrary *DOSBase;
 extern struct Library *UtilityBase;
+
+/* SAS/C Ch.9 console knobs.  Defined in stubs/stdiowin.c and nostdio.c. */
+extern char __stdiowin[];
+extern char __stdiov37[];
+extern short __nostdio;
+
+static struct Library *IconBase = NULL;
+
+void __regargs cc_crt_exit(LONG code);
 
 struct Library *CCLibBase = NULL;
 struct Library *MathIeeeDoubBasBase = NULL;
@@ -270,6 +288,112 @@ void __stdargs XCEXIT(long code)
 }
 #endif
 
+/*
+ * Workbench with no WINDOW= tooltype: open SAS-style __stdiowin so printf
+ * has a console.  __nostdio or an empty __stdiowin skips it.  The BPTR is
+ * not marked CC_O_STDIO, so ClearSTDIO Closes it.
+ */
+static LONG
+cc_wb_window_tooltype(struct WBStartup *wb)
+{
+	struct WBArg *arg;
+	BPTR olddir;
+	struct DiskObject *dobj;
+	STRPTR window;
+	struct Library *icon;
+	LONG has;
+
+	has = 0;
+	olddir = (BPTR)NULL;
+	dobj = (struct DiskObject *)NULL;
+	window = (STRPTR)NULL;
+	icon = (struct Library *)NULL;
+	arg = (struct WBArg *)NULL;
+
+	if (wb == (struct WBStartup *)NULL)
+		return 0;
+	if (wb->sm_NumArgs < 1 || wb->sm_ArgList == (struct WBArg *)NULL)
+		return 0;
+	arg = &wb->sm_ArgList[0];
+	if (arg->wa_Name == (STRPTR)NULL)
+		return 0;
+
+	icon = OpenLibrary((STRPTR)"icon.library", 0);
+	if (icon == (struct Library *)NULL)
+		return 0;
+	IconBase = icon;
+
+	if (arg->wa_Lock != (BPTR)NULL)
+		olddir = CurrentDir(arg->wa_Lock);
+	dobj = GetDiskObject(arg->wa_Name);
+	if (olddir != (BPTR)NULL)
+		CurrentDir(olddir);
+	if (dobj != (struct DiskObject *)NULL)
+	{
+		window = FindToolType(dobj->do_ToolTypes, (STRPTR)"WINDOW");
+		if (window != (STRPTR)NULL && window[0] != '\0')
+			has = 1;
+		FreeDiskObject(dobj);
+	}
+	CloseLibrary(icon);
+	IconBase = (struct Library *)NULL;
+	return has;
+}
+
+static void
+cc_open_wb_console(void)
+{
+	char spec[256];
+	LONG n;
+	LONG i;
+	BPTR fh;
+	UWORD dosver;
+
+	n = 0;
+	i = 0;
+	fh = (BPTR)NULL;
+	dosver = 0;
+	spec[0] = '\0';
+
+	if (__nostdio != 0)
+		return;
+	if (__stdiowin[0] == '\0')
+		return;
+	if (WBenchMsg == (struct WBStartup *)NULL)
+		return;
+	if (DOSBase == (struct DosLibrary *)NULL)
+		return;
+	if (cc_wb_window_tooltype(WBenchMsg))
+		return;
+
+	while (__stdiowin[i] != '\0' && n < 255)
+	{
+		spec[n] = __stdiowin[i];
+		n++;
+		i++;
+	}
+	dosver = ((struct Library *)DOSBase)->lib_Version;
+	if (dosver >= 37)
+	{
+		i = 0;
+		while (__stdiov37[i] != '\0' && n < 255)
+		{
+			spec[n] = __stdiov37[i];
+			n++;
+			i++;
+		}
+	}
+	spec[n] = '\0';
+	if (n == 0)
+		return;
+
+	fh = Open((STRPTR)spec, MODE_NEWFILE);
+	if (fh == (BPTR)NULL)
+		return;
+	SelectInput(fh);
+	SelectOutput(fh);
+}
+
 /*------------------------------------------------------------------------*/
 /* _main - Lattice signature: NUL-terminated arg string only              */
 /* __stdargs: stack args, no parm=r '@' name (matches historic lcmain).   */
@@ -309,7 +433,7 @@ _main(STRPTR aptr)
 	if (WBenchMsg != (struct WBStartup *)NULL)
 	{
 		if (DOSBase != (struct DosLibrary *)NULL)
-			Exit(100);
+			cc_crt_exit(100);
 		return;
 	}
 
@@ -390,7 +514,10 @@ _main(STRPTR aptr)
 	/*
 	 * Install exit() as the break/abort hook so Ctrl-C runs atexit
 	 * handlers and ClearSTDIO rather than a bare dos Exit().
+	 * Workbench console must be current Input/Output before SetupSTDIO
+	 * samples the handles.
 	 */
+	cc_open_wb_console();
 	if (!SetupSTDIO(
 		(APTR)&stdin, (APTR)&stdout, (APTR)&stderr,
 		(APTR)&errno, (APTR)&blocksize, (APTR)&type,
@@ -445,7 +572,7 @@ cc_terminate(LONG code)
 	if (cc_exiting)
 	{
 		if (DOSBase != (struct DosLibrary *)NULL)
-			Exit(code);
+			cc_crt_exit(code);
 		return;
 	}
 	cc_exiting = 1;
@@ -492,7 +619,7 @@ cc_terminate(LONG code)
 #endif
 
 	if (DOSBase != (struct DosLibrary *)NULL)
-		Exit(rv);
+		cc_crt_exit(rv);
 }
 
 void __stdargs __saveds

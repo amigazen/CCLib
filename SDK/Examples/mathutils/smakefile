@@ -22,6 +22,8 @@ CRT_OBJS = \
 	$(SRC)/crt/cc_crt.o \
 	$(SRC)/stubs/math.o \
 	$(SRC)/stubs/blocksize.o \
+	$(SRC)/stubs/stdiowin.o \
+	$(SRC)/stubs/nostdio.o \
 	$(SRC)/stubs/cxamemset.o \
 	$(SRC)/stubs/cxamemcpy.o
 
@@ -36,7 +38,7 @@ clean:
 	delete quiet meval meval.map \
 		meval.o amiga_math_stubs.o cc_start.o \
 		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o \
-		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o
+		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/stdiowin.o $(SRC)/stubs/nostdio.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o
 
 ###############################################################################
 
@@ -55,6 +57,12 @@ $(SRC)/stubs/math.o: $(SRC)/stubs/math.c
 	Sc OBJNAME $@ $<
 
 $(SRC)/stubs/blocksize.o: $(SRC)/stubs/blocksize.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/stdiowin.o: $(SRC)/stubs/stdiowin.c
+	Sc OBJNAME $@ $<
+
+$(SRC)/stubs/nostdio.o: $(SRC)/stubs/nostdio.c
 	Sc OBJNAME $@ $<
 
 $(SRC)/stubs/cxamemset.o: $(SRC)/stubs/cxamemset.c

@@ -17,7 +17,12 @@ struct ExecBase *SysBase;
 struct DosLibrary *DOSBase;
 struct Library *UtilityBase;
 
-/* Stack size for sc_crt/c.a-compatible tooling; our minimal start ignores it. */
+/*
+ * Minimum stack in bytes.  cc_start.asm grows only when the task's real
+ * bounds (tc_SPUpper-tc_SPLower) are smaller.  A $STACK: cookie or c:stack
+ * that is already large enough is left alone — unlike sc_crt/c.a, which
+ * StackSwap's every V36+ start down to cli_DefaultStack.
+ */
 unsigned long __stack = 8192;
 
 extern void __stdargs _main(STRPTR aptr);

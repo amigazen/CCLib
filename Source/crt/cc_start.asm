@@ -12,12 +12,37 @@
 * (SAS UG Ch.10).  A C check on `extern T arr[]` can be treated as
 * always non-NULL; lea of the linker symbol cannot.
 *
+* Stack: do not copy sc_crt/c.a.  That startup reads cli_DefaultStack
+* (not tc_SPUpper-tc_SPLower) and, on exec V36+, always StackSwap's the
+* task bounds down to that CLI default minus 128 bytes — even when it
+* did not AllocMem.  dos.library has already applied a $STACK: cookie
+* to the real bounds, so c.a hides it (c:stack vs SPUpper-SPLower differs
+* by about 128 bytes) and RunCommand's stack is swapped away.  Here the
+* process stack is kept when it is already >= __stack.  A larger block
+* is allocated only when the real bounds are smaller, and cc_crt_exit
+* swaps back and FreeMem's it before dos Exit ( _exit does not return
+* to this frame ).
+*
 
 AbsExecBase	EQU	4
+ThisTaskOff	EQU	276
+TC_SPLOWER	EQU	58
+TC_SPUPPER	EQU	62
+LIB_VERSION	EQU	20
+LVOAllocMem	EQU	-198
+LVOFreeMem	EQU	-210
+LVOStackSwap	EQU	-732
+LVOExit		EQU	-144
+MEMF_PUBCLEAR	EQU	$10001
 
 	xdef	__startup
 	xdef	__cc_ctors_addr
 	xdef	__cc_dtors_addr
+*
+* __regargs publishes @cc_crt_exit.  asm -u only adds '_' to a plain xdef,
+* which leaves the C call unresolved.
+*
+	xdef	@cc_crt_exit
 
 	xref	LinkerDB
 	xref	_BSSBAS
@@ -25,6 +50,8 @@ AbsExecBase	EQU	4
 	xref	__main
 	xref	__ctors
 	xref	__dtors
+	xref	__stack
+	xref	DOSBase
 
 	csect	text
 
@@ -45,14 +72,132 @@ clr_lp:
 	dbf	d0,clr_bss
 
 *
+* Grow only when the task's real stack is smaller than __stack.
+* $STACK: / c:stack already live in tc_SPLower/tc_SPUpper.
+*
+	cmpi.w	#36,LIB_VERSION(a6)
+	blt.s	no_grow
+	move.l	__stack(a4),d0
+	beq.s	no_grow
+	move.l	ThisTaskOff(a6),a3
+	move.l	TC_SPUPPER(a3),d1
+	sub.l	TC_SPLOWER(a3),d1
+	cmp.l	d0,d1
+	bcc.s	no_grow
+
+*
+* Snapshot the real bounds before AllocMem.  a3 is ThisTask here.
+* StackSwap is allowed to scratch A4; near data (__stack, stdout, DOSBase)
+* is A4-relative, so a stale A4 makes the first putc look like a forged FILE
+* and cc_panic(20).  Reload LinkerDB on the other side.
+*
+	move.l	TC_SPLOWER(a3),cc_oldlow(a4)
+	move.l	TC_SPUPPER(a3),cc_oldup(a4)
+	move.l	a7,cc_oldsp(a4)
+	move.l	a7,cc_restore_sp(a4)
+
+	move.l	d0,cc_newsize(a4)
+	move.l	#MEMF_PUBCLEAR,d1
+	jsr	LVOAllocMem(a6)
+	lea	LinkerDB,a4
+	tst.l	d0
+	beq.s	no_grow
+	move.l	d0,cc_newstack(a4)
+	move.l	d0,cc_newlow(a4)
+	add.l	cc_newsize(a4),d0
+	move.l	d0,cc_newup(a4)
+*
+* Leave 32 bytes at the top.  Real exec RTS's through the new stack, so
+* the longword at stk_Pointer must be the continuation, not the cleared 0.
+*
+	sub.l	#32,d0
+	move.l	d0,cc_newsp(a4)
+	move.l	d0,a0
+	move.l	#grow_cont,(a0)
+	lea	cc_newlow(a4),a0
+	jsr	LVOStackSwap(a6)
+grow_cont:
+	lea	LinkerDB,a4
+
+no_grow:
+*
 * sc_crt/c.a: jsr __fpinit then jsr __main with command line on stack.
 * Pass NULL; __main uses GetArgStr for the Lattice args-only string.
+* __main normally never returns (_exit -> cc_crt_exit -> dos Exit).
 *
 	clr.l	-(a7)
 	jsr	__main
 	addq.l	#4,a7
 
+*
+* __main returned (dos/utility open failed).  If a stack was grown, swap
+* back before popping the entry MOVEM — that frame lives on the original
+* stack.  Do not BSR across StackSwap: the return address would stay on
+* the grown stack.
+*
+	tst.l	cc_newstack(a4)
+	beq.s	start_restore
+	move.l	AbsExecBase.W,a6
+*
+* stk_Pointer is the startup SP, which holds a saved register, not code.
+* Plant the continuation one long below that frame; StackSwap RTS's through it.
+*
+	move.l	cc_restore_sp(a4),a0
+	move.l	#start_swapped,-(a0)
+	move.l	a0,cc_oldsp(a4)
+	lea	cc_oldlow(a4),a0
+	jsr	LVOStackSwap(a6)
+start_swapped:
+	lea	LinkerDB,a4
+	move.l	cc_restore_sp(a4),a7
+	move.l	AbsExecBase.W,a6
+	move.l	cc_newstack(a4),a1
+	move.l	cc_newsize(a4),d0
+	clr.l	cc_newstack(a4)
+	jsr	LVOFreeMem(a6)
+	lea	LinkerDB,a4
+
+start_restore:
 	movem.l	(a7)+,d1-d6/a0-a6
+	rts
+
+*
+* __regargs entry: D0 = exit code.  Does not return to C.  When a stack
+* was grown, StackSwap restores the startup SP (after the entry MOVEM)
+* and the C frame is abandoned; dos Exit does not come back either.
+*
+@cc_crt_exit:
+cc_crt_exit:
+	move.l	d0,d2
+	lea	LinkerDB,a4
+	tst.l	cc_newstack(a4)
+	beq.s	crt_exit_dos
+	move.l	AbsExecBase.W,a6
+*
+* Same as the __main-return swap: the longword at the startup SP is a
+* saved A6, and RTS'ing through it jumps into data.
+*
+	move.l	cc_restore_sp(a4),a0
+	move.l	#crt_exit_swapped,-(a0)
+	move.l	a0,cc_oldsp(a4)
+	lea	cc_oldlow(a4),a0
+	jsr	LVOStackSwap(a6)
+crt_exit_swapped:
+	lea	LinkerDB,a4
+	move.l	cc_restore_sp(a4),a7
+	move.l	AbsExecBase.W,a6
+	move.l	cc_newstack(a4),a1
+	move.l	cc_newsize(a4),d0
+	clr.l	cc_newstack(a4)
+	jsr	LVOFreeMem(a6)
+	lea	LinkerDB,a4
+crt_exit_dos:
+	move.l	DOSBase(a4),d0
+	beq.s	exit_no_dos
+	move.l	d0,a6
+	move.l	d2,d1
+	jsr	LVOExit(a6)
+exit_no_dos:
 	rts
 
 *
@@ -65,5 +210,17 @@ __cc_ctors_addr:
 __cc_dtors_addr:
 	move.l	#__dtors,d0
 	rts
+
+	csect	__MERGED,bss
+
+cc_newstack	ds.l	1
+cc_newsize	ds.l	1
+cc_newlow	ds.l	1
+cc_newup	ds.l	1
+cc_newsp	ds.l	1
+cc_oldlow	ds.l	1
+cc_oldup	ds.l	1
+cc_oldsp	ds.l	1
+cc_restore_sp	ds.l	1
 
 	end

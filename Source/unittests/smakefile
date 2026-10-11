@@ -20,6 +20,8 @@ CRT_OBJS = \
 	/crt/cc_crt.o \
 	/stubs/math.o \
 	/stubs/blocksize.o \
+	/stubs/stdiowin.o \
+	/stubs/nostdio.o \
 	/stubs/cxamemset.o \
 	/stubs/cxamemcpy.o
 
@@ -76,7 +78,8 @@ clean:
 	delete quiet CCTest CCPanic CCPthread CCTest.map CCPanic.map CCPthread.map \
 		$(CCTEST_OBJS) $(CCPANIC_OBJS) ccpthread_main.o cc_start.o \
 		/crt/cc_entry.o /crt/cc_crt.o \
-		/stubs/math.o /stubs/blocksize.o /stubs/cxamemset.o /stubs/cxamemcpy.o \
+		/stubs/math.o /stubs/blocksize.o /stubs/stdiowin.o /stubs/nostdio.o \
+		/stubs/cxamemset.o /stubs/cxamemcpy.o \
 		$(CCPTHREAD_OBJS)
 
 test: CCTest CCPanic CCPthread
@@ -103,6 +106,12 @@ cc_start.o: /crt/cc_start.asm
 	Sc OBJNAME $@ $<
 
 /stubs/blocksize.o: /stubs/blocksize.c
+	Sc OBJNAME $@ $<
+
+/stubs/stdiowin.o: /stubs/stdiowin.c
+	Sc OBJNAME $@ $<
+
+/stubs/nostdio.o: /stubs/nostdio.c
 	Sc OBJNAME $@ $<
 
 /stubs/cxamemset.o: /stubs/cxamemset.c

@@ -703,7 +703,13 @@ LONG __ASM__ __SAVE_DS__ SetupSTDIO(
 
 	have_io = 1;
 	if (wbm != (APTR)NULL) {
-		if (!wb_parse(ud, wbm))
+		/*
+		 * wb_parse returns 0 when there is no WINDOW= tooltype.  The CRT
+		 * may already have SelectInput/Output of __stdiowin.  Attach those
+		 * handles.  Skip stdio only when Workbench left both unset.
+		 */
+		(void)wb_parse(ud, wbm);
+		if (Input() == (BPTR)NULL && Output() == (BPTR)NULL)
 			have_io = 0;
 	} else {
 		cli_parse(ud, alen, aptr);

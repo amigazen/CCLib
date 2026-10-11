@@ -73,7 +73,8 @@ static void cc_heap_reset(cc_task_UserData *ud)
 /*
  * Lowest-level allocator: AllocPooled(size + sizeof(MemBlk)) from the
  * session pool, bookkeep on ud->RAM, return payload after MemBlk.
- * flags is retained for ABI; MEMF_CLEAR is applied with a byte clear.
+ * flags is retained for ABI. MEMF_CLEAR is applied with memset
+ * (longword stores, CopyMemQuick doubling). AllocPooled has no clear flag.
  */
 APTR __ASM__ __SAVE_DS__ _alloc(
 	__REG__(a0, APTR ud),
@@ -83,8 +84,6 @@ APTR __ASM__ __SAVE_DS__ _alloc(
 	cc_task_UserData *u;
 	cc_MemBlk *blk;
 	ULONG total;
-	UBYTE *b;
-	ULONG i;
 	cc_check_break();
 
 	u = (cc_task_UserData *)ud;
@@ -99,15 +98,7 @@ APTR __ASM__ __SAVE_DS__ _alloc(
 		return (APTR)NULL;
 
 	if ((flags & (LONG)MEMF_CLEAR) != 0)
-	{
-		b = (UBYTE *)blk;
-		i = 0;
-		while (i < total)
-		{
-			b[i] = 0;
-			i++;
-		}
-	}
+		(void)memset((APTR)blk, 0UL, (LONG)total);
 
 	blk->n.prev = (cc_node *)NULL;
 	blk->n.next = (cc_node *)NULL;
@@ -115,6 +106,25 @@ APTR __ASM__ __SAVE_DS__ _alloc(
 	cc_ram_link(u, blk);
 
 	return (APTR)(blk + 1);
+}
+
+/*
+ * True when blk is the header of a node currently linked on ud->RAM.
+ * Address compare only: do not read blk->size until this returns true.
+ */
+static LONG
+cc_ram_has(cc_task_UserData *ud, cc_MemBlk *blk)
+{
+	cc_node *n;
+
+	n = ud->RAM.first;
+	while (n != (cc_node *)NULL)
+	{
+		if (n == &blk->n)
+			return 1L;
+		n = n->next;
+	}
+	return 0L;
 }
 
 /* Free a block previously returned by _alloc / sbrk. */
@@ -134,6 +144,11 @@ void __ASM__ __SAVE_DS__ _fre(
 		return;
 
 	blk = ((cc_MemBlk *)ptr) - 1;
+	if (!cc_ram_has(u, blk))
+	{
+		cc_set_errno(CC_EINVAL);
+		return;
+	}
 	total = blk->size;
 	cc_ram_unlink(u, blk);
 	FreePooled(u->heap_pool, blk, (ULONG)total);
@@ -204,6 +219,10 @@ APTR __ASM__ __SAVE_DS__ heap_alloc(
 	ud = cc_get_ud();
 	need = cc_round8(size);
 
+	/*
+	 * A fresh donation has a non-zero size. size 0 with a non-NULL
+	 * pointer is the user address already handed out; free() drops it.
+	 */
 	if (ud != (cc_task_UserData *)NULL
 	    && ud->lastfree.ptr != (APTR)NULL
 	    && ud->lastfree.size >= need + (ULONG)sizeof(ULONG)) {
@@ -212,6 +231,7 @@ APTR __ASM__ __SAVE_DS__ heap_alloc(
 		ud->lastfree.size = 0;
 		hdr = (ULONG *)p;
 		*hdr = need;
+		ud->lastfree.ptr = (APTR)(hdr + 1);
 		return (APTR)(hdr + 1);
 	}
 
@@ -256,22 +276,29 @@ APTR __ASM__ __SAVE_DS__ calloc(
 {
 	APTR p;
 	ULONG total;
-	UBYTE *b;
-	ULONG i;
 	cc_check_break();
 
+	/*
+	 * Reject a wrapping product. A short malloc would hand the caller
+	 * a buffer smaller than nelem * elsize.
+	 */
+	if (nelem != 0UL && elsize > (~0UL / nelem))
+	{
+		cc_set_errno(CC_ENOMEM);
+		return (APTR)NULL;
+	}
 	total = nelem * elsize;
 	p = malloc(total);
 	if (p == (APTR)NULL)
 		return (APTR)NULL;
 
-	/* Clear without relying on MEMF_CLEAR or libc memset. */
-	b = (UBYTE *)p;
-	i = 0;
-	while (i < total) {
-		b[i] = 0;
-		i++;
-	}
+	/*
+	 * Pool AllocPooled does not take MEMF_CLEAR. Zero through memset:
+	 * longword stores, then CopyMemQuick doubling for large blocks.
+	 * BltClear stays out of this path; the session pool is MEMF_ANY.
+	 */
+	if (total > 0UL)
+		(void)memset(p, 0UL, (LONG)total);
 	return p;
 }
 
@@ -323,10 +350,18 @@ void __ASM__ __SAVE_DS__ free(
 	if (ud == (cc_task_UserData *)NULL)
 		return;
 
-	/* Reject pointers that are not live malloc blocks on this session. */
+	/*
+	 * A be_free donation handed out by heap_alloc is not on RAM.
+	 * Drop the marker. Do not FreePooled static storage.
+	 */
 	blk = cc_blk_from_malloc_ptr(ud, ptr);
 	if (blk == (cc_MemBlk *)NULL)
 	{
+		if (ud->lastfree.ptr == ptr && ud->lastfree.size == 0UL)
+		{
+			ud->lastfree.ptr = (APTR)NULL;
+			return;
+		}
 		cc_set_errno(CC_EINVAL);
 		cc_panic(20L);
 		return;
@@ -338,9 +373,9 @@ void __ASM__ __SAVE_DS__ free(
 
 /*
  * Historic be_free donated static memory to the heap free list.
- * Without a full K&R freelist, record the block on lastfree so a
- * subsequent heap_alloc of fitting size can reuse it once.  The
- * block is never FreeMem'd (it was not AllocMem'd by us).
+ * Record the block on lastfree so a later heap_alloc of fitting size
+ * can reuse it once. heap_alloc then stores the user pointer with
+ * size 0; free drops that marker and does not FreePooled it.
  */
 void __ASM__ __SAVE_DS__ be_free(
 	__REG__(a0, APTR ptr),
@@ -368,6 +403,13 @@ ULONG __ASM__ __SAVE_DS__ malloc_size(
 		return 0;
 
 	ud = cc_get_ud();
+	if (ud != (cc_task_UserData *)NULL
+	    && ud->lastfree.ptr == ptr
+	    && ud->lastfree.size == 0UL)
+	{
+		hdr = ((ULONG *)ptr) - 1;
+		return *hdr;
+	}
 	if (cc_blk_from_malloc_ptr(ud, ptr) == (cc_MemBlk *)NULL)
 	{
 		cc_set_errno(CC_EINVAL);
@@ -381,8 +423,9 @@ ULONG __ASM__ __SAVE_DS__ malloc_size(
 
 /*
  * Return all pooled malloc arenas to the session pool and re-init heap
- * state.  closeall should be called first so BPTRs are released while
- * FileDesc/FILE still exist.  DeletePool happens in ClearSTDIO.
+ * state.  closeall runs first so BPTRs are released while FILE structures
+ * still exist.  A second closeall (ClearSTDIO already called it) is a
+ * no-op on empty lists.  DeletePool happens in ClearSTDIO.
  */
 void __ASM__ __SAVE_DS__ freeall(void)
 {
@@ -393,6 +436,7 @@ void __ASM__ __SAVE_DS__ freeall(void)
 	if (ud == (cc_task_UserData *)NULL)
 		return;
 
+	closeall();
 	_freall(ud);
 	cc_heap_reset(ud);
 

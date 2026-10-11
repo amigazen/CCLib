@@ -1,4 +1,4 @@
-FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"ccpthread_main.o"+"/ccpthread/pthread.o"+"/ccpthread/pthread_sync.o"+"/ccpthread/psem.o"+"/ccpthread/pthread_startup.o"
+FROM "cc_start.o"+"/crt/cc_entry.o"+"/crt/cc_crt.o"+"/stubs/math.o"+"/stubs/blocksize.o"+"/stubs/stdiowin.o"+"/stubs/nostdio.o"+"/stubs/cxamemset.o"+"/stubs/cxamemcpy.o"+"cctest_util.o"+"ccpthread_main.o"+"/ccpthread/pthread.o"+"/ccpthread/pthread_sync.o"+"/ccpthread/psem.o"+"/ccpthread/pthread_startup.o"
 TO "CCPthread"
 LIB lib:amiga.lib
 ADDSYM

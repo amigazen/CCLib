@@ -1800,7 +1800,7 @@ cclib.library/sprintf                                    cclib.library/sprintf
 
 cclib.library/_alloc                                      cclib.library/_alloc
    NAME
-	_alloc -- lowest-level per-task AllocMem
+	_alloc -- lowest-level per-task pool allocation
 
    SYNOPSIS
 	APTR _alloc(APTR ud, LONG size, LONG flags);
@@ -1808,15 +1808,15 @@ cclib.library/_alloc                                      cclib.library/_alloc
 	Registers: a0=ud, d0=size, d1=flags
 
    FUNCTION
-	Allocates memory from Exec AllocMem and links the block on the calling task's RAM list in task_UserData. This is the lowest allocation layer used by sbrk, malloc, and internal bookkeeping. Each block is prefixed with a MemBlk header; the returned pointer points past that header. Obtain the task_UserData pointer with GetSTDIO. The flags argument is passed directly to AllocMem (for example MEMF_ANY, or MEMF_CHIP for chip RAM accessible to custom chips).
+	Allocates memory with AllocPooled from the session pool created by SetSTDIO (MEMF_ANY) and links the block on the calling task's RAM list in task_UserData. This is the lowest allocation layer used by sbrk, malloc, and internal bookkeeping. Each block is prefixed with a MemBlk header; the returned pointer points past that header. Obtain the task_UserData pointer with GetSTDIO. The pool is not chip or fast memory. The only flag honored is MEMF_CLEAR, which zeros the block through memset (longword stores and CopyMemQuick doubling). AllocPooled itself does not clear. Other flags are ignored.
 
    INPUTS
 	APTR ud - task_UserData from GetSTDIO.
 	LONG size - payload bytes requested (header added internally).
-	LONG flags - Exec AllocMem requirement flags.
+	LONG flags - MEMF_CLEAR to zero the block; other Exec flags are ignored.
 
    RESULT
-	APTR - pointer to allocated payload, or NULL if AllocMem failed.
+	APTR - pointer to allocated payload, or NULL if AllocPooled failed.
 
    SEE ALSO
 	_fre, _freall, sbrk, malloc, GetSTDIO
@@ -1833,7 +1833,7 @@ cclib.library/_fre                                          cclib.library/_fre
 	Registers: a0=ud, a1=ptr
 
    FUNCTION
-	Frees a block previously returned by _alloc or sbrk for the given task_UserData. The pointer must be the payload address (after the internal MemBlk header). The block is unlinked from ud->RAM and returned to Exec with FreeMem.
+	Frees a block previously returned by _alloc or sbrk for the given task_UserData. The pointer must be the payload address (after the internal MemBlk header). The block must already be on ud->RAM. It is unlinked and returned to the session pool with FreePooled. A pointer that is not on RAM sets errno to EINVAL and returns; it is not passed to FreePooled.
 
    INPUTS
 	APTR ud - task_UserData from GetSTDIO.
@@ -1860,7 +1860,7 @@ cclib.library/_freall                                    cclib.library/_freall
 	Registers: a0=ud
 
    FUNCTION
-	Walks ud->RAM and FreeMems every MemBlk allocated through _alloc or sbrk for this task. Does not reset the K&R heap free list used by malloc; use freeall for a full teardown including heap state and open file lists.
+	Walks ud->RAM and FreePooleds every MemBlk allocated through _alloc or sbrk for this task. Does not DeletePool and does not reset the heap free-list anchors used by malloc; use freeall for a full teardown including heap state and open file lists.
 
    INPUTS
 	APTR ud - task_UserData from GetSTDIO.
@@ -1909,7 +1909,7 @@ cclib.library/heap_alloc                              cclib.library/heap_alloc
 	Registers: d0=size
 
    FUNCTION
-	Allocates from the per-task heap manager. If a be_free donation on lastfree is large enough, that static block is reused once; otherwise the request is satisfied by malloc. Used internally to implement malloc and calloc. Heap memory is drawn from FAST RAM first, then CHIP, via the underlying _alloc path.
+	Allocates from the per-task heap manager. If a be_free donation on lastfree is large enough, that static block is reused once and the returned pointer is not a pool block. Otherwise the request is satisfied by malloc from the session MEMF_ANY pool. malloc itself does not consult lastfree.
 
    INPUTS
 	ULONG size - minimum payload bytes required.
@@ -1932,7 +1932,7 @@ cclib.library/heap_free                                cclib.library/heap_free
 	Registers: a0=ptr
 
    FUNCTION
-	Returns memory obtained from heap_alloc (or malloc/calloc/realloc) to the per-task heap. In this implementation heap_free is an alias for free, which releases the underlying _alloc block via the malloc header.
+	Returns memory obtained from heap_alloc (or malloc/calloc/realloc) to the per-task heap. heap_free calls free. A pool block is released through _fre. A pointer that heap_alloc returned from a be_free donation is dropped and is not FreePooled.
 
    INPUTS
 	APTR ptr - pointer from heap_alloc, malloc, calloc, or realloc.
@@ -1955,7 +1955,7 @@ cclib.library/malloc                                      cclib.library/malloc
 	Registers: d0=size
 
    FUNCTION
-	Allocates at least size bytes from the calling task's heap (task_UserData). The requested size is rounded up to a multiple of eight bytes; malloc_size reports the rounded value. Memory is obtained from Exec via _alloc, trying FAST RAM before CHIP. A ULONG size word precedes the returned pointer. Sets errno to ENOMEM on failure.
+	Allocates at least size bytes from the calling task's session pool (MEMF_ANY). The requested size is rounded up to a multiple of eight bytes; malloc_size reports the rounded value. A ULONG size word precedes the returned pointer. The pool does not select chip or fast RAM. Sets errno to ENOMEM on failure.
 
    INPUTS
 	ULONG size - minimum number of payload bytes.
@@ -1981,7 +1981,7 @@ cclib.library/calloc                                      cclib.library/calloc
 	Registers: d0=nelem, d1=elsize
 
    FUNCTION
-	Allocates nelem * elsize bytes from the per-task heap (same FAST then CHIP policy as malloc), then clears every byte to zero. Uses malloc internally; returns NULL if the product overflows or allocation fails.
+	Allocates nelem * elsize bytes from the per-task session pool (same MEMF_ANY pool as malloc), then zeros the user bytes with memset. AllocPooled has no MEMF_CLEAR, so this is the clear-after-alloc path: longword stores and CopyMemQuick doubling, not a byte loop and not BltClear. Returns NULL and sets errno to ENOMEM if the product overflows or the allocation fails.
 
    INPUTS
 	ULONG nelem - number of elements.
@@ -2029,7 +2029,7 @@ cclib.library/free                                          cclib.library/free
 	Registers: a0=ptr
 
    FUNCTION
-	Returns a block allocated by malloc, calloc, or realloc to the per-task heap manager. The pointer is adjusted back to the internal header and released through _fre on the current task's task_UserData. NULL is ignored safely.
+	Returns a block allocated by malloc, calloc, or realloc to the session pool. The pointer is adjusted back to the internal header and released through _fre on the current task's task_UserData. NULL is ignored. A pointer heap_alloc returned from a be_free donation is dropped and is not FreePooled. A pointer that is neither a live pool block nor that donation sets errno to EINVAL and panics.
 
    INPUTS
 	APTR ptr - payload pointer from malloc family.
@@ -2055,7 +2055,7 @@ cclib.library/be_free                                    cclib.library/be_free
 	Registers: a0=ptr, d0=size
 
    FUNCTION
-	Registers a block of static memory with the heap manager so a subsequent heap_alloc or malloc of suitable size can reuse it once. The memory must not be written after donation. ptr was not obtained from AllocMem; it is never FreeMem'd by the library. Only the most recent donation on lastfree is remembered.
+	Registers a block of static memory so a subsequent heap_alloc of suitable size can reuse it once. malloc does not use this donation. The block was not obtained from the session pool and is never FreePooled. heap_free of the pointer heap_alloc returned drops the donation. Only the most recent donation on lastfree is remembered.
 
    INPUTS
 	APTR ptr - start of static buffer to donate.
@@ -2103,7 +2103,7 @@ cclib.library/freeall                                    cclib.library/freeall
 	void freeall(void);
 
    FUNCTION
-	Calls _freall to return every _alloc arena block to Exec, resets the K&R heap base pointers, and clears the OpenFiles and StreamFiles lists for the current task. Intended for program shutdown (for example from exit); call closeall first so open BPTRs are released while FILE structures still exist.
+	Calls closeall, then _freall to return every pooled _alloc block to the session pool, resets the heap anchors, and clears the OpenFiles and StreamFiles lists for the current task. closeall runs even if the caller forgot it, so DOS handles are closed before the lists are dropped. DeletePool is left to ClearSTDIO.
 
    INPUTS
 	None.

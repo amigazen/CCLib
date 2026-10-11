@@ -288,6 +288,42 @@ ct_suite_heap(void)
 	if (p != (APTR)NULL)
 		heap_free(p);
 
+	/*
+	 * 64-byte donation is too small for heap_alloc(64) (needs room for
+	 * the size word). heap_alloc(32) consumes it; heap_free must drop
+	 * the static pointer instead of panicking.
+	 */
+	p = heap_alloc(32);
+	ct_check_ptr_nonnull((STRPTR)"heap", (STRPTR)"heap_alloc_from_be_free",
+		(STRPTR)"heap_alloc(32) after be_free(64)",
+		(STRPTR)"heap_alloc must reuse a be_free donation that fits",
+		p);
+	if (p != (APTR)NULL)
+	{
+		sz = malloc_size(p);
+		ct_check_ulong((STRPTR)"heap", (STRPTR)"malloc_size_donated",
+			(STRPTR)"malloc_size of a be_free donation",
+			(STRPTR)"malloc_size of a reused be_free block must be the rounded request",
+			32UL, sz);
+		heap_free(p);
+		ct_check_true((STRPTR)"heap", (STRPTR)"heap_free_donated",
+			(STRPTR)"heap_free of a be_free donation",
+			(STRPTR)"heap_free of static donation must return without panic",
+			1);
+	}
+
+	p = calloc(0xFFFFFFFFUL, 2UL);
+	ct_check_ptr_null((STRPTR)"heap", (STRPTR)"calloc_overflow",
+		(STRPTR)"calloc(0xFFFFFFFF, 2)",
+		(STRPTR)"calloc must return NULL when nelem * elsize overflows",
+		p);
+
+	_fre(GetSTDIO(), (APTR)&ct_be_static);
+	ct_check_true((STRPTR)"heap", (STRPTR)"fre_unknown",
+		(STRPTR)"_fre of a pointer that is not on RAM",
+		(STRPTR)"_fre must refuse a non-RAM pointer without FreePooled",
+		1);
+
 	r = malloc(32);
 	q = malloc(32);
 	ct_check_true((STRPTR)"heap", (STRPTR)"malloc_distinct",
