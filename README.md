@@ -146,13 +146,17 @@ There is no portable heap, no `FILE*` buffering, no `errno` contract, and no cle
 CCLib is that missing layer. It calls dos, exec, locale and utility with handle validation, and
 it tracks the resources those calls create. You still use dos.library for Amiga-specific work;
 you use CCLib when you want the C API, and when you want the session's C objects to be cleaned up on exit, 
-even under error conditions.
+even under error conditions. Unlike other libc implementations on Amiga, CCLib makes maximum use of the system 
+libraries own versions of the Standard C Library functions, like StrToLong(), SNPrintf(), Strncat() and FPutC()
+encapsulating them with just enough code to add the reliability features and compatibility enhancements needed 
+to support the common libc implementation expected by portable software.
+
 
 ## Does CCLib include a 'libm' math library as well?
 
 CCLib is designed to be used with ma.lib, a C99 libm implementation also from amigazen project. This is 
 entirely optional - Amiga native software may wish to use the Amiga math libraries, especially the defacto 
-standard IEEE libraries, directly
+standard IEEE libraries, directly. 
 
 ## What is ccpthread.lib?
 
