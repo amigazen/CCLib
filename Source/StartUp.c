@@ -386,6 +386,6 @@ FreeLib(struct Library *lib)
 		DOSBase = NULL;
 	}
 
-	FreeMem((UBYTE *)lib - lib->lib_NegSize, lib->lib_NegSize + lib->lib_PosSize);
 	CCLibBase = NULL;
+	FreeMem((UBYTE *)lib - lib->lib_NegSize, lib->lib_NegSize + lib->lib_PosSize);
 }

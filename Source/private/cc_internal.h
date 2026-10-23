@@ -351,6 +351,17 @@ cc_DIR *cc_dir_from_list(cc_task_UserData *ud, APTR dirp);
 cc_MemBlk *cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr);
 
 /*
+ * C string / buffer validation (same shape as printf %s).
+ * NULL is a sentinel: the LVO sets EINVAL and does not call these.
+ * Unmapped (TypeOfMem 0) or no NUL in CC_STR_PROBE -> EINVAL + panic, 0.
+ */
+#define CC_STR_PROBE 1024L
+LONG cc_str_mapped(STRPTR s);
+LONG cc_str_arg(STRPTR s);
+LONG cc_buf_mapped(APTR p, ULONG n);
+LONG cc_buf_arg(APTR p, ULONG n);
+
+/*
  * Locale / character helpers (Wave 0).  Today behave as "C" + utility;
  * when ud->locale is set (Wave 1+), case/collate route through locale.library.
  */

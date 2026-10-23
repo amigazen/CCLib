@@ -14,6 +14,13 @@
 #include "private/cc_ieee.h"
 #include "cclib_funcs.h"
 
+/*
+ * Probe used to decide whether an unbounded %s argument is a C string.
+ * A NUL inside this window is accepted; no NUL is EINVAL + panic, not a
+ * truncated dump of whatever the pointer walks into.
+ */
+#define CC_FMT_S_MAX CC_STR_PROBE
+
 typedef void (*fmt_put_t)(UBYTE ch, APTR data);
 
 typedef struct
@@ -320,31 +327,49 @@ static LONG cc_dofmt(fmt_put_t put, APTR data, STRPTR format, APTR args)
 
 		if (c == (LONG)'s')
 		{
+			LONG pad;
+			LONG i;
+			LONG cap;
+
 			fmt_arg_long(&argp, &val);
 			sp = (STRPTR)val;
-			if (sp == (STRPTR)NULL)
-				sp = (STRPTR)"(null)";
-			n = 0;
-			while (sp[n] != '\0' && (prec < 0 || n < prec))
-				n++;
-			{
-				LONG pad;
-				LONG i;
 
-				pad = width - n;
-				if (pad < 0)
-					pad = 0;
-				if (!left)
-					fmt_put_pad(put, data, pad, (UBYTE)' ');
-				i = 0;
-				while (i < n)
-				{
-					put((UBYTE)sp[i], data);
-					i++;
-				}
-				if (left)
-					fmt_put_pad(put, data, pad, (UBYTE)' ');
+			if (sp == (STRPTR)NULL)
+			{
+				cc_set_errno(CC_EINVAL);
+				sp = (STRPTR)"(null)";
+				n = 6;
 			}
+			else if (!cc_str_mapped(sp))
+			{
+				put((UBYTE)0, data);
+				return -1L;
+			}
+			else
+			{
+				if (prec < 0)
+					cap = CC_FMT_S_MAX;
+				else
+					cap = prec;
+
+				n = 0;
+				while (n < cap && sp[n] != '\0')
+					n++;
+			}
+
+			pad = width - n;
+			if (pad < 0)
+				pad = 0;
+			if (!left)
+				fmt_put_pad(put, data, pad, (UBYTE)' ');
+			i = 0;
+			while (i < n)
+			{
+				put((UBYTE)sp[i], data);
+				i++;
+			}
+			if (left)
+				fmt_put_pad(put, data, pad, (UBYTE)' ');
 			continue;
 		}
 
@@ -425,11 +450,15 @@ LONG __ASM__ __SAVE_DS__ vsprintf(
 	cc_check_break();
 
 	if (s == (STRPTR)NULL || format == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
 		return -1L;
+	}
 
 	ctx.ptr = s;
 	ctx.count = 0L;
-	cc_dofmt(fmt_put_str, (APTR)&ctx, format, args);
+	if (cc_dofmt(fmt_put_str, (APTR)&ctx, format, args) < 0L)
+		return -1L;
 	return ctx.count;
 }
 
@@ -480,7 +509,8 @@ LONG __ASM__ __SAVE_DS__ cc_vsnprintf(
 	ctx.size = n;
 	ctx.stored = 0UL;
 	ctx.count = 0L;
-	cc_dofmt(fmt_put_strn, (APTR)&ctx, format, args);
+	if (cc_dofmt(fmt_put_strn, (APTR)&ctx, format, args) < 0L)
+		return -1L;
 	return ctx.count;
 }
 
@@ -490,15 +520,25 @@ LONG __ASM__ __SAVE_DS__ vfprintf(
 	__REG__(a2, APTR args))
 {
 	fmt_file_ctx ctx;
+	cc_task_UserData *ud;
+	cc_FILE *fp;
 	cc_check_break();
 
-	if (stream == (APTR)NULL || format == (STRPTR)NULL)
+	if (format == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return -1L;
 
-	ctx.fp = (cc_FILE *)stream;
+	ctx.fp = fp;
 	ctx.count = 0L;
 	ctx.err = 0L;
-	cc_dofmt(fmt_put_file, (APTR)&ctx, format, args);
+	if (cc_dofmt(fmt_put_file, (APTR)&ctx, format, args) < 0L)
+		return -1L;
 	if (ctx.err)
 		return -1L;
 	return ctx.count;
@@ -623,6 +663,16 @@ static APTR scan_arg(APTR *argp)
 	return v;
 }
 
+static LONG scan_dest_ok(APTR dest)
+{
+	if (dest == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0L;
+	}
+	return cc_buf_mapped(dest, 1UL);
+}
+
 static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 {
 	STRPTR fmt;
@@ -724,6 +774,8 @@ static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 			if (!suppress)
 			{
 				dest = scan_arg(&argp);
+				if (!scan_dest_ok(dest))
+					return (LONG)CC_EOF;
 				if (isshort)
 					*(short *)dest = (short)sc->chars;
 				else
@@ -737,7 +789,11 @@ static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 			if (width <= 0L)
 				width = 1L;
 			if (!suppress)
+			{
 				dest = scan_arg(&argp);
+				if (!scan_dest_ok(dest))
+					return (LONG)CC_EOF;
+			}
 			else
 				dest = (APTR)NULL;
 			dp = (char *)dest;
@@ -762,7 +818,11 @@ static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 		{
 			scan_skip_ws(sc);
 			if (!suppress)
+			{
 				dest = scan_arg(&argp);
+				if (!scan_dest_ok(dest))
+					return (LONG)CC_EOF;
+			}
 			else
 				dest = (APTR)NULL;
 			dp = (char *)dest;
@@ -853,6 +913,8 @@ static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 			if (!suppress)
 			{
 				dest = scan_arg(&argp);
+				if (!scan_dest_ok(dest))
+					return (LONG)CC_EOF;
 				if (isshort)
 					*(short *)dest = (short)val;
 				else
@@ -933,6 +995,8 @@ static LONG cc_doscan(scan_ctx *sc, STRPTR format, APTR args)
 			if (!suppress)
 			{
 				dest = scan_arg(&argp);
+				if (!scan_dest_ok(dest))
+					return (LONG)CC_EOF;
 				if (math != (APTR)NULL)
 					dv = cc_atof_ieee(math, nbuf);
 				else
@@ -958,6 +1022,11 @@ LONG __ASM__ __SAVE_DS__ sscanf(
 	cc_check_break();
 
 	if (s == (STRPTR)NULL || format == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (LONG)CC_EOF;
+	}
+	if (!cc_str_mapped(s) || !cc_str_mapped(format))
 		return (LONG)CC_EOF;
 
 	sc.sp = s;
@@ -973,13 +1042,25 @@ LONG __ASM__ __SAVE_DS__ fscanf(
 	__REG__(a2, APTR args))
 {
 	scan_ctx sc;
+	cc_task_UserData *ud;
+	cc_FILE *fp;
 	cc_check_break();
 
-	if (stream == (APTR)NULL || format == (STRPTR)NULL)
+	if (format == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (LONG)CC_EOF;
+	}
+	if (!cc_str_mapped(format))
+		return (LONG)CC_EOF;
+
+	ud = cc_get_ud();
+	fp = cc_file_from_list(ud, stream);
+	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
 
 	sc.sp = (STRPTR)NULL;
-	sc.fp = (cc_FILE *)stream;
+	sc.fp = fp;
 	sc.chars = 0L;
 	sc.ungot = -1L;
 	return cc_doscan(&sc, format, args);

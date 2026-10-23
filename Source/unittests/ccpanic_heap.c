@@ -107,4 +107,18 @@ ct_suite_panic_heap(void)
 	if (q != (APTR)NULL)
 		free(q);
 	ct_restore_panic_hook();
+
+	errno = 0;
+	ct_install_panic_hook();
+	hits = ct_panic_hits;
+	_fre(GetSTDIO(), (APTR)0x12345678L);
+	ct_check_true((STRPTR)"panic_heap", (STRPTR)"fre_forged",
+		(STRPTR)"_fre(session, forged)",
+		(STRPTR)"_fre of a non-RAM pointer must panic like free",
+		ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_heap", (STRPTR)"fre_forged_errno",
+		(STRPTR)"errno after _fre(forged)",
+		(STRPTR)"forged _fre must set EINVAL",
+		(LONG)EINVAL, errno);
+	ct_restore_panic_hook();
 }

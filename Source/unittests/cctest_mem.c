@@ -5,6 +5,7 @@
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <errno.h>
 #include "cctest_util.h"
 
 void
@@ -22,6 +23,19 @@ ct_suite_mem(void)
 	ct_suite_begin((STRPTR)"mem", (STRPTR)"memset memcpy memcmp bcmp bcopy bzero memmove memchr memccpy memswap");
 
 	/* --- memcpy basic --- */
+	errno = 0;
+	p = memcpy((APTR)NULL, (APTR)NULL, 0);
+	ct_check_true((STRPTR)"mem", (STRPTR)"memcpy_zero_null",
+		(STRPTR)"memcpy(NULL, NULL, 0)",
+		(STRPTR)"a zero-length memcpy must not require live buffers",
+		p == (APTR)NULL && errno == 0);
+	errno = 0;
+	p = memcpy((APTR)NULL, (APTR)a, 4);
+	ct_check_true((STRPTR)"mem", (STRPTR)"memcpy_null_dst",
+		(STRPTR)"memcpy(NULL, a, 4)",
+		(STRPTR)"NULL dest with n>0 is EINVAL, no panic",
+		p == (APTR)NULL && errno == (LONG)EINVAL);
+
 	memset(a, 0, sizeof(a));
 	memcpy(a, (APTR)"hi", 3);
 	ct_check_string((STRPTR)"mem",

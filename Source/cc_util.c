@@ -477,3 +477,63 @@ cc_blk_from_malloc_ptr(cc_task_UserData *ud, APTR ptr)
 	}
 	return (cc_MemBlk *)NULL;
 }
+
+LONG
+cc_str_mapped(STRPTR s)
+{
+	LONG n;
+
+	if (TypeOfMem((APTR)s) == 0UL)
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return 0L;
+	}
+	n = 0L;
+	while (n < CC_STR_PROBE && s[n] != '\0')
+		n++;
+	if (n == CC_STR_PROBE && s[n] != '\0')
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return 0L;
+	}
+	return 1L;
+}
+
+LONG
+cc_str_arg(STRPTR s)
+{
+	if (s == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0L;
+	}
+	return cc_str_mapped(s);
+}
+
+LONG
+cc_buf_mapped(APTR p, ULONG n)
+{
+	if (TypeOfMem(p) == 0UL
+	    || (n > 1UL && TypeOfMem((APTR)((UBYTE *)p + (n - 1UL))) == 0UL))
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return 0L;
+	}
+	return 1L;
+}
+
+LONG
+cc_buf_arg(APTR p, ULONG n)
+{
+	if (n == 0UL)
+		return 1L;
+	if (p == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0L;
+	}
+	return cc_buf_mapped(p, n);
+}

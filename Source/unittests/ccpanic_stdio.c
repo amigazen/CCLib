@@ -14,7 +14,10 @@ ct_suite_panic_stdio(void)
 	APTR fp;
 	LONG c;
 	LONG n;
+	LONG hits;
 	char buf[8];
+	char out[16];
+	char zsrc[1100];
 
 	ct_suite_begin((STRPTR)"panic_stdio",
 		(STRPTR)"FILE* validation / abort_func");
@@ -121,4 +124,88 @@ ct_suite_panic_stdio(void)
 			c == (LONG)(-1) && ct_panic_hits == 2L);
 		ct_restore_panic_hook();
 	}
+
+	/*
+	 * %s is a string parameter, not a dump.  Unmapped pointer and a
+	 * block with no NUL are programming errors: EINVAL + panic.
+	 */
+	out[0] = 'X';
+	out[1] = '\0';
+	errno = 0;
+	ct_install_panic_hook();
+	hits = ct_panic_hits;
+	n = sprintf(out, (STRPTR)"%s", (STRPTR)1L);
+	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"sprintf_s_unmapped",
+		(STRPTR)"sprintf %%s of address 1",
+		(STRPTR)"%%s of a TypeOfMem-rejected pointer must panic and fail",
+		n == -1L && ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"sprintf_s_unmapped_errno",
+		(STRPTR)"errno after %%s of address 1",
+		(STRPTR)"unmapped %%s must set errno to EINVAL",
+		(LONG)EINVAL, errno);
+
+	memset(zsrc, 'Z', 1100UL);
+	out[0] = 'X';
+	out[1] = '\0';
+	errno = 0;
+	hits = ct_panic_hits;
+	n = sprintf(out, (STRPTR)"%s", (STRPTR)zsrc);
+	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"sprintf_s_nonstring",
+		(STRPTR)"sprintf %%s of 1100 unterminated bytes",
+		(STRPTR)"unbounded %%s without a NUL in the probe must panic and fail",
+		n == -1L && ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"sprintf_s_nonstring_errno",
+		(STRPTR)"errno after unterminated %%s",
+		(STRPTR)"unterminated %%s must set errno to EINVAL",
+		(LONG)EINVAL, errno);
+
+	n = sprintf(out, (STRPTR)"alive");
+	ct_check_string((STRPTR)"panic_stdio",
+		(STRPTR)"sprintf_s_after_bad",
+		(STRPTR)"sprintf after a rejected %%s",
+		(STRPTR)"formatter state must survive a rejected %%s",
+		(STRPTR)"alive",
+		out);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"sprintf_s_after_bad_len",
+		(STRPTR)"sprintf(\"alive\") after rejected %%s",
+		(STRPTR)"later sprintf must return 5",
+		5L, n);
+
+	errno = 0;
+	hits = ct_panic_hits;
+	n = fscanf((APTR)1L, (STRPTR)"%ld", &n);
+	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"fscanf_forged",
+		(STRPTR)"fscanf(forged, \"%%ld\")",
+		(STRPTR)"forged FILE* must panic and return EOF",
+		n == (LONG)(-1) && ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"fscanf_forged_errno",
+		(STRPTR)"errno after fscanf(forged)",
+		(STRPTR)"forged fscanf must set EBADF",
+		(LONG)EBADF, errno);
+
+	errno = 0;
+	hits = ct_panic_hits;
+	n = fputs((STRPTR)1L, stdout);
+	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"fputs_unmapped",
+		(STRPTR)"fputs of address 1",
+		(STRPTR)"unmapped fputs source must panic and fail",
+		n == (LONG)(-1) && ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"fputs_unmapped_errno",
+		(STRPTR)"errno after fputs(unmapped)",
+		(STRPTR)"unmapped fputs must set EINVAL",
+		(LONG)EINVAL, errno);
+
+	errno = 0;
+	hits = ct_panic_hits;
+	(void)strcpy(out, (STRPTR)1L);
+	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"strcpy_unmapped",
+		(STRPTR)"strcpy(buf, address 1)",
+		(STRPTR)"unmapped strcpy source must panic",
+		ct_panic_hits == hits + 1L);
+	ct_check_long((STRPTR)"panic_stdio", (STRPTR)"strcpy_unmapped_errno",
+		(STRPTR)"errno after strcpy(unmapped)",
+		(STRPTR)"unmapped strcpy must set EINVAL",
+		(LONG)EINVAL, errno);
+
+	ct_restore_panic_hook();
 }

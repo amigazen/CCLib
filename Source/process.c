@@ -337,8 +337,14 @@ LONG __ASM__ __SAVE_DS__ wait_child(
 	if (ud == NULL)
 		return 0L;
 
-	if (child == NULL)
+	if (child == (APTR)NULL)
 		return wait_children();
+	if (TypeOfMem(child) == 0UL || !cc_child_on_list(ud, (cc_Child *)child))
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return 0L;
+	}
 
 	return cc_wait_one(ud, (cc_Child *)child);
 }
@@ -367,25 +373,50 @@ LONG __ASM__ __SAVE_DS__ signal_child(
 	cc_Child *ch;
 	cc_check_break();
 
-	ch = (cc_Child *)child;
-	if (ch == NULL || ch->pid == NULL)
-		return 0L;
+	{
+		cc_task_UserData *ud;
 
-	Signal((struct Task *)ch->pid, sig);
-	return 1L;
+		ch = (cc_Child *)child;
+		if (ch == (cc_Child *)NULL)
+			return 0L;
+		ud = cc_get_ud();
+		if (ud == (cc_task_UserData *)NULL)
+			return 0L;
+		if (TypeOfMem((APTR)ch) == 0UL || !cc_child_on_list(ud, ch))
+		{
+			cc_set_errno(CC_EINVAL);
+			cc_panic(20L);
+			return 0L;
+		}
+		if (ch->pid == (struct Process *)NULL)
+			return 0L;
+
+		Signal((struct Task *)ch->pid, sig);
+		return 1L;
+	}
 }
 
 LONG __ASM__ __SAVE_DS__ kill(
 	__REG__(a0, APTR child))
 {
 	cc_Child *ch;
+	cc_task_UserData *ud;
 	cc_check_break();
 
 	ch = (cc_Child *)child;
-	if (ch == NULL)
+	if (ch == (cc_Child *)NULL)
 		return 0L;
+	ud = cc_get_ud();
+	if (ud == (cc_task_UserData *)NULL)
+		return 0L;
+	if (TypeOfMem((APTR)ch) == 0UL || !cc_child_on_list(ud, ch))
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return 0L;
+	}
 
-	if (ch->pid != NULL)
+	if (ch->pid != (struct Process *)NULL)
 		Signal((struct Task *)ch->pid, CC_BREAK_MASK);
 
 	return wait_child(child);

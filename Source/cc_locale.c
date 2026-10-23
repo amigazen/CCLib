@@ -552,6 +552,8 @@ STRPTR __ASM__ __SAVE_DS__ setlocale(
 	/* Query: return last successful name. */
 	if (name == (STRPTR)NULL)
 		return (STRPTR)ud->locale_name;
+	if (!cc_str_mapped(name))
+		return (STRPTR)NULL;
 
 	if (cc_locale_name_is_C(name))
 	{
@@ -636,6 +638,8 @@ LONG __ASM__ __SAVE_DS__ strcoll(
 	__REG__(a1, STRPTR s2))
 {
 	cc_check_break();
+	if (!cc_str_arg(s1) || !cc_str_arg(s2))
+		return 0L;
 	return cc_strcoll(cc_get_ud(), s1, s2);
 }
 
@@ -653,6 +657,9 @@ ULONG __ASM__ __SAVE_DS__ strxfrm(
 	 * with a collate locale we still copy (byte identity is safe).
 	 */
 	cc_check_break();
+	if (!cc_str_arg(src) || (n > 0UL && dest != (STRPTR)NULL
+	    && !cc_buf_mapped((APTR)dest, n)))
+		return 0UL;
 	len = 0UL;
 	if (src != (STRPTR)NULL)
 	{

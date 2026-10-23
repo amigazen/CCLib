@@ -5,6 +5,7 @@
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <errno.h>
 #include "cctest_util.h"
 
 void
@@ -428,4 +429,15 @@ ct_suite_stdio(void)
 				free(line);
 		}
 	}
+
+	errno = 0;
+	n = (LONG)fread((APTR)NULL, 1UL, 4UL, stdout);
+	ct_check_long((STRPTR)"stdio", (STRPTR)"fread_null_ptr",
+		(STRPTR)"fread(NULL, 1, 4, stdout)",
+		(STRPTR)"NULL buffer is EINVAL and transfers 0, no panic",
+		0, n);
+	ct_check_long((STRPTR)"stdio", (STRPTR)"fread_null_ptr_errno",
+		(STRPTR)"errno after fread(NULL, ...)",
+		(STRPTR)"NULL fread dest must set EINVAL",
+		(LONG)EINVAL, errno);
 }

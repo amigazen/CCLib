@@ -93,6 +93,7 @@ void __stdargs __saveds _exit(LONG code);
 void __stdargs __saveds exit(LONG code);
 void __stdargs __saveds abort(void);
 int atexit(void (*func)(void));
+void __stdargs cc_reload_a4(void);
 
 /* Raw DOS write for optional CRT breadcrumbs (DEFINE=CC_CRT_DEBUG). */
 #ifdef CC_CRT_DEBUG
@@ -590,12 +591,14 @@ cc_terminate(LONG code)
 	{
 		ClearSTDIO();
 		CloseLibrary(CCLibBase);
+		cc_reload_a4();
 		CCLibBase = (struct Library *)NULL;
 	}
 
 	if (cc_math_opened && MathIeeeDoubBasBase != (struct Library *)NULL)
 	{
 		CloseLibrary(MathIeeeDoubBasBase);
+		cc_reload_a4();
 		MathIeeeDoubBasBase = (struct Library *)NULL;
 		cc_math_opened = 0;
 	}
@@ -603,6 +606,7 @@ cc_terminate(LONG code)
 	if (UtilityBase != (struct Library *)NULL)
 	{
 		CloseLibrary(UtilityBase);
+		cc_reload_a4();
 		UtilityBase = (struct Library *)NULL;
 	}
 

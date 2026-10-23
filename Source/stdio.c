@@ -647,11 +647,25 @@ ULONG __ASM__ __SAVE_DS__ fwrite(
 	LONG c;
 	cc_check_break();
 
-	if (ptr == NULL || stream == NULL || size == 0UL || nitems == 0UL)
+	if (size == 0UL || nitems == 0UL)
+		return 0UL;
+	if (ptr == (APTR)NULL || stream == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	total = size * nitems;
+	if (size != 0UL && total / size != nitems)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	if (!cc_buf_mapped(ptr, total))
+		return 0UL;
+	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
 		return 0UL;
 
 	p = (UBYTE *)ptr;
-	total = size * nitems;
 	for (i = 0UL; i < total; i++)
 	{
 		c = putc((LONG)p[i], stream);
@@ -673,11 +687,25 @@ ULONG __ASM__ __SAVE_DS__ fread(
 	LONG c;
 	cc_check_break();
 
-	if (ptr == NULL || stream == NULL || size == 0UL || nitems == 0UL)
+	if (size == 0UL || nitems == 0UL)
+		return 0UL;
+	if (ptr == (APTR)NULL || stream == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	total = size * nitems;
+	if (size != 0UL && total / size != nitems)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	if (!cc_buf_mapped(ptr, total))
+		return 0UL;
+	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
 		return 0UL;
 
 	p = (UBYTE *)ptr;
-	total = size * nitems;
 	for (i = 0UL; i < total; i++)
 	{
 		c = getc(stream);
@@ -818,8 +846,15 @@ STRPTR __ASM__ __SAVE_DS__ fgets(
 	LONG left;
 	cc_check_break();
 
-	if (s == NULL || stream == NULL || n <= 0L)
-		return NULL;
+	if (s == (STRPTR)NULL || stream == (APTR)NULL || n <= 0L)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	if (!cc_buf_mapped((APTR)s, (ULONG)n))
+		return (STRPTR)NULL;
+	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
+		return (STRPTR)NULL;
 
 	p = s;
 	left = n - 1L;
@@ -847,25 +882,41 @@ STRPTR __ASM__ __SAVE_DS__ gets(
 	cc_task_UserData *ud;
 	STRPTR p;
 	LONG c;
+	LONG n;
 	cc_check_break();
 
 	ud = cc_get_ud();
-	if (ud == NULL || ud->stdin_p == NULL || *ud->stdin_p == NULL || s == NULL)
-		return NULL;
+	if (s == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	if (ud == NULL || ud->stdin_p == NULL || *ud->stdin_p == NULL)
+		return (STRPTR)NULL;
+	if (!cc_buf_mapped((APTR)s, 1UL))
+		return (STRPTR)NULL;
 
 	p = s;
+	n = 0L;
 	for (;;)
 	{
 		c = getc((APTR)*ud->stdin_p);
 		if (c == (LONG)CC_EOF)
 		{
 			if (p == s)
-				return NULL;
+				return (STRPTR)NULL;
 			break;
 		}
 		if (c == (LONG)'\n')
 			break;
+		if (n >= CC_STR_PROBE)
+		{
+			cc_set_errno(CC_EINVAL);
+			cc_panic(20L);
+			return (STRPTR)NULL;
+		}
 		*p++ = (char)c;
+		n++;
 	}
 	*p = '\0';
 	return s;
@@ -879,7 +930,14 @@ LONG __ASM__ __SAVE_DS__ fputs(
 	LONG n;
 	cc_check_break();
 
-	if (s == NULL || stream == NULL)
+	if (s == (STRPTR)NULL || stream == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (LONG)CC_EOF;
+	}
+	if (!cc_str_mapped(s))
+		return (LONG)CC_EOF;
+	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
 
 	p = s;

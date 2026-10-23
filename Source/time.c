@@ -125,8 +125,15 @@ APTR __ASM__ __SAVE_DS__ gmtime(
 	cc_check_break();
 
 	ud = cc_get_ud();
-	if (ud == NULL || timer == NULL)
+	if (ud == NULL)
 		return NULL;
+	if (timer == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (APTR)NULL;
+	}
+	if (!cc_buf_mapped(timer, sizeof(LONG)))
+		return (APTR)NULL;
 
 	secs = *(LONG *)timer;
 	cc_secs_to_tm(secs, &ud->tm);
@@ -155,8 +162,15 @@ STRPTR __ASM__ __SAVE_DS__ asctime(
 
 	ud = cc_get_ud();
 	t = (cc_tm *)tm;
-	if (ud == NULL || t == NULL)
-		return NULL;
+	if (ud == NULL)
+		return (STRPTR)NULL;
+	if (t == (cc_tm *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (STRPTR)NULL;
+	}
+	if (!cc_buf_mapped((APTR)t, sizeof(cc_tm)))
+		return (STRPTR)NULL;
 
 	wday = t->tm_wday;
 	mon = t->tm_mon;
@@ -202,7 +216,12 @@ LONG __ASM__ __SAVE_DS__ mktime(
 	cc_check_break();
 
 	t = (cc_tm *)tm;
-	if (t == NULL)
+	if (t == (cc_tm *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return -1L;
+	}
+	if (!cc_buf_mapped((APTR)t, sizeof(cc_tm)))
 		return -1L;
 
 	year = (LONG)t->tm_year + 1900L;
@@ -357,7 +376,14 @@ ULONG __ASM__ __SAVE_DS__ strftime(
 	cc_check_break();
 
 	t = (cc_tm *)tm;
-	if (s == NULL || format == NULL || t == NULL || maxsize == 0UL)
+	if (s == (STRPTR)NULL || format == (STRPTR)NULL
+	    || t == (cc_tm *)NULL || maxsize == 0UL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	if (!cc_buf_mapped((APTR)s, maxsize) || !cc_str_mapped(format)
+	    || !cc_buf_mapped((APTR)t, sizeof(cc_tm)))
 		return 0UL;
 
 	/*

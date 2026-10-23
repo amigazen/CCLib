@@ -29,10 +29,13 @@ ThisTaskOff	EQU	276
 TC_SPLOWER	EQU	58
 TC_SPUPPER	EQU	62
 LIB_VERSION	EQU	20
+LVODisable	EQU	-120
+LVOEnable	EQU	-126
 LVOAllocMem	EQU	-198
 LVOFreeMem	EQU	-210
 LVOStackSwap	EQU	-732
 LVOExit		EQU	-144
+TC_SPREG	EQU	54
 MEMF_PUBCLEAR	EQU	$10001
 
 	xdef	__startup
@@ -43,6 +46,7 @@ MEMF_PUBCLEAR	EQU	$10001
 * which leaves the C call unresolved.
 *
 	xdef	@cc_crt_exit
+	xdef	cc_reload_a4
 
 	xref	LinkerDB
 	xref	_BSSBAS
@@ -137,25 +141,15 @@ no_grow:
 *
 	tst.l	cc_newstack(a4)
 	beq.s	start_restore
-	move.l	AbsExecBase.W,a6
 *
-* stk_Pointer is the startup SP, which holds a saved register, not code.
-* Plant the continuation one long below that frame; StackSwap RTS's through it.
+* Do not StackSwap back: that RTS pops a saved register off the shell
+* stack (jump into data).  Hop onto the tiny static stack, put the
+* original bounds back on the task, FreeMem, then return to the
+* entry MOVEM on the shell stack.
 *
-	move.l	cc_restore_sp(a4),a0
-	move.l	#start_swapped,-(a0)
-	move.l	a0,cc_oldsp(a4)
-	lea	cc_oldlow(a4),a0
-	jsr	LVOStackSwap(a6)
-start_swapped:
-	lea	LinkerDB,a4
-	move.l	cc_restore_sp(a4),a7
-	move.l	AbsExecBase.W,a6
-	move.l	cc_newstack(a4),a1
-	move.l	cc_newsize(a4),d0
-	clr.l	cc_newstack(a4)
-	jsr	LVOFreeMem(a6)
-	lea	LinkerDB,a4
+	moveq	#0,d3
+	lea	cc_exitstk_end(a4),a7
+	bra.s	cc_drop_grown
 
 start_restore:
 	movem.l	(a7)+,d1-d6/a0-a6
@@ -172,25 +166,10 @@ cc_crt_exit:
 	lea	LinkerDB,a4
 	tst.l	cc_newstack(a4)
 	beq.s	crt_exit_dos
-	move.l	AbsExecBase.W,a6
-*
-* Same as the __main-return swap: the longword at the startup SP is a
-* saved A6, and RTS'ing through it jumps into data.
-*
-	move.l	cc_restore_sp(a4),a0
-	move.l	#crt_exit_swapped,-(a0)
-	move.l	a0,cc_oldsp(a4)
-	lea	cc_oldlow(a4),a0
-	jsr	LVOStackSwap(a6)
-crt_exit_swapped:
-	lea	LinkerDB,a4
-	move.l	cc_restore_sp(a4),a7
-	move.l	AbsExecBase.W,a6
-	move.l	cc_newstack(a4),a1
-	move.l	cc_newsize(a4),d0
-	clr.l	cc_newstack(a4)
-	jsr	LVOFreeMem(a6)
-	lea	LinkerDB,a4
+	moveq	#1,d3
+	lea	cc_exitstk_end(a4),a7
+	bra.s	cc_drop_grown
+
 crt_exit_dos:
 	move.l	DOSBase(a4),d0
 	beq.s	exit_no_dos
@@ -198,6 +177,39 @@ crt_exit_dos:
 	move.l	d2,d1
 	jsr	LVOExit(a6)
 exit_no_dos:
+	rts
+
+*
+* A7 is already cc_exitstk_end.  D3=0: back to the shell MOVEM.
+* D3!=0: dos Exit (D2=code).  D2/D3/A4 survive Disable/FreeMem.
+*
+cc_drop_grown:
+	move.l	AbsExecBase.W,a6
+	jsr	LVODisable(a6)
+	move.l	ThisTaskOff(a6),a3
+	move.l	cc_oldlow(a4),TC_SPLOWER(a3)
+	move.l	cc_oldup(a4),TC_SPUPPER(a3)
+	move.l	cc_newstack(a4),a1
+	move.l	cc_newsize(a4),d0
+	clr.l	cc_newstack(a4)
+	jsr	LVOFreeMem(a6)
+	lea	LinkerDB,a4
+	tst.l	d3
+	bne.s	crt_exit_dos
+	move.l	cc_restore_sp(a4),a7
+	move.l	a7,TC_SPREG(a3)
+	move.l	AbsExecBase.W,a6
+	jsr	LVOEnable(a6)
+	bra.s	start_restore
+
+*
+* exec CloseLibrary is allowed to scratch A4.  Near data (SysBase,
+* CCLibBase, DOSBase) is A4-relative, so the next C call after a close
+* (__chkabort / __fpclear) jumps through garbage.  Reload after every
+* CloseLibrary.
+*
+cc_reload_a4:
+	lea	LinkerDB,a4
 	rts
 
 *
@@ -222,5 +234,7 @@ cc_oldlow	ds.l	1
 cc_oldup	ds.l	1
 cc_oldsp	ds.l	1
 cc_restore_sp	ds.l	1
+cc_exitstk	ds.l	32
+cc_exitstk_end	ds.l	0
 
 	end

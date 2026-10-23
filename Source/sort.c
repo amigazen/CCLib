@@ -234,7 +234,14 @@ void __ASM__ __SAVE_DS__ qsort(
 	cc_qsort_ctx ctx;
 	cc_check_break();
 
-	if (base == NULL || compar == NULL || nel < 2UL || width == 0UL)
+	if (nel < 2UL || width == 0UL)
+		return;
+	if (base == (APTR)NULL || compar == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return;
+	}
+	if (!cc_buf_mapped(base, nel * width) || !cc_buf_mapped(compar, 1UL))
 		return;
 
 	ctx.base = (UBYTE *)base;
@@ -261,8 +268,15 @@ APTR __ASM__ __SAVE_DS__ bsearch(
 	UBYTE *elem;
 	cc_check_break();
 
-	if (key == (APTR)NULL || base == (APTR)NULL || compar == (APTR)NULL
-	    || width == 0UL || nel == 0UL)
+	if (width == 0UL || nel == 0UL)
+		return (APTR)NULL;
+	if (key == (APTR)NULL || base == (APTR)NULL || compar == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return (APTR)NULL;
+	}
+	if (!cc_buf_mapped(key, width) || !cc_buf_mapped(base, nel * width)
+	    || !cc_buf_mapped(compar, 1UL))
 		return (APTR)NULL;
 
 	b = (UBYTE *)base;

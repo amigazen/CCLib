@@ -46,6 +46,8 @@ LONG __ASM__ __SAVE_DS__ mblen(
 		return 0L;
 	if (n == 0UL)
 		return -1L;
+	if (!cc_buf_mapped((APTR)s, 1UL))
+		return -1L;
 	if (*s == '\0')
 		return 0L;
 	return 1L;
@@ -63,6 +65,10 @@ LONG __ASM__ __SAVE_DS__ mbtowc(
 	if (s == (STRPTR)NULL)
 		return 0L;
 	if (n == 0UL)
+		return -1L;
+	if (!cc_buf_mapped((APTR)s, 1UL))
+		return -1L;
+	if (pwc != (APTR)NULL && !cc_buf_mapped(pwc, sizeof(ULONG)))
 		return -1L;
 
 	ch = (UBYTE)*s;
@@ -87,6 +93,8 @@ LONG __ASM__ __SAVE_DS__ wctomb(
 	/* Null s: encoding is not state-dependent. */
 	if (s == (STRPTR)NULL)
 		return 0L;
+	if (!cc_buf_mapped((APTR)s, 1UL))
+		return -1L;
 
 	if (!cc_wchar_byte_ok(wc))
 	{
@@ -110,6 +118,14 @@ ULONG __ASM__ __SAVE_DS__ mbstowcs(
 	cc_check_break();
 
 	if (s == (STRPTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
+		return 0UL;
+	}
+	if (!cc_str_mapped(s))
+		return 0UL;
+	if (pwcs != (APTR)NULL && n > 0UL
+	    && !cc_buf_mapped(pwcs, n * sizeof(ULONG)))
 		return 0UL;
 
 	dst = (ULONG *)pwcs;
@@ -154,11 +170,19 @@ ULONG __ASM__ __SAVE_DS__ wcstombs(
 	ULONG wc;
 	ULONG *src;
 	STRPTR dst;
+	ULONG probe;
 
 	cc_check_break();
 
 	if (pwcs == (APTR)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
 		return 0UL;
+	}
+	if (!cc_buf_mapped(pwcs, sizeof(ULONG)))
+		return 0UL;
+	if (s != (STRPTR)NULL && n > 0UL && !cc_buf_mapped((APTR)s, n))
+		return (ULONG)-1L;
 
 	src = (ULONG *)pwcs;
 	dst = s;
@@ -166,6 +190,15 @@ ULONG __ASM__ __SAVE_DS__ wcstombs(
 
 	if (dst == (STRPTR)NULL)
 	{
+		probe = 0UL;
+		while (probe < (ULONG)CC_STR_PROBE && src[probe] != 0UL)
+			probe++;
+		if (probe == (ULONG)CC_STR_PROBE && src[probe] != 0UL)
+		{
+			cc_set_errno(CC_EINVAL);
+			cc_panic(20L);
+			return (ULONG)-1L;
+		}
 		while (src[i] != 0UL)
 		{
 			if (!cc_wchar_byte_ok(src[i]))

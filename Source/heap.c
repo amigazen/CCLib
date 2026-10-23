@@ -147,6 +147,7 @@ void __ASM__ __SAVE_DS__ _fre(
 	if (!cc_ram_has(u, blk))
 	{
 		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
 		return;
 	}
 	total = blk->size;

@@ -318,11 +318,13 @@ ct_suite_heap(void)
 		(STRPTR)"calloc must return NULL when nelem * elsize overflows",
 		p);
 
+	ct_install_panic_hook();
 	_fre(GetSTDIO(), (APTR)&ct_be_static);
 	ct_check_true((STRPTR)"heap", (STRPTR)"fre_unknown",
 		(STRPTR)"_fre of a pointer that is not on RAM",
-		(STRPTR)"_fre must refuse a non-RAM pointer without FreePooled",
-		1);
+		(STRPTR)"_fre of a non-member must panic like free (hook returns)",
+		ct_panic_hits == 1L);
+	ct_restore_panic_hook();
 
 	r = malloc(32);
 	q = malloc(32);

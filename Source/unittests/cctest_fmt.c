@@ -1,10 +1,11 @@
 /*
- * cctest_fmt.c - sprintf / snprintf / sscanf formatting
+ * cctest_fmt.c - sprintf / snprintf / sscanf / printf-family formatting
  */
 
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <errno.h>
 #include "cctest_util.h"
 
 void
@@ -21,7 +22,8 @@ ct_suite_fmt(void)
 	ULONG uv;
 	DOUBLE d;
 
-	ct_suite_begin((STRPTR)"fmt", (STRPTR)"sprintf / snprintf / sscanf");
+	ct_suite_begin((STRPTR)"fmt",
+		(STRPTR)"sprintf / snprintf / sscanf / printf-family edges");
 
 	buf[0] = '\0';
 	n = sprintf(buf, (STRPTR)"");
@@ -115,6 +117,31 @@ ct_suite_fmt(void)
 		(STRPTR)"sprintf %%-5s",
 		(STRPTR)"sprintf %%-5s must left-align",
 		(STRPTR)"|ab   |",
+		buf);
+
+	errno = 0;
+	n = sprintf(buf, (STRPTR)"<%s>", (STRPTR)NULL);
+	ct_check_string((STRPTR)"fmt",
+		(STRPTR)"sprintf_s_null",
+		(STRPTR)"sprintf %%s of NULL",
+		(STRPTR)"sprintf %%s of NULL must emit (null) and not walk memory",
+		(STRPTR)"<(null)>",
+		buf);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_s_null_errno",
+		(STRPTR)"errno after sprintf %%s of NULL",
+		(STRPTR)"NULL %%s is a sentinel: EINVAL, no panic",
+		(LONG)EINVAL, errno);
+	ct_check_true((STRPTR)"fmt", (STRPTR)"sprintf_s_null_len",
+		(STRPTR)"sprintf %%s of NULL return",
+		(STRPTR)"NULL %%s must still return the characters written",
+		n == 8L);
+
+	sprintf(buf, (STRPTR)"%.3s", (STRPTR)"abcdef");
+	ct_check_string((STRPTR)"fmt",
+		(STRPTR)"sprintf_s_prec",
+		(STRPTR)"sprintf %%.3s",
+		(STRPTR)"sprintf %%.3s must stop at the explicit precision",
+		(STRPTR)"abc",
 		buf);
 
 	sprintf(buf, (STRPTR)"%c", (LONG)'Q');
@@ -420,6 +447,17 @@ ct_suite_fmt(void)
 		(STRPTR)"Third parsed long must be 3",
 		3, v3);
 
+	errno = 0;
+	n = sscanf((STRPTR)NULL, (STRPTR)"%ld", &v);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_null_s",
+		(STRPTR)"sscanf(NULL, \"%%ld\")",
+		(STRPTR)"NULL input string is EOF",
+		(LONG)(-1), n);
+	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_null_s_errno",
+		(STRPTR)"errno after sscanf(NULL, ...)",
+		(STRPTR)"NULL sscanf source must set EINVAL, no panic",
+		(LONG)EINVAL, errno);
+
 	v = 0;
 	n = sscanf((STRPTR)"abc", (STRPTR)"%ld", &v);
 	ct_check_long((STRPTR)"fmt", (STRPTR)"sscanf_no_match",
@@ -552,5 +590,320 @@ ct_suite_fmt(void)
 			(STRPTR)"vsscanf parsed value",
 			(STRPTR)"vsscanf must store the scanned integer",
 			77, v);
+	}
+
+	/* --- printf-family edge cases (happy path; panic cases stay in CCPanic) --- */
+	{
+		APTR tfp;
+		char got[80];
+		char hexbuf[24];
+		LONG pn;
+		STRPTR empty;
+		APTR pval;
+
+		empty = (STRPTR)"";
+
+		n = sprintf(buf, (STRPTR)"[%s]", empty);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_empty",
+			(STRPTR)"sprintf %%s of \"\"",
+			(STRPTR)"empty %%s must emit nothing between the brackets",
+			(STRPTR)"[]",
+			buf);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_s_empty_len",
+			(STRPTR)"sprintf(\"%%s\", \"\")",
+			(STRPTR)"sprintf of an empty string must return 0 for the conversion (2 with brackets)",
+			2, n);
+
+		sprintf(buf, (STRPTR)"%5s", (STRPTR)"abcdef");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_width_short",
+			(STRPTR)"sprintf %%5s of a 6-character string",
+			(STRPTR)"width shorter than the string must not truncate (%%.N does)",
+			(STRPTR)"abcdef",
+			buf);
+
+		{
+			char exp20[24];
+			LONG i;
+
+			exp20[0] = '|';
+			i = 1;
+			while (i <= 18)
+			{
+				exp20[i] = ' ';
+				i++;
+			}
+			exp20[19] = 'a';
+			exp20[20] = 'b';
+			exp20[21] = '|';
+			exp20[22] = '\0';
+			sprintf(buf, (STRPTR)"|%20s|", (STRPTR)"ab");
+			ct_check_string((STRPTR)"fmt",
+				(STRPTR)"sprintf_s_width20",
+				(STRPTR)"sprintf %%20s",
+				(STRPTR)"%%20s pads, it does not truncate",
+				exp20,
+				buf);
+		}
+
+		sprintf(buf, (STRPTR)"<%.0s>", (STRPTR)"abcdef");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_prec0",
+			(STRPTR)"sprintf %%.0s",
+			(STRPTR)"explicit precision 0 must emit no characters from %%s",
+			(STRPTR)"<>",
+			buf);
+
+		n = sprintf(buf, (STRPTR)"%.*s", 3L, (STRPTR)"abcdef");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_star_prec",
+			(STRPTR)"sprintf %%.*s with precision 3",
+			(STRPTR)"star precision must cap %%s like %%.3s",
+			(STRPTR)"abc",
+			buf);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_s_star_prec_len",
+			(STRPTR)"sprintf(\"%%.*s\", 3, \"abcdef\")",
+			(STRPTR)"%%.*s of 3 must return 3",
+			3, n);
+
+		n = sprintf(buf, (STRPTR)"|%*s|", 5L, (STRPTR)"ab");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_star_width",
+			(STRPTR)"sprintf %%*s with width 5",
+			(STRPTR)"star width must pad %%s like %%5s",
+			(STRPTR)"|   ab|",
+			buf);
+
+		n = sprintf(buf, (STRPTR)"|%*.*s|", 6L, 2L, (STRPTR)"abcdef");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_s_star_both",
+			(STRPTR)"sprintf %%*.*s width 6 precision 2",
+			(STRPTR)"star width and precision must pad the truncated string",
+			(STRPTR)"|    ab|",
+			buf);
+
+		sprintf(buf, (STRPTR)"%%s");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_pct_s",
+			(STRPTR)"sprintf \"%%%%s\"",
+			(STRPTR)"%%%%s is a percent then the letter s, not a string conversion",
+			(STRPTR)"%s",
+			buf);
+
+		sprintf(buf, (STRPTR)"100%%");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_pct_end",
+			(STRPTR)"sprintf \"100%%%%\"",
+			(STRPTR)"a trailing %%%% must emit a single percent",
+			(STRPTR)"100%",
+			buf);
+
+		n = sprintf(buf, (STRPTR)"foo%");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_lone_pct",
+			(STRPTR)"sprintf \"foo%%\" (conversion cut off by NUL)",
+			(STRPTR)"a dangling %% at end of format must not emit a percent",
+			(STRPTR)"foo",
+			buf);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_lone_pct_len",
+			(STRPTR)"sprintf(\"foo%%\")",
+			(STRPTR)"dangling %% must return the literal length only",
+			3, n);
+
+		n = sprintf(buf, (STRPTR)"%");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_pct_only",
+			(STRPTR)"sprintf \"%%\"",
+			(STRPTR)"a format that is only %% must emit an empty string",
+			(STRPTR)"",
+			buf);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"sprintf_pct_only_len",
+			(STRPTR)"sprintf(\"%%\")",
+			(STRPTR)"lone %% must return 0",
+			0, n);
+
+		sprintf(buf, (STRPTR)"%q");
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_unknown",
+			(STRPTR)"sprintf %%q",
+			(STRPTR)"an unknown conversion must be emitted as %% plus the letter",
+			(STRPTR)"%q",
+			buf);
+
+		sprintf(buf, (STRPTR)"%i", -8);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_i",
+			(STRPTR)"sprintf %%i",
+			(STRPTR)"%%i must format a signed integer like %%d",
+			(STRPTR)"-8",
+			buf);
+
+		pval = (APTR)buf;
+		sprintf(hexbuf, (STRPTR)"0x%lx", (ULONG)pval);
+		sprintf(buf, (STRPTR)"%p", pval);
+		ct_check_true((STRPTR)"fmt", (STRPTR)"sprintf_p_prefix",
+			(STRPTR)"sprintf %%p",
+			(STRPTR)"%%p must start with 0x",
+			buf[0] == '0' && buf[1] == 'x');
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_p_value",
+			(STRPTR)"sprintf %%p of a live pointer",
+			(STRPTR)"%%p must be 0x plus lowercase hex of the pointer",
+			hexbuf,
+			buf);
+
+		sprintf(buf, (STRPTR)"%p", (APTR)NULL);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_p_null",
+			(STRPTR)"sprintf %%p of NULL",
+			(STRPTR)"%%p of NULL must be 0x0",
+			(STRPTR)"0x0",
+			buf);
+
+		sprintf(buf, (STRPTR)"%ld", (LONG)0x80000000);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_ld_min",
+			(STRPTR)"sprintf %%ld of LONG_MIN",
+			(STRPTR)"LONG_MIN must format as -2147483648, not overflow the sign flip",
+			(STRPTR)"-2147483648",
+			buf);
+
+		sprintf(buf, (STRPTR)"%u", (LONG)0xFFFFFFFF);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_u_max",
+			(STRPTR)"sprintf %%u of ULONG_MAX",
+			(STRPTR)"%%u of all-bits-one must be 4294967295",
+			(STRPTR)"4294967295",
+			buf);
+
+		sprintf(buf, (STRPTR)"%x", 0);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_x_zero",
+			(STRPTR)"sprintf %%x of 0",
+			(STRPTR)"%%x of zero must be \"0\", not an empty string",
+			(STRPTR)"0",
+			buf);
+
+		sprintf(buf, (STRPTR)"%#x", 255);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_hash_x",
+			(STRPTR)"sprintf %%#x",
+			(STRPTR)"# is accepted and ignored: %%#x of 255 is still ff",
+			(STRPTR)"ff",
+			buf);
+
+		sprintf(buf, (STRPTR)"%+ld", 7L);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_plus_ld",
+			(STRPTR)"sprintf %%+ld",
+			(STRPTR)"+ is accepted and ignored: %%+ld of 7 is 7, not +7",
+			(STRPTR)"7",
+			buf);
+
+		sprintf(buf, (STRPTR)"%*ld", 5L, 9L);
+		ct_check_string((STRPTR)"fmt",
+			(STRPTR)"sprintf_star_ld",
+			(STRPTR)"sprintf %%*ld width 5",
+			(STRPTR)"star width on %%ld must right-pad",
+			(STRPTR)"    9",
+			buf);
+
+		errno = 0;
+		n = vsprintf((STRPTR)NULL, (STRPTR)"x", (APTR)av);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsprintf_null_buf",
+			(STRPTR)"vsprintf(NULL, \"x\", args)",
+			(STRPTR)"NULL destination is a sentinel: -1 and EINVAL, no panic",
+			-1L, n);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsprintf_null_buf_errno",
+			(STRPTR)"errno after vsprintf(NULL, ...)",
+			(STRPTR)"NULL destination must set EINVAL",
+			(LONG)EINVAL, errno);
+
+		errno = 0;
+		n = vsprintf(buf, (STRPTR)NULL, (APTR)av);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsprintf_null_fmt",
+			(STRPTR)"vsprintf(buf, NULL, args)",
+			(STRPTR)"NULL format is a sentinel: -1 and EINVAL, no panic",
+			-1L, n);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"vsprintf_null_fmt_errno",
+			(STRPTR)"errno after vsprintf(..., NULL, ...)",
+			(STRPTR)"NULL format must set EINVAL",
+			(LONG)EINVAL, errno);
+
+		errno = 0;
+		n = snprintf((STRPTR)NULL, 8UL, (STRPTR)"ab");
+		ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_null_nz",
+			(STRPTR)"snprintf(NULL, 8, \"ab\")",
+			(STRPTR)"NULL buffer with size > 0 is EINVAL and -1",
+			-1L, n);
+		ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_null_nz_errno",
+			(STRPTR)"errno after snprintf(NULL, 8, ...)",
+			(STRPTR)"NULL buffer with nonzero size must set EINVAL",
+			(LONG)EINVAL, errno);
+
+		memset(buf, (ULONG)'X', 8);
+		n = snprintf(buf, 1UL, (STRPTR)"hello");
+		ct_check_long((STRPTR)"fmt", (STRPTR)"snprintf_size1_len",
+			(STRPTR)"snprintf(buf, 1, \"hello\")",
+			(STRPTR)"size 1 must return the untruncated length 5",
+			5, n);
+		ct_check_true((STRPTR)"fmt", (STRPTR)"snprintf_size1_nul",
+			(STRPTR)"snprintf size 1 buffer",
+			(STRPTR)"size 1 must store only a NUL",
+			buf[0] == '\0');
+
+		errno = 0;
+		n = fprintf((APTR)NULL, (STRPTR)"x");
+		ct_check_long((STRPTR)"fmt", (STRPTR)"fprintf_null",
+			(STRPTR)"fprintf(NULL, \"x\")",
+			(STRPTR)"NULL FILE* is a sentinel: -1, no panic",
+			-1L, n);
+
+		tfp = tmpfile();
+		ct_check_ptr_nonnull((STRPTR)"fmt", (STRPTR)"printf_tmpfile",
+			(STRPTR)"tmpfile() for fprintf/vfprintf",
+			(STRPTR)"need a stream to exercise the printf FILE* path",
+			tfp);
+		if (tfp != (APTR)NULL)
+		{
+			pn = fprintf(tfp, (STRPTR)"n=%ld %s", 3L, (STRPTR)"ok");
+			ct_check_long((STRPTR)"fmt", (STRPTR)"fprintf_edge_len",
+				(STRPTR)"fprintf(tmp, \"n=%%ld %%s\", 3, \"ok\")",
+				(STRPTR)"fprintf must return 6 for \"n=3 ok\"",
+				6, pn);
+
+			av[0] = 4;
+			pn = vfprintf(tfp, (STRPTR)" v=%ld", (APTR)av);
+			ct_check_long((STRPTR)"fmt", (STRPTR)"vfprintf_edge_len",
+				(STRPTR)"vfprintf(tmp, \" v=%%ld\", {4})",
+				(STRPTR)"vfprintf must return 4 for \" v=4\"",
+				4, pn);
+
+			(void)fflush(tfp);
+			(void)fseek(tfp, 0, 0);
+			got[0] = '\0';
+			(void)fgets(got, (LONG)sizeof(got), tfp);
+			ct_check_string((STRPTR)"fmt",
+				(STRPTR)"fprintf_vfprintf_text",
+				(STRPTR)"fgets after fprintf+vfprintf",
+				(STRPTR)"the stream must contain the concatenated conversions",
+				(STRPTR)"n=3 ok v=4",
+				got);
+
+			errno = 0;
+			pn = fprintf(tfp, (STRPTR)NULL);
+			ct_check_long((STRPTR)"fmt", (STRPTR)"fprintf_null_fmt",
+				(STRPTR)"fprintf(tmp, NULL)",
+				(STRPTR)"NULL format on a live FILE* is -1 and EINVAL",
+				-1L, pn);
+			ct_check_long((STRPTR)"fmt",
+				(STRPTR)"fprintf_null_fmt_errno",
+				(STRPTR)"errno after fprintf(tmp, NULL)",
+				(STRPTR)"NULL format must set EINVAL",
+				(LONG)EINVAL, errno);
+
+			(void)fclose(tfp);
+		}
 	}
 }

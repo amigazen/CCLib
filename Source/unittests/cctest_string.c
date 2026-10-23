@@ -5,6 +5,7 @@
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <errno.h>
 #include "cctest_util.h"
 
 void
@@ -51,6 +52,17 @@ ct_suite_string(void)
 		(STRPTR)"strlen(\"01234567890123456789012345678901\")",
 		(STRPTR)"strlen must handle a 32-character string",
 		32, strlen((STRPTR)"01234567890123456789012345678901"));
+
+	errno = 0;
+	n = strlen((STRPTR)NULL);
+	ct_check_long((STRPTR)"string", (STRPTR)"strlen_null",
+		(STRPTR)"strlen(NULL)",
+		(STRPTR)"NULL is a sentinel: return 0",
+		0, n);
+	ct_check_long((STRPTR)"string", (STRPTR)"strlen_null_errno",
+		(STRPTR)"errno after strlen(NULL)",
+		(STRPTR)"NULL strlen must set EINVAL and not panic",
+		(LONG)EINVAL, errno);
 
 	/* --- strcpy --- */
 	strcpy(a, (STRPTR)"hello");

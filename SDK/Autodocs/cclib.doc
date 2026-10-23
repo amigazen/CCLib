@@ -1669,7 +1669,10 @@ cclib.library/printf                                      cclib.library/printf
 	values, and STRPTR for %s. Floating formats use mathieeedoubbas from the
 	task mathbase set by SetupSTDIO; without mathbase, floating output is
 	limited. Field width, precision, and justification flags follow the usual
-	printf rules. Prefer vprintf when you already have an APTR arg block.
+	printf rules. %s of NULL sets EINVAL and prints "(null)" (sentinel, no
+	panic). A pointer TypeOfMem rejects, or an unbounded %s with no NUL in
+	the first 1024 bytes, is EINVAL plus panic 20 and the conversion fails.
+	Prefer vprintf when you already have an APTR arg block.
 
    INPUTS
 	STRPTR format - output format string.
@@ -1779,8 +1782,9 @@ cclib.library/sprintf                                    cclib.library/sprintf
 	&first stack arg. The LVO body matches vsprintf. Conversions follow printf
 	rules: LONG for integers (32-bit default, %h short, %ld long), two LONG
 	words per DOUBLE for %e/%f/%g using mathieeedoubbas when mathbase is set.
-	The returned count excludes the terminating NUL. Prefer vsprintf when you
-	already have an APTR arg block (for example library-internal callers).
+	The returned count excludes the terminating NUL. %s follows the same
+	NULL / TypeOfMem / missing-NUL validation as printf. Prefer vsprintf when
+	you already have an APTR arg block (for example library-internal callers).
 
    INPUTS
 	STRPTR s - destination buffer; must be large enough for output plus NUL.

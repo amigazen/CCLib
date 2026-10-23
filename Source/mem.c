@@ -64,6 +64,8 @@ APTR __ASM__ __SAVE_DS__ memmove(
 
 	/* C89 memmove: overlap-safe; CopyMem when regions do not overlap. */
 	cc_check_break();
+	if (n > 0L && (!cc_buf_arg(dst, (ULONG)n) || !cc_buf_arg(src, (ULONG)n)))
+		return dst;
 
 	s = (UBYTE *)src;
 	d = (UBYTE *)dst;
@@ -97,6 +99,8 @@ APTR __ASM__ __SAVE_DS__ memccpy(
 	UBYTE stop;
 	LONG i;
 	cc_check_break();
+	if (n > 0L && (!cc_buf_arg(dst, (ULONG)n) || !cc_buf_arg(src, (ULONG)n)))
+		return (APTR)NULL;
 
 	d = (UBYTE *)dst;
 	s = (UBYTE *)src;
@@ -118,6 +122,8 @@ APTR __ASM__ __SAVE_DS__ memchr(
 	UBYTE ch;
 	LONG i;
 	cc_check_break();
+	if (n > 0L && !cc_buf_arg(b, (ULONG)n))
+		return (APTR)NULL;
 
 	p = (UBYTE *)b;
 	ch = (UBYTE)c;
@@ -139,6 +145,8 @@ LONG __ASM__ __SAVE_DS__ memcmp(
 	LONG c1;
 	LONG c2;
 	cc_check_break();
+	if (n > 0L && (!cc_buf_arg(b1, (ULONG)n) || !cc_buf_arg(b2, (ULONG)n)))
+		return 0L;
 
 	p1 = (UBYTE *)b1;
 	p2 = (UBYTE *)b2;
@@ -159,6 +167,8 @@ APTR __ASM__ __SAVE_DS__ memcpy(
 	__REG__(d0, LONG n))
 {
 	cc_check_break();
+	if (n > 0L && (!cc_buf_arg(dst, (ULONG)n) || !cc_buf_arg(src, (ULONG)n)))
+		return dst;
 	if (n > 0 && dst != src) {
 		/* CopyMemQuick when src, dst, and size are all longword-aligned. */
 		if (((((ULONG)dst) | ((ULONG)src) | (ULONG)n) & 3UL) == 0UL)
@@ -189,6 +199,9 @@ APTR __ASM__ __SAVE_DS__ memmem(
 		cc_set_errno(CC_EINVAL);
 		return (APTR)NULL;
 	}
+	if ((hlen > 0L && !cc_buf_mapped(haystack, (ULONG)hlen))
+	    || (nlen > 0L && !cc_buf_mapped(needle, (ULONG)nlen)))
+		return (APTR)NULL;
 	if (nlen == 0L)
 		return haystack;
 	if (nlen > hlen)
@@ -229,6 +242,8 @@ APTR __ASM__ __SAVE_DS__ memset(
 	 * in general libc; call BltClear directly for large chip buffers.
 	 */
 	cc_check_break();
+	if (n > 0L && !cc_buf_arg(b, (ULONG)n))
+		return b;
 
 	if (n <= 0L)
 		return b;
@@ -292,6 +307,8 @@ void __ASM__ __SAVE_DS__ memswap(
 	UBYTE tmp;
 	LONG i;
 	cc_check_break();
+	if (n > 0L && (!cc_buf_arg(b1, (ULONG)n) || !cc_buf_arg(b2, (ULONG)n)))
+		return;
 
 	p1 = (UBYTE *)b1;
 	p2 = (UBYTE *)b2;

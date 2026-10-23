@@ -5,6 +5,7 @@
 #include <exec/types.h>
 #include <proto/cclib.h>
 #include <libraries/cclib.h>
+#include <errno.h>
 #include "cctest_util.h"
 
 static LONG ct_sort_arr[16];
@@ -117,6 +118,13 @@ ct_suite_sort(void)
 
 	ct_suite_begin((STRPTR)"sort",
 		(STRPTR)"qsort, vquicksort, quicksort");
+
+	errno = 0;
+	qsort((APTR)NULL, 5UL, sizeof(LONG), (APTR)ct_cmp_long);
+	ct_check_long((STRPTR)"sort", (STRPTR)"qsort_null_base",
+		(STRPTR)"qsort(NULL, 5, ...)",
+		(STRPTR)"NULL base with nel>=2 is EINVAL, no panic",
+		(LONG)EINVAL, errno);
 
 	arr[0] = 40;
 	arr[1] = 10;

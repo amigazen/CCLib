@@ -236,8 +236,17 @@ void __ASM__ __SAVE_DS__ remv_list(
 	cc_check_break();
 
 	l = (cc_list *)list;
-	if (!l)
+	if (l == (cc_list *)NULL)
+	{
+		cc_set_errno(CC_EINVAL);
 		return;
+	}
+	if (TypeOfMem((APTR)l) == 0UL)
+	{
+		cc_set_errno(CC_EINVAL);
+		cc_panic(20L);
+		return;
+	}
 	n = l->first;
 	while (n) {
 		next = n->next;
