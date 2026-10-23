@@ -47,6 +47,7 @@ MEMF_PUBCLEAR	EQU	$10001
 *
 	xdef	@cc_crt_exit
 	xdef	cc_reload_a4
+	xdef	cc_trace_sp
 
 	xref	LinkerDB
 	xref	_BSSBAS
@@ -210,6 +211,13 @@ cc_drop_grown:
 *
 cc_reload_a4:
 	lea	LinkerDB,a4
+	rts
+
+*
+* Current SP after the JSR (scan start).  __stdargs + asm -u => _cc_trace_sp.
+*
+cc_trace_sp:
+	move.l	a7,d0
 	rts
 
 *

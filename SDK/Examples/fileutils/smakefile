@@ -19,6 +19,7 @@ CRT_OBJS = \
 	cc_start.o \
 	$(SRC)/crt/cc_entry.o \
 	$(SRC)/crt/cc_crt.o \
+	$(SRC)/crt/cc_trace.o \
 	$(SRC)/stubs/math.o \
 	$(SRC)/stubs/blocksize.o \
 	$(SRC)/stubs/stdiowin.o \
@@ -63,7 +64,7 @@ clean:
 	delete quiet cat ls pwd echo true false wc \
 		cat.map ls.map pwd.map echo.map true.map false.map wc.map \
 		cat.o ls.o pwd.o echo.o true.o false.o wc.o cc_start.o \
-		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o \
+		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o $(SRC)/crt/cc_trace.o \
 		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/stdiowin.o $(SRC)/stubs/nostdio.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o \
 		$(CCPTHREAD_OBJS)
 
@@ -79,6 +80,9 @@ $(SRC)/crt/cc_entry.o: $(SRC)/crt/cc_entry.c
 
 $(SRC)/crt/cc_crt.o: $(SRC)/crt/cc_crt.c
 	Sc idir=$(SRC) OBJNAME $@ $<
+
+$(SRC)/crt/cc_trace.o: $(SRC)/crt/cc_trace.c $(SRC)/crt/cc_trace.h
+	Sc idir=$(SRC)/crt OBJNAME $@ $<
 
 $(SRC)/stubs/math.o: $(SRC)/stubs/math.c
 	Sc OBJNAME $@ $<

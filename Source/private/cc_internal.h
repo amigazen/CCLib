@@ -255,6 +255,10 @@ typedef struct
 	 */
 	short panic_mode;
 	short panic_pad;
+	/* CRT backtrace: set by cc_trace_init.  cc_panic calls this
+	 * before abort_func so a returning test hook still prints.
+	 */
+	void (*trace_dump)(void);
 } cc_task_UserData;
 
 /* div()/ldiv() result (ISO C layout; filled via LVO result pointer). */

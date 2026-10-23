@@ -1,19 +1,8 @@
 /* SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2026
+ * Copyright (c) 2026 amigazen project
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED.
  *
  * cc_util.c - task userdata helpers and ctype classification table
  */
@@ -304,7 +293,14 @@ cc_panic(LONG code)
 
 	hook = (cc_ABORT_FUNC)NULL;
 	if (ud != (cc_task_UserData *)NULL)
+	{
 		hook = ud->abort_func;
+		/* Stack dump is CRT-owned and must run even when abort_func
+		 * is a returning test hook (CCPanic).
+		 */
+		if (ud->trace_dump != (void (*)(void))NULL)
+			(*ud->trace_dump)();
+	}
 
 	/* Drop latch before hook: production exit() never returns. */
 	panicking = 0;

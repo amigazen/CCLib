@@ -179,21 +179,29 @@ cclib.library/--background--                      cclib.library/--background--
 	the LVO boundary; client headers restore typed C declarations.
 	%e/%f/%g consume a DOUBLE as two consecutive LONGs in the arg array.
 
-    REENTRANCY (historic CClib.Doc)
-	Mutable C "globals" live in per-task task_UserData (heap freelist,
-	FILE/fd lists, strtok scanpoint, tmpnam/asctime/localtime buffers,
-	children, errno/blocksize/mathbase pointers).  Tasks never share a
-	freelist.  The ctype table in the library is shared and read-only.
-	Classic static-buffer APIs are per-task safe, not call-safe within
-	one task.  FILEs are linked lists - use fileno(), not hard-coded 0/1/2.
+    REENTRANCY 
+	Mutable C "globals" live in per-task task_UserData (session heap
+	pool + RAM tracking list, FILE/fd/DIR lists, strtok scanpoint,
+	asctime/gmtime/localtime buffers, children, locale, errno/
+	blocksize/mathbase pointers).  Tasks never share a heap.  malloc
+	is CreatePool/AllocPooled; historic heap_alloc/be_free still use
+	the lastfree donation slot.  The "C" ctype table in the library
+	is shared and read-only; non-"C" LC_CTYPE uses locale.library
+	Is*.  Classic static-buffer APIs are per-task safe, not call-safe
+	within one task.  tmpnam(NULL) uses ud->tempname after the first
+	call; before that it writes a library-static fallback (not
+	per-task) - pass a caller buffer.  FILEs are linked lists - use
+	fileno(), not hard-coded 0/1/2.
 
-    FLOATING POINT (historic CClib.Doc)
-	Library FP uses only mathieeedoubbas.library (64-bit IEEE).  CRT opens
-	it when _math != 0 and passes the base to SetupSTDIO as mathbase.
-	atof and printf/scanf %e/%f/%g call IEEEDP* through that base - never
-	SAS/C softfloat.  Apps that use float must compile/link IEEE (historic
-	-fi + lcmieee.lib; SAS/C scmieee / mathieee*).  Set _math = 0 to skip
-	opening IEEE when the app needs no float.
+    FLOATING POINT 
+	Library FP uses mathieeedoubbas.library (64-bit IEEE) through the
+	session mathbase.  CRT opens it when _math != 0 and passes the
+	base to SetupSTDIO.  atof, strtod, difftime, and printf/scanf
+	%e/%f/%g call IEEEDP* through that base - never SAS/C softfloat.
+	Without a mathbase, atof/strtod use a bit-twiddling fallback and
+	format %e/%f/%g emit 0.  Apps that use float must compile/link
+	IEEE (historic -fi + lcmieee.lib; SAS/C scmieee / mathieee*).
+	Set _math = 0 to skip opening IEEE when the app needs no float.
 
     SEE ALSO
 	libraries/cclib.h, proto/cclib.h, SDK/SFD/cclib_lib.sfd,
@@ -264,7 +272,7 @@ cclib.library/SetSTDIO                                  cclib.library/SetSTDIO
 	LONG SetSTDIO(void);
 
    FUNCTION
-	Allocates a task_UserData structure from the public memory pool and attaches it to the current task's tc_UserData field. The block holds per-task FILE and FileDesc lists, heap freelist anchors, argv parsing results, temporary name buffers, and pointers into the application's errno, blocksize, and stdio globals once SetupSTDIO runs.
+	Allocates a task_UserData structure from the public memory pool and attaches it to the current task's tc_UserData field. The block holds per-task FILE, FileDesc and DIR lists, a CreatePool session heap (plus historic lastfree/heap_alloc anchors), argv parsing results, and pointers into the application's errno, blocksize, and stdio globals once SetupSTDIO runs.
 
 	The previous tc_UserData pointer is saved in old_ud so ClearSTDIO can restore it. Lists for RAM allocations, open file descriptors, stream FILE nodes, and child processes are initialized empty. Call SetSTDIO (or let SetupSTDIO call it) before any other CClib routine that touches task state.
 

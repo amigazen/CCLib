@@ -20,6 +20,7 @@ CRT_OBJS = \
 	cc_start.o \
 	$(SRC)/crt/cc_entry.o \
 	$(SRC)/crt/cc_crt.o \
+	$(SRC)/crt/cc_trace.o \
 	$(SRC)/stubs/math.o \
 	$(SRC)/stubs/blocksize.o \
 	$(SRC)/stubs/stdiowin.o \
@@ -37,7 +38,7 @@ meval: $(CRT_OBJS) amiga_math_stubs.o meval.o meval.lnk
 clean:
 	delete quiet meval meval.map \
 		meval.o amiga_math_stubs.o cc_start.o \
-		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o \
+		$(SRC)/crt/cc_entry.o $(SRC)/crt/cc_crt.o $(SRC)/crt/cc_trace.o \
 		$(SRC)/stubs/math.o $(SRC)/stubs/blocksize.o $(SRC)/stubs/stdiowin.o $(SRC)/stubs/nostdio.o $(SRC)/stubs/cxamemset.o $(SRC)/stubs/cxamemcpy.o
 
 ###############################################################################
@@ -52,6 +53,9 @@ $(SRC)/crt/cc_entry.o: $(SRC)/crt/cc_entry.c
 
 $(SRC)/crt/cc_crt.o: $(SRC)/crt/cc_crt.c
 	Sc idir=$(SRC) OBJNAME $@ $<
+
+$(SRC)/crt/cc_trace.o: $(SRC)/crt/cc_trace.c $(SRC)/crt/cc_trace.h
+	Sc idir=$(SRC)/crt OBJNAME $@ $<
 
 $(SRC)/stubs/math.o: $(SRC)/stubs/math.c
 	Sc OBJNAME $@ $<

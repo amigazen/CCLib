@@ -1,4 +1,4 @@
-FROM "cc_start.o"+"///Source/crt/cc_entry.o"+"///Source/crt/cc_crt.o"+"///Source/stubs/math.o"+"///Source/stubs/blocksize.o"+"///Source/stubs/stdiowin.o"+"///Source/stubs/nostdio.o"+"///Source/stubs/cxamemset.o"+"///Source/stubs/cxamemcpy.o"+"cat.o"
+FROM "cc_start.o"+"///Source/crt/cc_entry.o"+"///Source/crt/cc_crt.o"+"///Source/crt/cc_trace.o"+"///Source/stubs/math.o"+"///Source/stubs/blocksize.o"+"///Source/stubs/stdiowin.o"+"///Source/stubs/nostdio.o"+"///Source/stubs/cxamemset.o"+"///Source/stubs/cxamemcpy.o"+"cat.o"
 TO "cat"
 LIB lib:amiga.lib
 ADDSYM

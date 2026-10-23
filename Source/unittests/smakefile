@@ -5,8 +5,10 @@
 # CCPanic -- validation / abort_func harness (forged handles, EBADF, ...).
 #
 # Flags: SCOPTIONS in this directory (keep Sc lines short).
+# dbg=sf + no slink STRIPDEBUG: leave HUNK_DEBUG/'LINE' in the exe so the
+# CRT panic dump can print file:line.  cc_start.o must be first on FROM
+# (SLINK has no ENTRY; first hunk is PC).
 # Link: slink with *.lnk -- amiga.lib only, no sc.lib.
-# cc_start.o must be first on FROM (SLINK has no ENTRY; first hunk is PC).
 #
 # Requires cclib.library in LIBS: (parent smake install).
 # Run from Source/unittests.
@@ -18,6 +20,7 @@ CRT_OBJS = \
 	cc_start.o \
 	/crt/cc_entry.o \
 	/crt/cc_crt.o \
+	/crt/cc_trace.o \
 	/stubs/math.o \
 	/stubs/blocksize.o \
 	/stubs/stdiowin.o \
@@ -77,7 +80,7 @@ CCPthread: $(CRT_OBJS) cctest_util.o ccpthread_main.o $(CCPTHREAD_OBJS) CCPthrea
 clean:
 	delete quiet CCTest CCPanic CCPthread CCTest.map CCPanic.map CCPthread.map \
 		$(CCTEST_OBJS) $(CCPANIC_OBJS) ccpthread_main.o cc_start.o \
-		/crt/cc_entry.o /crt/cc_crt.o \
+		/crt/cc_entry.o /crt/cc_crt.o /crt/cc_trace.o \
 		/stubs/math.o /stubs/blocksize.o /stubs/stdiowin.o /stubs/nostdio.o \
 		/stubs/cxamemset.o /stubs/cxamemcpy.o \
 		$(CCPTHREAD_OBJS)
@@ -99,8 +102,11 @@ cc_start.o: /crt/cc_start.asm
 	Sc OBJNAME $@ $<
 
 # Extra idir=/ so private/ headers resolve from Source/
-/crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h /private/cc_break.h
+/crt/cc_crt.o: /crt/cc_crt.c /private/cc_build.h /private/cc_internal.h /private/cc_break.h /crt/cc_trace.h
 	Sc idir=/ OBJNAME $@ $<
+
+/crt/cc_trace.o: /crt/cc_trace.c /crt/cc_trace.h
+	Sc idir=/crt OBJNAME $@ $<
 
 /stubs/math.o: /stubs/math.c
 	Sc OBJNAME $@ $<

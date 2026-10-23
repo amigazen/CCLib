@@ -31,18 +31,22 @@ ct_panic_hook(LONG code)
 void
 ct_install_panic_hook(void)
 {
+	extern void cc_trace_omit(APTR fn);
+
 	ct_panic_hits = 0;
 	/* Replace CRT exit hook so forged-handle panics do not kill CCTest. */
 	SetAbortFunc((APTR)ct_panic_hook);
+	/* Returning hook is not a caller; omit it from the panic backtrace. */
+	cc_trace_omit((APTR)ct_panic_hook);
 }
 
 void
 ct_restore_panic_hook(void)
 {
-	extern void __stdargs __saveds exit(LONG code);
+	extern void __stdargs __saveds cc_crt_abort(LONG code);
 
-	/* Restore the CRT terminate path used by SetupSTDIO. */
-	SetAbortFunc((APTR)exit);
+	/* Restore the CRT abort hook (stack dump, then exit). */
+	SetAbortFunc((APTR)cc_crt_abort);
 }
 
 static void

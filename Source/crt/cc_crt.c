@@ -45,6 +45,7 @@
 #include "/private/cc_build.h"
 #include "/private/cc_internal.h"
 #include "/private/cc_break.h"
+#include "/crt/cc_trace.h"
 
 extern short _math;
 extern long blocksize;
@@ -523,7 +524,7 @@ _main(STRPTR aptr)
 		(APTR)&stdin, (APTR)&stdout, (APTR)&stderr,
 		(APTR)&errno, (APTR)&blocksize, (APTR)&type,
 		(APTR)MathIeeeDoubBasBase,
-		alen, aptr, (APTR)WBenchMsg, (APTR)exit))
+		alen, aptr, (APTR)WBenchMsg, (APTR)cc_crt_abort))
 	{
 		if (DOSBase != (struct DosLibrary *)NULL)
 		{
@@ -546,6 +547,8 @@ _main(STRPTR aptr)
 	ud = (cc_task_UserData *)GetSTDIO();
 	if (ud != (cc_task_UserData *)NULL)
 	{
+		cc_trace_init();
+		ud->trace_dump = cc_trace_dump;
 		CC_CRT_DBG("cc_crt: calling main()\n");
 		rv = main((int)ud->_argc, ud->_argv);
 		CC_CRT_DBG("cc_crt: main() returned\n");
@@ -586,6 +589,8 @@ cc_terminate(LONG code)
 
 	if (_trapaddr != (void **)NULL)
 		*_trapaddr = _oldtrap;
+
+	cc_trace_clear();
 
 	if (CCLibBase != (struct Library *)NULL)
 	{
