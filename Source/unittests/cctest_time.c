@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * cctest_time.c - time / clock / tm conversion helpers
  */

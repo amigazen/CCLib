@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * stubs/cxamemset.c - SAS/C compiler helper without sc.lib
  *

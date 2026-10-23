@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * cctest_heap.c - malloc, calloc, realloc, free, malloc_size, heap_alloc,
  * heap_free, and be_free

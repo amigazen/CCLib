@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 #ifndef STDIO_H
 #define STDIO_H 1
 

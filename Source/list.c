@@ -1,25 +1,13 @@
 /* SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2026
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED.
- *
+ * Copyright (c) 2026 amigazen project
+ */
+
+/*
  * list.c - linked-list LVOs for cclib.library
  *
  * Node allocation uses Exec AllocMem/FreeMem (not heap_alloc) so list code
  * does not recurse through unfinished heap LVOs. Layout:
- *   [ULONG total_bytes][cc_node][size bytes of caller data]
+ * [ULONG total_bytes][cc_node][size bytes of caller data]
  * inst_node returns &cc_node. add_head/add_tail return (&cc_node)+1 (data).
  * remv_head/remv_tail/r_node/remv_node return &cc_node (not freed).
  * To FreeMem a returned node: hp = (ULONG *)node - 1; FreeMem(hp, *hp).

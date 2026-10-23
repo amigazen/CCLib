@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * support.c - stdio setup, argv parsing, and strerror for cclib.library
  *

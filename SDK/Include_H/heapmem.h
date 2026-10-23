@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 #ifndef HEAPMEM_H
 #define HEAPMEM_H 1
 

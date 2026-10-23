@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 #ifndef PTHREAD_H
 #define PTHREAD_H 1
 

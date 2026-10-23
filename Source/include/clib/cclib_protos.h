@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 #ifndef CLIB_CCLIB_PROTOS_H
 #define CLIB_CCLIB_PROTOS_H
 

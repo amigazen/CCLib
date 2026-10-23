@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * ccpanic_io.c - sentinel fds (EBADF, no panic) and forged/stale fds
  */

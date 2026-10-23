@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * amiga_math_stubs.c - satisfy ma.lib refs to unfinished Amiga backends
  *

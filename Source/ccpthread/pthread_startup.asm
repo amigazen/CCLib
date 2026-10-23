@@ -1,3 +1,6 @@
+* SPDX-License-Identifier: BSD-2-Clause
+* Copyright (c) 2026 amigazen project
+*
 *
 * pthread_startup.asm - CreateNewProc NP_Entry (unix.lib2 pattern).
 *

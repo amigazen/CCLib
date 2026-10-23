@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: BSD-2-Clause
- *
  * Copyright (c) 2026 amigazen project
- * All rights reserved.
- *
- *
+ */
+
+/*
  * cc_util.c - task userdata helpers and ctype classification table
  */
 

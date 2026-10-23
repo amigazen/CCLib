@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * wchar.c - multibyte / wchar foundation (MB_CUR_MAX==1) and wctype LVOs.
  *

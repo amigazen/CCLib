@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * cc_ieee.c - IEEEDP* calls through SetupSTDIO's per-task mathbase
  *

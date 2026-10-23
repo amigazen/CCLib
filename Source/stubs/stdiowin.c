@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * Default Workbench console spec (SAS/C __stdiowin / __stdiov37).
  *

@@ -189,6 +189,8 @@ the cclib.library becomes more efficient as soon as you have a few programs all 
 assumption is also made that RAM and storage are cheap in 2026 even on classic Amiga platforms, and so the 
 next question asks _what are the benefits received for giving up a little extra memory and performance?_
 
+CCLib additionally takes a hybrid approach, separating out larger modules that will not be needed by every application, such as the additional POSIX and POSIX thread functionality, into static link libraries.
+
 ## Do the reliability/safety features impact performance?
 
 Yes, capability checks and the per-task resource lists add CPU time and a little RAM to some of

@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2026 amigazen project
+ */
+
 /*
  * cc_locale.c - POSIX locale session (Wave 0-1 LVOs + Wave 2-3 FormatDate)
  *
