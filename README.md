@@ -17,7 +17,7 @@ upon Amiga's Exec kernel.
 
 *Minds awaken, free*
 
-**amigazen project** is using modern software development tools and methods to update and rerelease classic
+**amigazen project** uses modern software development tools and methods to update and rerelease classic
 Amiga open source software. Projects include a new AWeb, a new Amiga Python 2, and the ToolKit project — a
 universal SDK for Amiga development. All *amigazen project* releases are guaranteed to build against the
 ToolKit standard so that anyone can download and begin contributing straightaway without having to tailor
@@ -151,7 +151,6 @@ libraries own versions of the Standard C Library functions, like StrToLong(), SN
 encapsulating them with just enough code to add the reliability features and compatibility enhancements needed 
 to support the common libc implementation expected by portable software.
 
-
 ## Does CCLib include a 'libm' math library as well?
 
 CCLib is designed to be used with ma.lib, a C99 libm implementation also from amigazen project. This is 
@@ -227,7 +226,7 @@ When amigazen project started looking into the possibility of providing a new li
 [cclib.library](https://aminet.net/package/dev/c/CCLib) by Robert W. Albrecht (1989–1990) stood out as a
 well constructed example of how an Amiga shared library should implement the standard C library.
 
-The Aminet (originally in fact a Fred Fish release) ships the `CClib.library` binary, headers, autodocs, and 
+The Aminet release (originally in fact a Fred Fish release) ships the `CClib.library` binary, headers, autodocs, 
 compiler glue, plus startup code for Aztec and Lattice `_main` replacements, connection-routine stubs, and an 
 early GCC `crt0` from Paul Gittings — but not the source to the library function bodies themselves.
 
@@ -238,7 +237,7 @@ on Amiga.
 ## Contact
 
 - At GitHub https://github.com/amigazen/CCLib/
-- On the web at http://www.amigazen.com/ (Amiga browser compatible)
+- On the web at http://www.amigazen.com/toolkit/ (Amiga browser compatible)
 - Or email toolkit@amigazen.com
 
 ## Acknowledgements
