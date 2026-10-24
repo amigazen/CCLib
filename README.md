@@ -64,7 +64,7 @@ panic occurred without the need for Enforcer, SegTracker and FindHit
 * **SAS/C compatibility:** the most useful paradigms from SAS/C's runtime including Workbench startup and 
 console open, `_STI`/`_STD` init and exit callbacks, `atexit` (also run on `_exit`, `abort`, panic and 
 Ctrl-C), `__chkabort`, and `__stack` growth via `StackSwap` (without the known defects of the original)
-* **libm compatibility:** CCLib is designed to be linked with `ma.lib`also from amigazen project
+* **libm compatibility:** CCLib is designed to be linked with `ma.lib` also from amigazen project
 * **Backwards compatible to original cclib.library:** Clean-room reimplementation of the original Aminet 
 `cclib.library` jump table, including Lattice/BSD leftovers (`bcopy`, `index`, `agetc`/`aputc`, list helpers) 
 so software written against the V3 ABI can link
