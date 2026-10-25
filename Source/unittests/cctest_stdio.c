@@ -434,6 +434,167 @@ ct_suite_stdio(void)
 		}
 	}
 
+	{
+		FILE *sfp;
+		char *big;
+		char *got;
+		char apath[40];
+		LONG i;
+		LONG fd;
+		APTR afp;
+		APTR rfp;
+
+		sfp = (FILE *)tmpfile();
+		ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"lazy_buf_tmp",
+			(STRPTR)"tmpfile for lazy buffer size",
+			(STRPTR)"tmpfile must open so getbuff can allocate the default buffer",
+			(APTR)sfp);
+		if (sfp != (FILE *)NULL)
+		{
+			c = putc((LONG)'A', (APTR)sfp);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"lazy_buf_putc",
+				(STRPTR)"putc to force getbuff",
+				(STRPTR)"first putc must succeed so the lazy buffer exists",
+				(LONG)'A', c);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"lazy_buf_size",
+				(STRPTR)"FILE->_buflen after first putc",
+				(STRPTR)"getbuff must allocate the 8192-byte lazy buffer, not public BUFSIZ",
+				8192L, (LONG)sfp->_buflen);
+			fclose((APTR)sfp);
+		}
+
+		fp = tmpfile();
+		ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"fflush_null_tmp",
+			(STRPTR)"tmpfile for fflush(NULL)",
+			(STRPTR)"tmpfile must open so a dirty buffer can be flushed by fflush(NULL)",
+			fp);
+		if (fp != (APTR)NULL)
+		{
+			n = (LONG)fwrite((APTR)"FLUSHNULL", 1UL, 9UL, fp);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"fflush_null_fwrite",
+				(STRPTR)"fwrite(\"FLUSHNULL\")",
+				(STRPTR)"nine bytes must sit in the FILE buffer (smaller than 8192)",
+				9, n);
+			n = fflush((APTR)NULL);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"fflush_null_ok",
+				(STRPTR)"fflush(NULL) after a dirty fwrite",
+				(STRPTR)"fflush(NULL) must flush dirty session streams and return 0",
+				0, n);
+			fd = ((FILE *)fp)->_unit;
+			pos = lseek(fd, 0L, 0);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"fflush_null_seek",
+				(STRPTR)"lseek(fileno, 0) after fflush(NULL)",
+				(STRPTR)"underlying fd must be readable at 0 after ISO fflush(NULL)",
+				0, pos);
+			memset(buf, 0, sizeof(buf));
+			n = read(fd, (APTR)buf, 9L);
+			ct_check_long((STRPTR)"stdio", (STRPTR)"fflush_null_read",
+				(STRPTR)"read of 9 from fileno after fflush(NULL)",
+				(STRPTR)"fflush(NULL) must have pushed the dirty buffer to AmigaDOS",
+				9, n);
+			buf[9] = '\0';
+			ct_check_string((STRPTR)"stdio",
+				(STRPTR)"fflush_null_content",
+				(STRPTR)"contents after fflush(NULL)",
+				(STRPTR)"disk bytes must be FLUSHNULL without an explicit fflush(fp)",
+				(STRPTR)"FLUSHNULL",
+				buf);
+			fclose(fp);
+		}
+
+		big = (char *)malloc(10000UL);
+		got = (char *)malloc(10000UL);
+		ct_check_true((STRPTR)"stdio", (STRPTR)"bulk_alloc",
+			(STRPTR)"malloc(10000) x2 for fread/fwrite bypass",
+			(STRPTR)"heap buffers must be available for the 9000-byte bulk I/O test",
+			big != (char *)NULL && got != (char *)NULL);
+		if (big != (char *)NULL && got != (char *)NULL)
+		{
+			for (i = 0L; i < 9000L; i++)
+				big[i] = (char)('A' + (i % 26L));
+			fp = tmpfile();
+			ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"bulk_tmp",
+				(STRPTR)"tmpfile for 9000-byte fwrite/fread",
+				(STRPTR)"tmpfile must open for the bulk transfer test",
+				fp);
+			if (fp != (APTR)NULL)
+			{
+				n = (LONG)fwrite((APTR)big, 1UL, 9000UL, fp);
+				ct_check_long((STRPTR)"stdio", (STRPTR)"fwrite_9000",
+					(STRPTR)"fwrite of 9000 bytes",
+					(STRPTR)"fwrite larger than the FILE buffer must transfer 9000 items",
+					9000L, n);
+				fflush(fp);
+				fseek(fp, 0, 0);
+				memset(got, 0, 9000);
+				n = (LONG)fread((APTR)got, 1UL, 9000UL, fp);
+				ct_check_long((STRPTR)"stdio", (STRPTR)"fread_9000",
+					(STRPTR)"fread of 9000 bytes",
+					(STRPTR)"fread larger than the FILE buffer must transfer 9000 items",
+					9000L, n);
+				ct_check_true((STRPTR)"stdio", (STRPTR)"fread_9000_match",
+					(STRPTR)"memcmp after bulk fread",
+					(STRPTR)"bulk fread must recover the 9000 bytes written by fwrite",
+					memcmp((APTR)big, (APTR)got, 9000) == 0);
+				fclose(fp);
+			}
+		}
+		if (big != (char *)NULL)
+			free(big);
+		if (got != (char *)NULL)
+			free(got);
+
+		strcpy(apath, (STRPTR)"T:cctest_fopen_a");
+		remove(apath);
+		afp = fopen(apath, (STRPTR)"w");
+		ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"fopen_w_append",
+			(STRPTR)"fopen(T:cctest_fopen_a,\"w\")",
+			(STRPTR)"setup file for fopen-append must be created",
+			afp);
+		if (afp != (APTR)NULL)
+		{
+			fputs((STRPTR)"AB", afp);
+			fclose(afp);
+			afp = fopen(apath, (STRPTR)"a");
+			ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"fopen_a",
+				(STRPTR)"fopen(...,\"a\")",
+				(STRPTR)"fopen append mode must reopen the existing file",
+				afp);
+			if (afp != (APTR)NULL)
+			{
+				n = fputs((STRPTR)"CD", afp);
+				ct_check_long((STRPTR)"stdio", (STRPTR)"fputs_append",
+					(STRPTR)"fputs(\"CD\") in append mode",
+					(STRPTR)"append fputs must report 2 characters",
+					2, n);
+				fclose(afp);
+			}
+			rfp = fopen(apath, (STRPTR)"r");
+			ct_check_ptr_nonnull((STRPTR)"stdio", (STRPTR)"fopen_a_read",
+				(STRPTR)"fopen of the append result for read",
+				(STRPTR)"the append result file must open for reading",
+				rfp);
+			if (rfp != (APTR)NULL)
+			{
+				memset(buf, 0, sizeof(buf));
+				t = fgets(buf, (LONG)sizeof(buf), rfp);
+				ct_check_ptr_nonnull((STRPTR)"stdio",
+					(STRPTR)"fgets_append",
+					(STRPTR)"fgets after fopen \"a\"",
+					(STRPTR)"fgets must return the buffer after append writes",
+					(APTR)t);
+				ct_check_string((STRPTR)"stdio",
+					(STRPTR)"fgets_append_content",
+					(STRPTR)"append file contents",
+					(STRPTR)"fopen \"w\" then \"a\" must yield ABCD",
+					(STRPTR)"ABCD",
+					buf);
+				fclose(rfp);
+			}
+		}
+		remove(apath);
+	}
+
 	errno = 0;
 	n = (LONG)fread((APTR)NULL, 1UL, 4UL, stdout);
 	ct_check_long((STRPTR)"stdio", (STRPTR)"fread_null_ptr",

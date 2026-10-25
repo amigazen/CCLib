@@ -53,6 +53,8 @@
 #define CC_O_STDIO   (1<<15)
 
 #define CC_BUFSIZ    1024L
+/* Lazy FILE buffer (getbuff).  Public BUFSIZ stays 1024 for setbuf(). */
+#define CC_STDIO_BUFSIZE 8192L
 #define CC_EOF       (-1)
 #define CC_SEEK_SET  0L
 #define CC_SEEK_CUR  1L

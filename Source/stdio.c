@@ -82,6 +82,216 @@ static cc_FILE *cc_alloc_file(cc_task_UserData *ud)
 	return fp;
 }
 
+/* Flush a resolved FILE*.  Dirty: write pending bytes.  Clean input: seek
+ * back over unread lookahead.  Callers that already hold fp skip the LVO.
+ */
+static LONG cc_fflush_fp(cc_FILE *fp)
+{
+	LONG n;
+	LONG len;
+
+	if (!(fp->_flags & CC_DIRTY))
+	{
+		if (fp->_buff != NULL && fp->_bp < fp->_bend)
+		{
+			len = (LONG)(fp->_bend - fp->_bp);
+			lseek(fp->_unit, -len, (ULONG)CC_SEEK_CUR);
+			fp->_bp = fp->_buff;
+			fp->_bend = fp->_buff;
+		}
+		return 0L;
+	}
+
+	if (fp->_buff == NULL || fp->_bp <= fp->_buff)
+	{
+		fp->_flags &= ~CC_DIRTY;
+		return 0L;
+	}
+
+	len = (LONG)(fp->_bp - fp->_buff);
+	n = write(fp->_unit, (APTR)fp->_buff, len);
+	fp->_bp = fp->_buff;
+	fp->_bend = fp->_buff;
+	fp->_flags &= ~CC_DIRTY;
+
+	if (n != len)
+	{
+		fp->_flags |= CC_IOERR;
+		return (LONG)CC_EOF;
+	}
+	return 0L;
+}
+
+static LONG cc_buf_has_nl(char *p, LONG n)
+{
+	LONG i;
+
+	i = 0L;
+	while (i < n)
+	{
+		if (p[i] == '\n')
+			return 1L;
+		i++;
+	}
+	return 0L;
+}
+
+/* Prepare a resolved stream for output: lazy buffer + undo read-ahead. */
+static void cc_prepare_write(cc_FILE *fp)
+{
+	LONG leftover;
+
+	if (fp->_buff == NULL)
+		getbuff((APTR)fp);
+	if (!(fp->_flags & CC_DIRTY) && fp->_bp < fp->_bend)
+	{
+		leftover = (LONG)(fp->_bend - fp->_bp);
+		lseek(fp->_unit, -leftover, (ULONG)CC_SEEK_CUR);
+		fp->_bp = fp->_buff;
+		fp->_bend = fp->_buff;
+	}
+}
+
+/* Bulk write into a resolved FILE*.  Returns bytes stored (may be short). */
+static ULONG cc_fwrite_bytes(cc_FILE *fp, UBYTE *src, ULONG total)
+{
+	ULONG done;
+	ULONG remaining;
+	LONG space;
+	LONG chunk;
+	LONG n;
+	LONG tty;
+
+	done = 0UL;
+	tty = -1L;
+	cc_prepare_write(fp);
+
+	while (done < total)
+	{
+		space = (LONG)((fp->_buff + fp->_buflen) - fp->_bp);
+		if (space <= 0L)
+		{
+			if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+				return done;
+			space = (LONG)fp->_buflen;
+		}
+
+		remaining = total - done;
+		if (fp->_bp == fp->_buff && remaining >= (ULONG)fp->_buflen)
+		{
+			n = write(fp->_unit, (APTR)(src + done), (LONG)remaining);
+			if (n <= 0L)
+			{
+				fp->_flags |= CC_IOERR;
+				return done;
+			}
+			done += (ULONG)n;
+			fp->_flags &= ~CC_EOFBIT;
+			if ((ULONG)n < remaining)
+			{
+				fp->_flags |= CC_IOERR;
+				return done;
+			}
+			continue;
+		}
+
+		chunk = space;
+		if ((ULONG)chunk > remaining)
+			chunk = (LONG)remaining;
+		CopyMem((APTR)(src + done), (APTR)fp->_bp, (ULONG)chunk);
+		fp->_bp += chunk;
+		done += (ULONG)chunk;
+		fp->_flags |= CC_DIRTY;
+		fp->_flags &= ~CC_EOFBIT;
+
+		if (fp->_buflen <= 1)
+		{
+			if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+				return done;
+			continue;
+		}
+
+		if (cc_buf_has_nl((char *)(src + done - (ULONG)chunk), chunk))
+		{
+			if (tty < 0L)
+				tty = isatty(fp->_unit);
+			if (tty)
+			{
+				if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+					return done;
+			}
+		}
+	}
+	return done;
+}
+
+/* Bulk read from a resolved FILE*.  Returns bytes stored (may be short). */
+static ULONG cc_fread_bytes(cc_FILE *fp, UBYTE *dst, ULONG total)
+{
+	ULONG got;
+	ULONG remaining;
+	LONG avail;
+	LONG chunk;
+	LONG n;
+
+	got = 0UL;
+	if (fp->_flags & CC_EOFBIT)
+		return 0UL;
+
+	if (fp->_flags & CC_DIRTY)
+	{
+		if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+			return 0UL;
+	}
+
+	if (fp->_buff == NULL)
+		getbuff((APTR)fp);
+
+	while (got < total)
+	{
+		avail = (LONG)(fp->_bend - fp->_bp);
+		if (avail > 0L)
+		{
+			chunk = avail;
+			if ((ULONG)chunk > total - got)
+				chunk = (LONG)(total - got);
+			CopyMem((APTR)fp->_bp, (APTR)(dst + got), (ULONG)chunk);
+			fp->_bp += chunk;
+			got += (ULONG)chunk;
+			continue;
+		}
+
+		remaining = total - got;
+		if (remaining >= (ULONG)fp->_buflen)
+		{
+			n = read(fp->_unit, (APTR)(dst + got), (LONG)remaining);
+			if (n <= 0L)
+			{
+				fp->_flags |= CC_EOFBIT;
+				if (n < 0L)
+					fp->_flags |= CC_IOERR;
+				break;
+			}
+			got += (ULONG)n;
+			continue;
+		}
+
+		n = read(fp->_unit, (APTR)fp->_buff, (LONG)fp->_buflen);
+		if (n <= 0L)
+		{
+			fp->_flags |= CC_EOFBIT;
+			if (n < 0L)
+				fp->_flags |= CC_IOERR;
+			fp->_bp = fp->_buff;
+			fp->_bend = fp->_buff;
+			break;
+		}
+		fp->_bp = fp->_buff;
+		fp->_bend = fp->_buff + n;
+	}
+	return got;
+}
+
 void __ASM__ __SAVE_DS__ getbuff(
 	__REG__(a0, APTR stream))
 {
@@ -97,7 +307,7 @@ void __ASM__ __SAVE_DS__ getbuff(
 	if (fp->_buff != NULL)
 		return;
 
-	buf = (char *)AllocMem(CC_BUFSIZ, MEMF_CLEAR);
+	buf = (char *)AllocMem(CC_STDIO_BUFSIZE, MEMF_CLEAR);
 	if (buf == NULL)
 	{
 		/* Fall back to the single-byte buffer */
@@ -112,7 +322,7 @@ void __ASM__ __SAVE_DS__ getbuff(
 	fp->_buff = buf;
 	fp->_bp = buf;
 	fp->_bend = buf;
-	fp->_buflen = (short)CC_BUFSIZ;
+	fp->_buflen = (short)CC_STDIO_BUFSIZE;
 	fp->_flags |= CC_ALLBUF;
 }
 
@@ -181,50 +391,36 @@ LONG __ASM__ __SAVE_DS__ fflush(
 {
 	cc_task_UserData *ud;
 	cc_FILE *fp;
-	LONG n;
-	LONG len;
+	cc_node *node;
+	LONG rc;
 
-	/* fflush(NULL) is a no-op here (historic); ISO would flush all. */
 	cc_check_break();
-	if (stream == (APTR)NULL)
-		return 0L;
-
 	ud = cc_get_ud();
+	if (stream == (APTR)NULL)
+	{
+		/* ISO: flush every stream whose last operation was output. */
+		rc = 0L;
+		if (ud == (cc_task_UserData *)NULL)
+			return 0L;
+		node = ud->StreamFiles.first;
+		while (node != (cc_node *)NULL)
+		{
+			fp = (cc_FILE *)(node + 1);
+			node = node->next;
+			if (fp->magic != CC_FP_MAGIC)
+				continue;
+			if ((fp->_flags & CC_DIRTY) == 0)
+				continue;
+			if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+				rc = (LONG)CC_EOF;
+		}
+		return rc;
+	}
+
 	fp = cc_file_from_list(ud, stream);
 	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
-
-	if (!(fp->_flags & CC_DIRTY))
-	{
-		/* Discard any unread buffered input by seeking back */
-		if (fp->_buff != NULL && fp->_bp < fp->_bend)
-		{
-			len = (LONG)(fp->_bend - fp->_bp);
-			lseek(fp->_unit, -len, (ULONG)CC_SEEK_CUR);
-			fp->_bp = fp->_buff;
-			fp->_bend = fp->_buff;
-		}
-		return 0L;
-	}
-
-	if (fp->_buff == NULL || fp->_bp <= fp->_buff)
-	{
-		fp->_flags &= ~CC_DIRTY;
-		return 0L;
-	}
-
-	len = (LONG)(fp->_bp - fp->_buff);
-	n = write(fp->_unit, (APTR)fp->_buff, len);
-	fp->_bp = fp->_buff;
-	fp->_bend = fp->_buff;
-	fp->_flags &= ~CC_DIRTY;
-
-	if (n != len)
-	{
-		fp->_flags |= CC_IOERR;
-		return (LONG)CC_EOF;
-	}
-	return 0L;
+	return cc_fflush_fp(fp);
 }
 
 APTR __ASM__ __SAVE_DS__ fdopen(
@@ -406,7 +602,7 @@ LONG __ASM__ __SAVE_DS__ getc(
 
 	if (fp->_flags & CC_DIRTY)
 	{
-		if (fflush(fp) == (LONG)CC_EOF)
+		if (cc_fflush_fp(fp) == (LONG)CC_EOF)
 			return (LONG)CC_EOF;
 	}
 
@@ -467,7 +663,7 @@ LONG __ASM__ __SAVE_DS__ putc(
 
 	if (fp->_bp >= fp->_buff + fp->_buflen)
 	{
-		if (fflush(fp) == (LONG)CC_EOF)
+		if (cc_fflush_fp(fp) == (LONG)CC_EOF)
 			return (LONG)CC_EOF;
 	}
 
@@ -481,7 +677,7 @@ LONG __ASM__ __SAVE_DS__ putc(
 	{
 		if (isatty(fp->_unit))
 		{
-			if (fflush(fp) == (LONG)CC_EOF)
+			if (cc_fflush_fp(fp) == (LONG)CC_EOF)
 				return (LONG)CC_EOF;
 		}
 	}
@@ -489,7 +685,7 @@ LONG __ASM__ __SAVE_DS__ putc(
 	/* Unbuffered: flush every character */
 	if (fp->_buflen <= 1)
 	{
-		if (fflush(fp) == (LONG)CC_EOF)
+		if (cc_fflush_fp(fp) == (LONG)CC_EOF)
 			return (LONG)CC_EOF;
 	}
 
@@ -645,10 +841,9 @@ ULONG __ASM__ __SAVE_DS__ fwrite(
 	__REG__(d1, ULONG nitems),
 	__REG__(a1, APTR stream))
 {
-	UBYTE *p;
+	cc_FILE *fp;
 	ULONG total;
-	ULONG i;
-	LONG c;
+	ULONG wrote;
 	cc_check_break();
 
 	if (size == 0UL || nitems == 0UL)
@@ -666,17 +861,12 @@ ULONG __ASM__ __SAVE_DS__ fwrite(
 	}
 	if (!cc_buf_mapped(ptr, total))
 		return 0UL;
-	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
+	fp = cc_file_from_list(cc_get_ud(), stream);
+	if (fp == (cc_FILE *)NULL)
 		return 0UL;
 
-	p = (UBYTE *)ptr;
-	for (i = 0UL; i < total; i++)
-	{
-		c = putc((LONG)p[i], stream);
-		if (c == (LONG)CC_EOF)
-			return i / size;
-	}
-	return nitems;
+	wrote = cc_fwrite_bytes(fp, (UBYTE *)ptr, total);
+	return wrote / size;
 }
 
 ULONG __ASM__ __SAVE_DS__ fread(
@@ -685,10 +875,9 @@ ULONG __ASM__ __SAVE_DS__ fread(
 	__REG__(d1, ULONG nitems),
 	__REG__(a1, APTR stream))
 {
-	UBYTE *p;
+	cc_FILE *fp;
 	ULONG total;
-	ULONG i;
-	LONG c;
+	ULONG got;
 	cc_check_break();
 
 	if (size == 0UL || nitems == 0UL)
@@ -706,18 +895,12 @@ ULONG __ASM__ __SAVE_DS__ fread(
 	}
 	if (!cc_buf_mapped(ptr, total))
 		return 0UL;
-	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
+	fp = cc_file_from_list(cc_get_ud(), stream);
+	if (fp == (cc_FILE *)NULL)
 		return 0UL;
 
-	p = (UBYTE *)ptr;
-	for (i = 0UL; i < total; i++)
-	{
-		c = getc(stream);
-		if (c == (LONG)CC_EOF)
-			return i / size;
-		p[i] = (UBYTE)c;
-	}
-	return nitems;
+	got = cc_fread_bytes(fp, (UBYTE *)ptr, total);
+	return got / size;
 }
 
 void __ASM__ __SAVE_DS__ perror(
@@ -845,9 +1028,13 @@ STRPTR __ASM__ __SAVE_DS__ fgets(
 	__REG__(d0, LONG n),
 	__REG__(a1, APTR stream))
 {
+	cc_FILE *fp;
 	STRPTR p;
-	LONG c;
 	LONG left;
+	LONG avail;
+	LONG take;
+	LONG i;
+	LONG nread;
 	cc_check_break();
 
 	if (s == (STRPTR)NULL || stream == (APTR)NULL || n <= 0L)
@@ -857,23 +1044,61 @@ STRPTR __ASM__ __SAVE_DS__ fgets(
 	}
 	if (!cc_buf_mapped((APTR)s, (ULONG)n))
 		return (STRPTR)NULL;
-	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
+	fp = cc_file_from_list(cc_get_ud(), stream);
+	if (fp == (cc_FILE *)NULL)
 		return (STRPTR)NULL;
+
+	if (fp->_flags & CC_DIRTY)
+	{
+		if (cc_fflush_fp(fp) == (LONG)CC_EOF)
+			return (STRPTR)NULL;
+	}
+
+	if (fp->_buff == NULL)
+		getbuff((APTR)fp);
 
 	p = s;
 	left = n - 1L;
 	while (left > 0L)
 	{
-		c = getc(stream);
-		if (c == (LONG)CC_EOF)
+		avail = (LONG)(fp->_bend - fp->_bp);
+		if (avail <= 0L)
 		{
-			if (p == s)
-				return NULL;
-			break;
+			nread = read(fp->_unit, (APTR)fp->_buff, (LONG)fp->_buflen);
+			if (nread <= 0L)
+			{
+				fp->_flags |= CC_EOFBIT;
+				if (nread < 0L)
+					fp->_flags |= CC_IOERR;
+				fp->_bp = fp->_buff;
+				fp->_bend = fp->_buff;
+				if (p == s)
+					return (STRPTR)NULL;
+				break;
+			}
+			fp->_bp = fp->_buff;
+			fp->_bend = fp->_buff + nread;
+			avail = nread;
 		}
-		*p++ = (char)c;
-		left--;
-		if (c == (LONG)'\n')
+
+		take = avail;
+		if (take > left)
+			take = left;
+		i = 0L;
+		while (i < take)
+		{
+			if (fp->_bp[i] == '\n')
+			{
+				take = i + 1L;
+				break;
+			}
+			i++;
+		}
+		CopyMem((APTR)fp->_bp, (APTR)p, (ULONG)take);
+		fp->_bp += take;
+		p += take;
+		left -= take;
+		if (p[-1] == '\n')
 			break;
 	}
 	*p = '\0';
@@ -930,8 +1155,10 @@ LONG __ASM__ __SAVE_DS__ fputs(
 	__REG__(a0, STRPTR s),
 	__REG__(a1, APTR stream))
 {
+	cc_FILE *fp;
 	STRPTR p;
-	LONG n;
+	ULONG n;
+	ULONG wrote;
 	cc_check_break();
 
 	if (s == (STRPTR)NULL || stream == (APTR)NULL)
@@ -941,19 +1168,21 @@ LONG __ASM__ __SAVE_DS__ fputs(
 	}
 	if (!cc_str_mapped(s))
 		return (LONG)CC_EOF;
-	if (cc_file_from_list(cc_get_ud(), stream) == (cc_FILE *)NULL)
+	fp = cc_file_from_list(cc_get_ud(), stream);
+	if (fp == (cc_FILE *)NULL)
 		return (LONG)CC_EOF;
 
 	p = s;
-	n = 0L;
+	n = 0UL;
 	while (*p)
 	{
-		if (putc((LONG)(UBYTE)*p, stream) == (LONG)CC_EOF)
-			return (LONG)CC_EOF;
 		p++;
 		n++;
 	}
-	return n > 0L ? n : 1L;
+	wrote = cc_fwrite_bytes(fp, (UBYTE *)s, n);
+	if (wrote != n)
+		return (LONG)CC_EOF;
+	return n > 0UL ? (LONG)n : 1L;
 }
 
 /* Replace trailing X's in a template with digits from a seed */

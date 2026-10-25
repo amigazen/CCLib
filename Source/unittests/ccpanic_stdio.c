@@ -86,7 +86,7 @@ ct_suite_panic_stdio(void)
 		n == -1L && ct_panic_hits == 4L);
 	ct_restore_panic_hook();
 
-	/* fflush(NULL) is a historic no-op - must not panic. */
+	/* fflush(NULL) flushes dirty streams - must not panic. */
 	ct_install_panic_hook();
 	n = fflush((APTR)NULL);
 	ct_check_true((STRPTR)"panic_stdio", (STRPTR)"fflush_null",

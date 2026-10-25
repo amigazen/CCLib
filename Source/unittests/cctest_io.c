@@ -18,6 +18,7 @@
 #define CT_O_RDWR    2
 #define CT_O_CREAT   (1<<8)
 #define CT_O_TRUNC   (1<<9)
+#define CT_O_APPEND  (1<<11)
 
 void
 ct_suite_io(void)
@@ -303,6 +304,55 @@ ct_suite_io(void)
 		(STRPTR)"access after creat",
 			(STRPTR)"access after creat must return 0",
 			0, st);
+	}
+
+	remove(path1);
+	fd = open(path1, (ULONG)(CT_O_WRONLY | CT_O_CREAT | CT_O_TRUNC |
+		CT_O_APPEND), 0);
+	ct_check_true((STRPTR)"io", (STRPTR)"open_append",
+		(STRPTR)"open(WRONLY|CREAT|TRUNC|APPEND)",
+		(STRPTR)"open with O_APPEND must return a non-negative fd",
+		fd >= 0);
+	if (fd >= 0)
+	{
+		n = write(fd, (APTR)"AB", 2);
+		ct_check_long((STRPTR)"io", (STRPTR)"write_append_ab",
+			(STRPTR)"write(\"AB\") on an O_APPEND fd",
+			(STRPTR)"first append write must report 2",
+			2, n);
+		pos = lseek(fd, 0, 0);
+		ct_check_long((STRPTR)"io", (STRPTR)"lseek_append_start",
+			(STRPTR)"lseek to 0 on an O_APPEND fd",
+			(STRPTR)"lseek to start must report 0 (position is independent of append)",
+			0, pos);
+		n = write(fd, (APTR)"CD", 2);
+		ct_check_long((STRPTR)"io", (STRPTR)"write_append_cd",
+			(STRPTR)"write(\"CD\") after lseek(0) on O_APPEND",
+			(STRPTR)"O_APPEND write after seek-to-start must still report 2",
+			2, n);
+		close(fd);
+		fd = open(path1, (ULONG)CT_O_RDONLY, 0);
+		ct_check_true((STRPTR)"io", (STRPTR)"open_append_read",
+			(STRPTR)"re-open append file for read",
+			(STRPTR)"re-open of the O_APPEND file must succeed",
+			fd >= 0);
+		if (fd >= 0)
+		{
+			memset(buf, 0, sizeof(buf));
+			n = read(fd, buf, 4);
+			ct_check_long((STRPTR)"io", (STRPTR)"read_append_4",
+				(STRPTR)"read after two O_APPEND writes",
+				(STRPTR)"file must contain 4 bytes (append, not overwrite)",
+				4, n);
+			buf[4] = '\0';
+			ct_check_string((STRPTR)"io",
+				(STRPTR)"read_append_content",
+				(STRPTR)"O_APPEND contents",
+				(STRPTR)"lseek+write with O_APPEND must yield ABCD, not CD",
+				(STRPTR)"ABCD",
+				buf);
+			close(fd);
+		}
 	}
 
 	n = remove(path1);

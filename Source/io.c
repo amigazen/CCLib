@@ -112,6 +112,7 @@ LONG __ASM__ __SAVE_DS__ open(
 
 	if (flags & CC_O_APPEND)
 	{
+		/* Initial position; write() also seeks to EOF each time. */
 		Seek(fh, 0L, OFFSET_END);
 	}
 
@@ -268,6 +269,7 @@ LONG __ASM__ __SAVE_DS__ write(
 	cc_task_UserData *ud;
 	cc_FileDesc *desc;
 	LONG n;
+	LONG oldpos;
 	cc_check_break();
 
 	if (buf == NULL || len < 0L)
@@ -284,6 +286,17 @@ LONG __ASM__ __SAVE_DS__ write(
 	{
 		cc_set_errno(CC_EBADF);
 		return -1L;
+	}
+
+	/* POSIX O_APPEND: every write lands at the current EOF. */
+	if (desc->mode & (short)CC_O_APPEND)
+	{
+		oldpos = Seek(desc->fh, 0L, OFFSET_END);
+		if (oldpos < 0L && IoErr() != 0L)
+		{
+			cc_set_errno(CC_EINVAL);
+			return -1L;
+		}
 	}
 
 	n = Write(desc->fh, buf, len);

@@ -525,7 +525,7 @@ cclib.library/open                                          cclib.library/open
    FUNCTION
 	Opens the named file through dos.library and allocates a FileDesc node on the task's OpenFiles list. The value returned is a LONG cast of the FileDesc * pointer, not a small integer index like Unix.
 
-	mode combines O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_TRUNC, O_EXCL, and O_APPEND from fcntl.h. O_CREAT opens for read/write when the object is missing; O_TRUNC selects MODE_NEWFILE. O_EXCL with O_CREAT fails if the object already exists. O_APPEND seeks to end after open.
+	mode combines O_RDONLY, O_WRONLY, O_RDWR, O_CREAT, O_TRUNC, O_EXCL, and O_APPEND from fcntl.h. O_CREAT opens for read/write when the object is missing; O_TRUNC selects MODE_NEWFILE. O_EXCL with O_CREAT fails if the object already exists. O_APPEND seeks to end after open, and write() seeks to end again before every Write() so later writes still append.
 
 	Use fileno() on a FILE * when you need the same FileDesc token for read() or write().
 
@@ -695,7 +695,7 @@ cclib.library/write                                        cclib.library/write
 	Registers: d0=fd, a0=buf, d1=len
 
    FUNCTION
-	Writes len bytes from buf to the DOS handle in the FileDesc using dos.library Write(). This is the low-level path used by fflush() when pushing stream buffers to disk.
+	Writes len bytes from buf to the DOS handle in the FileDesc using dos.library Write(). This is the low-level path used by fflush() when pushing stream buffers to disk. When the FileDesc was opened with O_APPEND, write() Seek()s to OFFSET_END before Write() so the data always lands at the current EOF.
 
 	Partial writes are reported by the returned count; check against len when reliability matters.
 
@@ -705,7 +705,7 @@ cclib.library/write                                        cclib.library/write
 	len - byte count
 
    RESULT
-	Bytes written, or -1 with errno EBADF.
+	Bytes written, or -1 with errno EBADF (or EINVAL if an O_APPEND Seek to EOF fails).
 
    NOTES
 	Stream fflush maps short writes to EOF return on the FILE API.
@@ -955,7 +955,7 @@ cclib.library/getbuff                                    cclib.library/getbuff
 	Registers: a0=stream
 
    FUNCTION
-	If stream has no buffer yet, allocates CC_BUFSIZ bytes for _buff or falls back to the single-byte _bytbuf embedded in the FILE when memory is low. Sets _bp and _bend to the start of the buffer and marks CC_ALLBUF when the library owns the allocation.
+	If stream has no buffer yet, allocates CC_STDIO_BUFSIZE (8192) bytes for _buff or falls back to the single-byte _bytbuf embedded in the FILE when memory is low. Sets _bp and _bend to the start of the buffer and marks CC_ALLBUF when the library owns the allocation. Public BUFSIZ remains 1024 for setbuf() clients.
 
 	Called lazily from agetc and aputc before first buffered I/O.
 
@@ -1137,7 +1137,7 @@ cclib.library/aputc                                        cclib.library/aputc
 	c (masked to byte) or EOF.
 
    NOTES
-	puterr and fputs build on aputc.
+	puterr builds on aputc. fputs uses the fwrite bulk path.
 
    SEE ALSO
 	putc, fflush, fwrite, putw
@@ -1193,7 +1193,7 @@ cclib.library/agetc                                        cclib.library/agetc
 	Character 0-255, or EOF.
 
    NOTES
-	fread and fgets call agetc in a loop.
+	Single-byte clients (getchar, scanf) still call agetc. fread and fgets copy from the FILE buffer in bulk.
 
    SEE ALSO
 	getc, ungetc, getbuff
@@ -1350,9 +1350,9 @@ cclib.library/fwrite                                      cclib.library/fwrite
 	Registers: a0=ptr, d0=size, d1=nitems, a1=stream
 
    FUNCTION
-	Writes nitems elements of size bytes each from ptr to stream by calling aputc() for every byte. Stops early on the first output failure.
+	Writes nitems elements of size bytes each from ptr to stream. Resolves the FILE* once, then copies through the stream buffer or, when the request is at least the buffer size, write()s straight into AmigaDOS. Stops early on the first output failure.
 
-	This is the block-oriented stdio write; it respects stream buffering and line discipline enforced by aputc().
+	Respects the same buffering and tty newline flush rules as aputc(), without a per-byte LVO.
 
    INPUTS
 	ptr - source data
@@ -1469,16 +1469,18 @@ cclib.library/fflush                                      cclib.library/fflush
    FUNCTION
 	For output streams with CC_DIRTY set, writes the bytes between _buff and _bp through write() on the FileDesc, then resets the buffer pointers. Returns EOF if the write count differs from the buffer length.
 
-	For input streams, discards unread buffered data by seeking the file pointer backward over the lookahead region. Called internally before fseek and when switching from read to write.
+	For a specific input stream, discards unread buffered data by seeking the file pointer backward over the lookahead region. Called internally before fseek and when switching from read to write.
+
+	fflush(NULL) walks the session StreamFiles list and flushes every dirty stream (ISO C: output / last-operation-was-output). Input lookahead is not discarded on the NULL walk. Returns EOF if any dirty flush fails.
 
    INPUTS
-	stream - FILE * (NULL is a no-op success)
+	stream - FILE *, or NULL to flush all dirty streams in the session
 
    RESULT
 	0 on success. EOF on write failure (CC_IOERR set on stream).
 
    NOTES
-	fflush(NULL) is not special here; pass a real stream.
+	fflush(NULL) is the ISO flush-all form; it does not panic.
 
    SEE ALSO
 	fseek, aputc, fclose, write
@@ -1523,9 +1525,9 @@ cclib.library/fread                                        cclib.library/fread
 	Registers: a0=ptr, d0=size, d1=nitems, a1=stream
 
    FUNCTION
-	Reads up to nitems elements of size bytes from stream into ptr using agetc() in a loop. Stops at EOF or error and returns the count of complete elements read.
+	Reads up to nitems elements of size bytes from stream into ptr. Resolves the FILE* once, copies from the live buffer, and when the remaining request is at least the buffer size, read()s straight into the caller's memory. Stops at EOF or error and returns the count of complete elements read.
 
-	Honors stdio buffering and errno set by underlying read().
+	Honors stdio buffering, ungetc pushback already in the buffer, and errno set by underlying read().
 
    INPUTS
 	ptr - destination buffer
@@ -1582,7 +1584,7 @@ cclib.library/fgets                                        cclib.library/fgets
 	Registers: a0=s, d0=n, a1=stream
 
    FUNCTION
-	Reads at most n-1 characters from stream into s, stopping at newline or EOF. Always NUL-terminates s when n > 0. The newline, if read, is kept in the buffer.
+	Reads at most n-1 characters from stream into s, stopping at newline or EOF. Copies from the live FILE buffer (and refills with read() when empty) rather than calling getc() per byte. Always NUL-terminates s when n > 0. The newline, if read, is kept in the buffer.
 
 	Returns NULL only when EOF occurs before any character is read.
 
@@ -1612,7 +1614,7 @@ cclib.library/fputs                                        cclib.library/fputs
 	Registers: a0=s, a1=stream
 
    FUNCTION
-	Writes every character of s to stream via aputc() until the terminating NUL (which is not written). Does not append a newline; use puts() for stdout with newline.
+	Writes every character of s to stream until the terminating NUL (which is not written), using the same bulk path as fwrite(). Does not append a newline; use puts() for stdout with newline.
 
 	Used by perror() and many internal formatters.
 
